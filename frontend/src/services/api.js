@@ -58,10 +58,16 @@ export const fetchScreenerResults = async (refresh = false) => {
 
 export const fetchStockAnalysis = async (symbol) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/analyse-stock?symbol=${symbol}`);
+    const url = `${API_BASE_URL}/analyse-stock?symbol=${symbol}`;
+
+    console.log("🚀 API CALL:", url);   // 👈 ADD THIS
+
+    const response = await fetch(url);
+
     if (!response.ok) {
       throw new Error("Failed to fetch analysis");
     }
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching analysis:", error);
