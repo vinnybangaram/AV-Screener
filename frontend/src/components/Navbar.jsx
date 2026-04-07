@@ -57,6 +57,10 @@ const Navbar = ({ theme, toggleTheme }) => {
           <Search size={18} />
           Analysis
         </NavLink>
+        <NavLink to="/multibagger" active={location.pathname === '/multibagger'}>
+          <TrendingUp size={18} />
+          Multibagger
+        </NavLink>
       </div>
 
       {/* Right Controls */}

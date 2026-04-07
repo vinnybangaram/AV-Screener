@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import AnalyseStock from './pages/AnalyseStock';
+import Multibagger from './pages/Multibagger';
 import Navbar from './components/Navbar';
 import './index.css';
 
@@ -25,6 +26,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/analyse-stock" element={<AnalyseStock />} />
+            <Route path="/multibagger" element={<Multibagger />} />
           </Routes>
         </main>
       </div>
