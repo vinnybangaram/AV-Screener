@@ -1,12 +1,35 @@
 console.log("🚀 SERVER FILE LOADED");
+
+process.on("uncaughtException", (err) => {
+  console.error("🔥 UNCAUGHT ERROR:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("🔥 PROMISE ERROR:", err);
+});
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const dataFetcher = require("./services/dataFetcher");
-const aiService = require("./services/aiService");
-const scoringEngine = require("./services/scoringEngine");
+
+let dataFetcher, aiService, scoringEngine;
+
+try {
+  dataFetcher = require("./services/dataFetcher");
+  aiService = require("./services/aiService");
+  scoringEngine = require("./services/scoringEngine");
+} catch (err) {
+  console.error("❌ Import failed:", err);
+}
 
 dotenv.config();
+
+console.log("✅ Server starting...");
+console.log("✅ Services loaded:", {
+  dataFetcher: !!dataFetcher,
+  aiService: !!aiService,
+  scoringEngine: !!scoringEngine
+});
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -34,16 +57,23 @@ const SCAN_TICKERS = [
 ];
 
 app.get("/api/multibagger", async (req, res) => {
-  const { refresh } = req.query;
-  const cachedData = cache.get(CACHE_KEY);
-
-  if (cachedData && refresh !== 'true' && (Date.now() - cachedData.time < CACHE_TTL)) {
-    return res.json(cachedData);
-  }
-
-  console.log(`🔍 [API] Running full 3-Layer Scan for ${SCAN_TICKERS.length} tickers...`);
-
   try {
+    if (!dataFetcher || !aiService || !scoringEngine) {
+      return res.json({
+        fallback: true,
+        message: "Services not loaded. Check server logs for import errors."
+      });
+    }
+
+    const { refresh } = req.query;
+    const cachedData = cache.get(CACHE_KEY);
+
+    if (cachedData && refresh !== 'true' && (Date.now() - cachedData.time < CACHE_TTL)) {
+      return res.json(cachedData);
+    }
+
+    console.log(`🔍 [API] Running full 3-Layer Scan for ${SCAN_TICKERS.length} tickers...`);
+    
     const results = [];
 
     // Serial scan for stability against Yahoo rate limits
@@ -105,6 +135,7 @@ app.post("/api/analyze-stock", async (req, res) => {
 });
 
 app.get("/api/ai-status", async (req, res) => {
+  if (!aiService) return res.json({ status: "Services offline" });
   const status = await aiService.checkStatus();
   res.json(status);
 });
