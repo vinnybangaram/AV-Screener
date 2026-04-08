@@ -46,5 +46,8 @@ def ai_status():
 
 
 # 🔥 INCLUDE ROUTERS (THIS WAS MISSING)
-app.include_router(analysis.router, prefix="/api/analyse-stock")
-app.include_router(screener.router, prefix="/api")
+# app.include_router(analysis.router, prefix="/api/analyse-stock")
+# app.include_router(screener.router, prefix="/api")
+
+app.include_router(analysis.router, prefix="/api/analyse-stock", tags=["analysis"])
+app.include_router(screener.router, prefix="/api", tags=["screener"])
