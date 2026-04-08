@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Flame, ShieldAlert, TrendingUp, Info, Loader2, Target, Zap, Waves, BarChart3, Star, Cpu, Activity, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
+import { fetchStockAnalysis } from '../services/api';
 
 const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
   const [analysis, setAnalysis] = useState(null);
@@ -22,16 +22,11 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/api/analyze-stock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol: stock.symbol })
-      });
-      const result = await response.json();
-      if (result.success) {
-        setAnalysis(result.analysis);
+      const result = await fetchStockAnalysis(stock.symbol);
+      if (result && result.success) {
+        setAnalysis(result.ai_insights);
       } else {
-        throw new Error(result.error || 'Failed to fetch analysis');
+        throw new Error('Failed to fetch analysis');
       }
     } catch (err) {
       setError(err.message);

@@ -3,7 +3,7 @@ import { Rocket, Flame, ShieldAlert, Cpu, Gem, Zap, TrendingUp, Info, Search, Re
 import { motion, AnimatePresence } from 'framer-motion';
 import StockAnalysisPanel from '../components/StockAnalysisPanel';
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
+import { fetchMultibaggers, fetchAiStatus } from '../services/api';
 
 const Multibagger = () => {
   const [stocks, setStocks] = useState([]);
@@ -14,20 +14,18 @@ const Multibagger = () => {
   const [aiStatus, setAiStatus] = useState({ status: 'OK' });
 
   useEffect(() => {
-    fetchMultibaggers();
-    fetchAiStatus();
+    fetchMultibaggersData();
+    updateAiStatus();
   }, []);
 
-  const fetchMultibaggers = async (refresh = false) => {
+  const fetchMultibaggersData = async (refresh = false) => {
     setLoading(true);
     try {
-      const url = `${API_BASE}/api/multibagger${refresh ? '?refresh=true' : ''}`;
-      const response = await fetch(url);
-      const result = await response.json();
+      const result = await fetchMultibaggers(refresh);
       if (result.success) {
         setStocks(result.data);
       } else {
-        throw new Error(result.error);
+        throw new Error(result.error || "Failed to fetch");
       }
     } catch (err) {
       setError("Market Discovery Engine is offline. Is the terminal running 'node server.js'?");
@@ -36,14 +34,9 @@ const Multibagger = () => {
     }
   };
 
-  const fetchAiStatus = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/ai-status`);
-      const result = await response.json();
-      setAiStatus(result);
-    } catch (e) {
-      setAiStatus({ status: 'OFFLINE' });
-    }
+  const updateAiStatus = async () => {
+    const result = await fetchAiStatus();
+    setAiStatus(result);
   };
 
   const handleAnalyze = (stock) => {
@@ -74,7 +67,7 @@ const Multibagger = () => {
           </div>
         </div>
         <button 
-          onClick={() => fetchMultibaggers(true)}
+           onClick={() => fetchMultibaggersData(true)}
           className="refresh-btn"
           disabled={loading}
           style={{
