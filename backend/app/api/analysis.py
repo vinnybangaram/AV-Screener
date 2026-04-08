@@ -59,6 +59,7 @@ def analyze_stock(symbol: str = Query(..., description="The stock ticker symbol"
     Detailed stock analysis endpoint.
     Returns technical indicators, chart data, and AI-generated insights.
     """
+    print("Symbol received:", symbol)
     ticker = symbol.upper()
     if not ticker.endswith(".NS") and not ticker.endswith(".BO"):
         ticker = f"{ticker}.NS"

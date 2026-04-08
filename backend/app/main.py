@@ -8,6 +8,7 @@ from google.auth.transport import requests as google_requests
 import os
 from dotenv import load_dotenv
 from typing import Optional, List
+from app.api import analysis
 
 load_dotenv()
 
@@ -30,6 +31,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ✅ INCLUDE ROUTERS
+app.include_router(analysis.router, prefix="/api/analyse-stock")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 TICKERS = [
@@ -118,31 +122,7 @@ def multibagger(refresh: bool = Query(False)):
 def ai_status():
     return {"status": "OK"}
 
-# ✅ ANALYSE STOCK
-@app.get("/api/analyse-stock")
-def analyse_stock(symbol: str):
-    data = fetch_stock_data(symbol)
-    if not data:
-        raise HTTPException(status_code=404, detail="Stock not found or data retrieval failed")
-    
-    return {
-        "success": True,
-        "data": data
-    }
-
-# ✅ SEARCH STOCK
-@app.get("/api/analyse-stock/search")
-def search_stock(q: str = ""):
-    if not q:
-        return []
-    
-    try:
-        return [
-            {"symbol": s.replace(".NS", ""), "name": s.replace(".NS", ""), "exch": "NSE"}
-            for s in TICKERS if q.upper() in s
-        ]
-    except Exception:
-        return []
+# (Modular Analysis Router handles /api/analyse-stock)
 
 # ✅ GOOGLE AUTH
 @app.post("/api/auth/google")
