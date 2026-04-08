@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
@@ -25,11 +25,12 @@ app.add_middleware(
 def root():
     return {"message": "API WORKING ✅"}
 
-# ✅ MULTIBAGGER
+# ✅ FIXED MULTIBAGGER ROUTE
 @app.get("/api/multibagger")
-def multibagger():
+def multibagger(refresh: bool = Query(False)):
     return {
         "success": True,
+        "refresh": refresh,
         "data": [],
         "message": "Multibagger working"
     }
