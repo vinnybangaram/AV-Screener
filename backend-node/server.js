@@ -1,11 +1,15 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const dataFetcher = require("./services/dataFetcher");
 const scoringEngine = require("./services/scoringEngine");
 const aiService = require("./services/aiService");
 require("dotenv").config();
 
 const app = express();
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-av-screener-key";
 
 // ✅ CORS MUST BE FIRST
 app.use(cors({
@@ -13,6 +17,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
 
 // In-memory cache
 const cache = {
@@ -122,9 +127,38 @@ app.get("/api/analyse-stock/search", async (req, res) => {
   }
 });
 
+// ✅ GOOGLE AUTH
+app.post("/api/auth/google", async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ success: false, error: "Token is required" });
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+
+    // Create session JWT
+    const appToken = jwt.sign(
+      { email, name, picture },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    console.log(`👤 [Auth] User logged in: ${email}`);
+    res.json({ success: true, token: appToken, user: { email, name, picture } });
+  } catch (error) {
+    console.error("❌ [Auth] Google verification failed:", error.message);
+    res.status(401).json({ success: false, error: "Invalid Google token" });
+  }
+});
 
 // ✅ PORT
 const PORT = process.env.PORT || 10000;
+
 
 app.listen(PORT, () => {
   console.log("🚀 Server started on port:", PORT);
