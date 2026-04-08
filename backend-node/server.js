@@ -24,8 +24,9 @@ try {
 
 dotenv.config();
 
-console.log("✅ Server starting...");
-console.log("✅ Services loaded:", {
+console.log("🚀 Server booting...");
+
+console.log("Services status:", {
   dataFetcher: !!dataFetcher,
   aiService: !!aiService,
   scoringEngine: !!scoringEngine
@@ -42,7 +43,7 @@ app.use(cors({
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("API is LIVE 🚀");
+  res.send("API RUNNING ✅");
 });
 
 const cache = new Map();
@@ -60,6 +61,7 @@ app.get("/api/multibagger", async (req, res) => {
   try {
     if (!dataFetcher || !aiService || !scoringEngine) {
       return res.json({
+        success: false,
         fallback: true,
         message: "Services not loaded. Check server logs for import errors."
       });
