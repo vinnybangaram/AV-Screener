@@ -20,9 +20,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ ROOT
 @app.get("/")
-def read_root():
-    return {"message": f"Welcome to the {settings.PROJECT_NAME} API"}
+def root():
+    return {"message": "API WORKING ✅"}
+
+# ✅ MULTIBAGGER
+@app.get("/api/multibagger")
+def multibagger():
+    return {
+        "success": True,
+        "data": [],
+        "message": "Multibagger working"
+    }
+
+# ✅ AI STATUS
+@app.get("/api/ai-status")
+def ai_status():
+    return {"status": "ok"}
 
 from app.api import screener, analysis
 app.include_router(screener.router, prefix="/api/screener", tags=["screener"])
