@@ -90,7 +90,12 @@ def fetch_stock_data(symbol: str):
 # ✅ ROOT
 @app.get("/")
 def root():
-    return {"message": "🚀 AV-SCREENER PYTHON CORE V2.1 ACTIVE ✅"}
+    return {"message": "🚀 AV-SCREENER PYTHON CORE V2.5 FINAL ACTIVE ✅"}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 # ✅ MULTIBAGGER
 @app.get("/api/multibagger")
