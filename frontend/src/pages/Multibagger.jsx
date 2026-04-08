@@ -3,6 +3,8 @@ import { Rocket, Flame, ShieldAlert, Cpu, Gem, Zap, TrendingUp, Info, Search, Re
 import { motion, AnimatePresence } from 'framer-motion';
 import StockAnalysisPanel from '../components/StockAnalysisPanel';
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
+
 const Multibagger = () => {
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ const Multibagger = () => {
   const fetchMultibaggers = async (refresh = false) => {
     setLoading(true);
     try {
-      const url = `http://localhost:5001/api/multibagger${refresh ? '?refresh=true' : ''}`;
+      const url = `${API_BASE}/api/multibagger${refresh ? '?refresh=true' : ''}`;
       const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
@@ -36,7 +38,7 @@ const Multibagger = () => {
 
   const fetchAiStatus = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/ai-status');
+      const response = await fetch(`${API_BASE}/api/ai-status`);
       const result = await response.json();
       setAiStatus(result);
     } catch (e) {
@@ -110,7 +112,7 @@ const Multibagger = () => {
         <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--card-bg)', borderRadius: '24px', border: '1px dashed var(--error)' }}>
           <AlertTriangle size={64} color="var(--error)" style={{ marginBottom: '1.5rem' }} />
           <div style={{ color: 'var(--error)', fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>{error}</div>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>Ensure the Node.js Discovery Engine is running on port 5001.</p>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>Ensure the backend server is running and accessible.</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '2rem' }}>

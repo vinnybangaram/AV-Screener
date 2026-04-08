@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Flame, ShieldAlert, TrendingUp, Info, Loader2, Target, Zap, Waves, BarChart3, Star, Cpu, Activity, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
+
 const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:5001/api/analyze-stock', {
+      const response = await fetch(`${API_BASE}/api/analyze-stock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol: stock.symbol })
@@ -98,7 +100,7 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
           <div style={{ padding: '4rem 1rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '24px', border: '1px dashed var(--error)' }}>
              <AlertTriangle size={48} color="var(--error)" style={{ marginBottom: '1.5rem', margin: '0 auto' }} />
              <div style={{ color: 'var(--error)', fontWeight: '800', fontSize: '1.1rem' }}>{error}</div>
-             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Connection to Intelligence Hub lost.</p>
+             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Connection to Intelligence Hub lost. Service may be offline.</p>
           </div>
         ) : analysis ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
