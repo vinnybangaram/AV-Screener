@@ -10,8 +10,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-app.use(cors());
+app.use(cors({
+  origin: "https://av-screener.vercel.app",
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("API is LIVE 🚀");
+});
 
 const cache = new Map();
 const CACHE_KEY = "multibagger_results";
