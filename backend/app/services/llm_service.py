@@ -2,7 +2,6 @@ import os
 import google.generativeai as genai
 import json
 from typing import Dict, Any
-# from app.config import settings
 from app.utils.config import settings
 
 # Load API key from settings
