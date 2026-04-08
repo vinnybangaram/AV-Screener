@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.utils.config import settings
 import os
 from dotenv import load_dotenv
+from app.api import analysis, screener
 
 load_dotenv()
 
@@ -42,3 +43,8 @@ def ai_status():
 #     import uvicorn
 #     port = int(os.environ.get("PORT", 10000))
 #     uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+# 🔥 INCLUDE ROUTERS (THIS WAS MISSING)
+app.include_router(analysis.router, prefix="/api/analyse-stock")
+app.include_router(screener.router, prefix="/api")
