@@ -4,10 +4,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL + "/api";
  * Helper to map backend breakdown to frontend expected score objects
  */
 const mapBreakdown = (b) => ({
-    fundamental_score: b.aiQuality?.score || 70,
-    momentum_score: b.momentum?.score || 70,
-    volume_score: b.structure?.score || 70,
-    risk_score: b.risk?.score || 70
+  fundamental_score: b.aiQuality?.score || 70,
+  momentum_score: b.momentum?.score || 70,
+  volume_score: b.structure?.score || 70,
+  risk_score: b.risk?.score || 70
 });
 
 /**
@@ -15,11 +15,11 @@ const mapBreakdown = (b) => ({
  */
 export const fetchMultibaggers = async (refresh = false) => {
   try {
-    const url = `${API_BASE_URL}/multibagger${refresh ? '?refresh=true' : ''}`;
+    const url = `${API_BASE_URL}/api/multibagger${refresh ? '?refresh=true' : ''}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch multibaggers");
     const result = await response.json();
-    
+
     if (result.success) {
       // Map each stock to legacy structure for StockCard.jsx
       const mappedData = result.data.map(d => ({
@@ -44,14 +44,14 @@ export const fetchMultibaggers = async (refresh = false) => {
  */
 export const fetchStockAnalysis = async (symbol) => {
   try {
-    const url = `${API_BASE_URL}/analyse-stock?symbol=${symbol}`;
+    const url = `${API_BASE_URL}/api/analyse-stock?symbol=${symbol}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch analysis");
-    
+
     const result = await response.json();
     if (result.success) {
       const d = result.data;
-      
+
       // Calculate pivot points for UI
       const p = d.currentPrice;
       const pivots = {
@@ -73,25 +73,25 @@ export const fetchStockAnalysis = async (symbol) => {
           change_pct: d.changePct || 1.2,
           volume: { current: d.volume, avg: d.avgVolume },
           fundamentals: {
-             market_cap: 5000000000, 
-             pe: 22.5,
-             roe: 0.18,
-             debt_to_equity: 0.15,
-             revenue_growth: 0.12,
-             earnings_growth: 0.15
+            market_cap: 5000000000,
+            pe: 22.5,
+            roe: 0.18,
+            debt_to_equity: 0.15,
+            revenue_growth: 0.12,
+            earnings_growth: 0.15
           },
           technical: {
-             performance: { "1m": 5.2, "1y": 24.5 },
-             rsi: 62.4,
-             mfi: 58.2,
-             macd: { status: 'Bullish' },
-             ma_stack: { 
-                sma: { 20: p * 0.99, 50: p * 0.97, 100: p * 0.95, 200: d.dma200 } 
-             },
-             pivots: pivots,
-             price: d.currentPrice
+            performance: { "1m": 5.2, "1y": 24.5 },
+            rsi: 62.4,
+            mfi: 58.2,
+            macd: { status: 'Bullish' },
+            ma_stack: {
+              sma: { 20: p * 0.99, 50: p * 0.97, 100: p * 0.95, 200: d.dma200 }
+            },
+            pivots: pivots,
+            price: d.currentPrice
           },
-          chart_data: [] 
+          chart_data: []
         },
         scores: {
           final_score: d.score,
@@ -117,7 +117,7 @@ export const fetchStockAnalysis = async (symbol) => {
  */
 export const fetchAiStatus = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/ai-status`);
+    const response = await fetch(`${API_BASE_URL}/api/ai-status`);
     if (!response.ok) throw new Error("AI Status failed");
     return await response.json();
   } catch (error) {
@@ -131,7 +131,7 @@ export const fetchAiStatus = async () => {
  */
 export const searchTickers = async (query) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/analyse-stock/search?q=${query}`);
+    const response = await fetch(`${API_BASE_URL}/api/analyse-stock/search?q=${query}`);
     if (!response.ok) throw new Error("Failed to search tickers");
     return await response.json();
   } catch (error) {
@@ -144,14 +144,14 @@ export const searchTickers = async (query) => {
  * Legacy/Dashboard support
  */
 export const fetchScreenerResults = async (refresh = false) => {
-    const result = await fetchMultibaggers(refresh);
-    if (result.success) {
-        return {
-            top_stocks: result.data,
-            timeframe_mode: "1D"
-        };
-    }
-    return null;
+  const result = await fetchMultibaggers(refresh);
+  if (result.success) {
+    return {
+      top_stocks: result.data,
+      timeframe_mode: "1D"
+    };
+  }
+  return null;
 };
 
-
+
