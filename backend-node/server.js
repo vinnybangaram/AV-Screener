@@ -12,7 +12,7 @@ app.use(express.json());
 
 // ✅ ROOT
 app.get("/", (req, res) => {
-  res.send("SERVER ALIVE ✅");
+  res.send("🔥 NEW SERVER VERSION V2");
 });
 
 // ✅ MULTIBAGGER
