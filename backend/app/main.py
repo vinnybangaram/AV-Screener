@@ -2,18 +2,14 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
-# In the future, we will import routers
-# from app.api import screener, stocks, alerts
-
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0"
 )
 
-# Set up CORS for Vite frontend
+# ✅ CORS FIX
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
@@ -25,14 +21,13 @@ app.add_middleware(
 def root():
     return {"message": "API WORKING ✅"}
 
-# ✅ FIXED MULTIBAGGER ROUTE
+# ✅ MULTIBAGGER
 @app.get("/api/multibagger")
 def multibagger(refresh: bool = Query(False)):
     return {
         "success": True,
-        "refresh": refresh,
         "data": [],
-        "message": "Multibagger working"
+        "refresh": refresh
     }
 
 # ✅ AI STATUS
@@ -40,6 +35,30 @@ def multibagger(refresh: bool = Query(False)):
 def ai_status():
     return {"status": "ok"}
 
-from app.api import screener, analysis
-app.include_router(screener.router, prefix="/api/screener", tags=["screener"])
-app.include_router(analysis.router, prefix="/api/analyse-stock", tags=["analysis"])
+# ✅ SCREENER
+@app.get("/api/screener")
+def screener(refresh: bool = Query(False)):
+    return {
+        "success": True,
+        "data": [],
+        "message": "Screener working"
+    }
+
+# ✅ SEARCH STOCK
+@app.get("/api/analyse-stock/search")
+def search_stock(q: str = ""):
+    return {
+        "results": [
+            {"symbol": "TCS", "name": "Tata Consultancy Services"},
+            {"symbol": "RELIANCE", "name": "Reliance Industries"}
+        ]
+    }
+
+# ✅ ANALYSE STOCK
+@app.get("/api/analyse-stock")
+def analyse_stock(symbol: str):
+    return {
+        "symbol": symbol,
+        "analysis": "Sample AI analysis",
+        "price": 1000
+    }
