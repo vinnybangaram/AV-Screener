@@ -2,16 +2,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 /**
- * Helper to map backend breakdown to frontend expected score objects
- */
-const mapBreakdown = (b) => ({
-  fundamental_score: b.aiQuality?.score || 70,
-  momentum_score: b.momentum?.score || 70,
-  volume_score: b.structure?.score || 70,
-  risk_score: b.risk?.score || 70
-});
-
-/**
  * Fetch multibagger discovery results
  */
 export const fetchMultibaggers = async (refresh = false) => {
@@ -20,16 +10,22 @@ export const fetchMultibaggers = async (refresh = false) => {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch multibaggers");
     const result = await response.json();
-
     if (result.success) {
-      // Map each stock to legacy structure for StockCard.jsx
+      // Backend returns standardized snake_case fields.
+      // We map them to the specific format expected by Multibagger.jsx and its StockCard.
       const mappedData = result.data.map(d => ({
         ...d,
-        ticker: d.symbol.replace('.NS', ''),
-        current_price: d.currentPrice,
-        score: d.score,
-        signal_classification: d.classification.replace(/🔥 |⚡ |⚠️ /g, ''),
-        scores_breakdown: mapBreakdown(d.breakdown)
+        symbol: d.ticker, // Legacy support
+        ticker: d.ticker ? d.ticker.replace('.NS', '').replace('.BO', '') : 'UNKNOWN',
+        currentPrice: d.current_price,
+        classification: d.signal_classification,
+        confidence: d.confidence_level,
+        breakdown: {
+          momentum: { achieved: d.scores_breakdown.momentum_score || 0 },
+          structure: { achieved: d.scores_breakdown.volume_score || 0 },
+          aiQuality: { achieved: d.scores_breakdown.fundamental_score || 0 },
+          risk: { achieved: d.scores_breakdown.risk_score || 0 }
+        }
       }));
       return { success: true, data: mappedData };
     }
@@ -51,59 +47,18 @@ export const fetchStockAnalysis = async (symbol) => {
 
     const result = await response.json();
     if (result.success) {
-      // The backend now returns { success: true, data: { analysis, ai_insights, scores } }
-      const d = result.data.analysis;
-
-      // Calculate pivot points for UI
-      const p = d.currentPrice;
-      const pivots = {
-        pivot: p,
-        s1: p * 0.98,
-        s2: p * 0.96,
-        s3: p * 0.94,
-        r1: p * 1.02,
-        r2: p * 1.04,
-        r3: p * 1.06
-      };
-
+      const { analysis, ai_insights, scores } = result.data;
+      
       // Map to structure expected by AnalyseStock.jsx and child components
       return {
         success: true,
         analysis: {
-          ticker: d.symbol,
-          price: d.currentPrice,
-          change_pct: d.changePct || 1.2,
-          volume: { current: d.volume, avg: d.avgVolume },
-          fundamentals: {
-            market_cap: 5000000000,
-            pe: 22.5,
-            roe: 0.18,
-            debt_to_equity: 0.15,
-            revenue_growth: 0.12,
-            earnings_growth: 0.15
-          },
-          technical: {
-            performance: { "1m": 5.2, "1y": 24.5 },
-            rsi: 62.4,
-            mfi: 58.2,
-            macd: { status: 'Bullish' },
-            ma_stack: {
-              sma: { 20: p * 0.99, 50: p * 0.97, 100: p * 0.95, 200: d.dma200 }
-            },
-            pivots: pivots,
-            price: d.currentPrice
-          },
-          chart_data: []
+          ...analysis,
+          ticker: analysis.ticker.replace('.NS', '').replace('.BO', ''),
+          change_pct: analysis.change_pct || 0,
         },
-        scores: {
-          final_score: d.score,
-          classification: d.classification.replace(/🔥 |⚡ |⚠️ /g, ''),
-          durability: { score: d.breakdown.risk.score || 70, label: d.riskLevel === 'Low' ? 'Strong' : 'Moderate' },
-          valuation: { score: d.breakdown.aiQuality.score || 70, label: 'Fair' },
-          momentum: { score: d.breakdown.momentum.score || 70, label: 'Bullish' },
-          breakdown: d.breakdown
-        },
-        ai_insights: d.aiAnalysis
+        scores: scores,
+        ai_insights: ai_insights
       };
     }
     return null;
