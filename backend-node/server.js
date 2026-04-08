@@ -12,7 +12,7 @@ app.use(express.json());
 
 // ✅ ROOT
 app.get("/", (req, res) => {
-  res.send("API WORKING ✅");
+  res.send("SERVER ALIVE ✅");
 });
 
 // ✅ MULTIBAGGER
@@ -30,8 +30,8 @@ app.get("/api/ai-status", (req, res) => {
 });
 
 // ✅ PORT
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log("🚀 SERVER RUNNING ON PORT", PORT);
+  console.log("🚀 Server started on port:", PORT);
 });
