@@ -16,15 +16,16 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# ✅ CORS Configuration (Preserving your specific domains)
+# ✅ CORS Configuration (Allowing Vercel subdomains)
 origins = [
     "http://localhost:5173",
-    "https://av-screener.vercel.app"
+    "http://localhost:3000",
+    "https://av-screener.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], # Allow all for debugging, can restrict later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -90,7 +91,7 @@ def fetch_stock_data(symbol: str):
 # ✅ ROOT
 @app.get("/")
 def root():
-    return {"message": "🚀 AV-SCREENER PYTHON CORE V2.5 FINAL ACTIVE ✅"}
+    return {"message": "API WORKING ✅"}
 
 if __name__ == "__main__":
     import uvicorn
