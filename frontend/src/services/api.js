@@ -16,7 +16,7 @@ const mapBreakdown = (b) => ({
  */
 export const fetchMultibaggers = async (refresh = false) => {
   try {
-    const url = `${API_BASE_URL}/api/multibagger${refresh ? '?refresh=true' : ''}`;
+    const url = `${API_BASE_URL}/api/multibagger/${refresh ? '?refresh=true' : ''}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch multibaggers");
     const result = await response.json();
@@ -51,7 +51,8 @@ export const fetchStockAnalysis = async (symbol) => {
 
     const result = await response.json();
     if (result.success) {
-      const d = result.data;
+      // The backend now returns { success: true, data: { analysis, ai_insights, scores } }
+      const d = result.data.analysis;
 
       // Calculate pivot points for UI
       const p = d.currentPrice;

@@ -76,7 +76,10 @@ def analyze_stock(symbol: str = Query(..., description="The stock ticker symbol"
     scores = get_analysis_scores(analysis_data)
     
     return {
-        "analysis": analysis_data,
-        "ai_insights": ai_insights,
-        "scores": scores
+        "success": True,
+        "data": {
+            "analysis": analysis_data,
+            "ai_insights": ai_insights,
+            "scores": scores
+        }
     }

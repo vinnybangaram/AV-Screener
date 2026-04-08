@@ -20,5 +20,6 @@ class ScreenerResultItem(BaseModel):
     scores_breakdown: StockScore
 
 class ScreenerResponse(BaseModel):
-    top_stocks: List[ScreenerResultItem]
+    success: bool
+    data: List[ScreenerResultItem]
     timeframe_mode: str

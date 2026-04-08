@@ -39,6 +39,15 @@ def root():
 def ai_status():
     return {"status": "OK"}
 
+# 🔐 MOCK AUTH (Unblocks frontend login)
+@app.post("/api/auth/google")
+def google_auth(request: Request):
+    return {
+        "success": True,
+        "token": "demo-token",
+        "user": {"name": "Vinodh"}
+    }
+
 # if __name__ == "__main__":
 #     import uvicorn
 #     port = int(os.environ.get("PORT", 10000))
