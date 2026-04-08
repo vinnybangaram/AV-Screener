@@ -1,5 +1,6 @@
 import traceback
 from app.data.yahoo_fetcher import fetch_stock_data, fetch_fundamentals
+from app.utils.format import format_symbol
 from app.utils.indicators import calculate_rsi, calculate_macd, calculate_sma, calculate_atr
 from app.services.scoring_service import evaluate_fundamental, evaluate_momentum, evaluate_volume, evaluate_risk, calculate_final_score
 
@@ -11,6 +12,7 @@ def run_screener_on_tickers(tickers=TEST_TICKERS):
     
     for ticker in tickers:
         try:
+            ticker = format_symbol(ticker)
             df = fetch_stock_data(ticker, period="6mo")
             if df is None or len(df) < 50:
                 continue

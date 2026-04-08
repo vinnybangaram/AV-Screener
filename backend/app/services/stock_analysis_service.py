@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, Optional
 from app.data.yahoo_fetcher import fetch_stock_data, fetch_fundamentals
+from app.utils.format import format_symbol
 
 def calculate_rsi(df: pd.DataFrame, period: int = 14) -> float:
     if len(df) < period: return 50.0
@@ -113,6 +114,9 @@ def calculate_volume_analysis(df: pd.DataFrame) -> Dict[str, Any]:
     }
 
 def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
+    # Standardize symbol for Yahoo Finance
+    ticker = format_symbol(ticker)
+    
     # Fetch 2 years of data to support 1y performance and 200 DMA reliably
     df = fetch_stock_data(ticker, period="2y") 
     if df is None or df.empty: return None

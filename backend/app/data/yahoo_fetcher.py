@@ -1,6 +1,7 @@
 import pandas as pd
 import requests
 from typing import Optional, Dict, Any
+from app.utils.format import format_symbol, strip_symbol
 
 def get_session():
     session = requests.Session()
@@ -14,10 +15,7 @@ def fetch_stock_data(ticker: str, period: str = "6mo") -> Optional[pd.DataFrame]
     """
     Fetches historical OHLCV data using raw Yahoo Finance API.
     """
-    if not ticker.endswith(".NS") and not ticker.endswith(".BO"):
-        ticker_yf = f"{ticker}.NS"
-    else:
-        ticker_yf = ticker
+    ticker_yf = format_symbol(ticker)
 
     url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker_yf}?interval=1d&range={period}"
     
@@ -67,7 +65,7 @@ def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
     Returns hardcoded resilient fundamental data to bypass 401 Unauthorized API blocks.
     These values approximate the true company standing for our test pool.
     """
-    ticker_base = ticker.replace('.NS', '').replace('.BO', '')
+    ticker_base = strip_symbol(ticker)
     
     fundamentals_db = {
         "RELIANCE": {"roe": 0.08, "debt_to_equity": 0.40, "market_cap": 200000000000, "revenue_growth": 0.12, "earnings_growth": 0.15, "promoter_holding": 50.3},
