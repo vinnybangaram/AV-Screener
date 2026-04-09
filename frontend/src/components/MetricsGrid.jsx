@@ -22,7 +22,7 @@ const MetricsGrid = ({ fundamentals, technical }) => {
   const getPerfColor = (val) => val >= 0 ? '#10b981' : '#ef4444';
 
   return (
-    <div className="card" style={{ padding: '1.5rem' }}>
+    <div className="card">
       <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
          QUANTITATIVE METRICS
       </h3>

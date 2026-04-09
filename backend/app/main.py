@@ -4,6 +4,7 @@ from app.utils.config import settings
 import os
 from dotenv import load_dotenv
 from app.api import analysis, screener
+from app.api import penny_storm
 
 load_dotenv()
 
@@ -61,3 +62,4 @@ def google_auth(request: Request):
 app.include_router(analysis.router, prefix="/api/analyse-stock", tags=["analysis"])
 # app.include_router(screener.router, prefix="/api", tags=["screener"])
 app.include_router(screener.router, prefix="/api/multibagger")
+app.include_router(penny_storm.router)

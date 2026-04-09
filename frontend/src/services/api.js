@@ -48,7 +48,7 @@ export const fetchStockAnalysis = async (symbol) => {
     const result = await response.json();
     if (result.success) {
       const { analysis, ai_insights, scores } = result.data;
-      
+
       // Map to structure expected by AnalyseStock.jsx and child components
       return {
         success: true,
@@ -112,3 +112,21 @@ export const fetchScreenerResults = async (refresh = false) => {
 };
 
 
+/**
+ * Fetch Penny Storm high-probability penny stocks
+ */
+export const fetchPennyStorm = async (refresh = false) => {
+  try {
+    const url = `${API_BASE_URL}/api/penny-storm/scan${refresh ? '?refresh=true' : ''}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch Penny Storm data");
+    const result = await response.json();
+    if (result.success) {
+      return { success: true, data: result.data };
+    }
+    return result;
+  } catch (error) {
+    console.error("Error in fetchPennyStorm:", error);
+    return { success: false, error: error.message };
+  }
+};

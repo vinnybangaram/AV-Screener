@@ -68,22 +68,13 @@ const Multibagger = () => {
         </div>
         <button 
            onClick={() => fetchMultibaggersData(true)}
-          className="refresh-btn"
+          className="btn refresh-btn"
           disabled={loading}
           style={{
-            background: 'var(--accent-primary)',
-            border: 'none',
             padding: '1rem 1.75rem',
             borderRadius: '16px',
-            color: 'white',
             cursor: loading ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            fontWeight: '700',
-            fontSize: '1rem',
             boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
-            transition: 'all 0.2s',
             opacity: loading ? 0.7 : 1
           }}
         >
@@ -162,13 +153,8 @@ const StockCard = ({ stock, onAnalyze }) => {
   const [showExplanation, setShowExplanation] = useState(false);
 
   return (
-    <div className="stock-card" style={{
-      background: 'var(--card-bg)',
-      borderRadius: '28px',
-      border: '1px solid var(--border-color)',
+    <div className="card-interactive stock-card" style={{
       padding: '2rem',
-      position: 'relative',
-      overflow: 'hidden',
       transition: 'all 0.3s ease'
     }}>
       {/* High Probability Glow */}
@@ -236,13 +222,13 @@ const StockCard = ({ stock, onAnalyze }) => {
 
       {/* Metrics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-         <div className="metric-item">
+         <div className="card-stat metric-item">
             <span className="label">Structure</span>
             <span className="value" style={{ color: stock.near52WeekHigh ? '#22c55e' : 'inherit' }}>
                 {stock.near52WeekHigh ? 'Near 52W High' : 'Consolidating'}
             </span>
          </div>
-         <div className="metric-item">
+         <div className="card-stat metric-item">
             <span className="label">Momentum</span>
             <span className="value" style={{ color: stock.trendUp ? '#22c55e' : '#ef4444' }}>
                 {stock.trendUp ? 'Bullish Trend' : 'Testing DMA'}
@@ -280,15 +266,14 @@ const StockCard = ({ stock, onAnalyze }) => {
 
       {/* Footer Controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-         <button 
-           onClick={onAnalyze}
-           style={{ 
-             flex: 1, background: 'var(--accent-primary)', border: 'none', padding: '1rem', borderRadius: '14px',
-             color: 'white', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', display: 'flex',
-             alignItems: 'center', justifyContent: 'center', gap: '0.75rem', transition: 'filter 0.2s'
-           }}
-           className="action-btn"
-         >
+          <button 
+            onClick={onAnalyze}
+            className="btn action-btn"
+            style={{ 
+              flex: 1, padding: '1rem', borderRadius: '14px',
+              cursor: 'pointer',
+            }}
+          >
            Institutional Analysis <ChevronRight size={18} />
          </button>
          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -309,13 +294,11 @@ const StockCard = ({ stock, onAnalyze }) => {
           box-shadow: 0 16px 40px rgba(0,0,0,0.3);
         }
         .metric-item {
-          background: rgba(255,255,255,0.02);
           padding: 0.75rem 1rem;
           border-radius: 14px;
           display: flex;
           flex-direction: column;
           gap: 0.25rem;
-          border: 1px solid var(--border-color);
         }
         .metric-item .label {
           font-size: 0.65rem;

@@ -76,7 +76,7 @@ const CandlestickChart = ({ data }) => {
   };
 
   return (
-    <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem', height: '500px' }}>
+    <div className="card" style={{ marginBottom: '2.5rem', height: '500px' }}>
       <h3 style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Price Action & Volume</h3>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={formattedData}>

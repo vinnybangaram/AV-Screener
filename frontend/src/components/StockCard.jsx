@@ -17,7 +17,7 @@ const StockCard = ({ stock }) => {
   };
 
   return (
-    <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div className="card-interactive" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <h3 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, letterSpacing: '-0.5px' }}>{ticker}</h3>

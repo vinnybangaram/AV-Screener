@@ -31,7 +31,7 @@ const TradingViewChart = ({ symbol }) => {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', marginBottom: '2.5rem' }}>
       {/* Main Chart Area */}
-      <div className="card" style={{ padding: '0.5rem', height: '650px', background: '#131722', border: '1px solid var(--accent)', overflow: 'hidden' }}>
+      <div className="card" style={{ height: '650px', background: '#131722', border: '1px solid var(--accent)', overflow: 'hidden' }}>
         <iframe
           title="TradingView Chart"
           src={chartUrl}
@@ -46,7 +46,7 @@ const TradingViewChart = ({ symbol }) => {
       </div>
 
       {/* Side Technical Gauge - Now with correct JSON config hash */}
-      <div className="card" style={{ padding: '1.25rem', height: '650px', background: '#131722', border: '1px solid var(--accent)', display: 'flex', flexDirection: 'column' }}>
+      <div className="card" style={{ height: '650px', background: '#131722', border: '1px solid var(--accent)', display: 'flex', flexDirection: 'column' }}>
         <h4 style={{ margin: '0 0 1.25rem 0', fontSize: '1rem', fontWeight: 'bold', color: 'var(--accent)', textAlign: 'center', letterSpacing: '1px', textTransform: 'uppercase' }}>
           Market Sentiment
         </h4>

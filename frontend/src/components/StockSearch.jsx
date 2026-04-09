@@ -98,19 +98,15 @@ const StockSearch = ({ onSearch, loading }) => {
 
       {/* Auto-complete Dropdown */}
       {showDropdown && suggestions.length > 0 && (
-        <div style={{
+        <div className="card" style={{
           position: 'absolute',
           top: '100%',
           left: 0,
           right: 0,
-          background: 'var(--bg-card)',
-          borderRadius: '12px',
-          border: '1px solid var(--border-color)',
           marginTop: '0.5rem',
           zIndex: 2000,
           maxHeight: '400px',
           overflowY: 'auto',
-          boxShadow: 'var(--shadow)',
           padding: '0.5rem'
         }}>
           {suggestions.map((item) => (

@@ -37,7 +37,7 @@ const Dashboard = () => {
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           {timeframe && (
-            <div style={{ padding: '0.5rem 1rem', background: 'var(--glare)', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
+            <div className="card" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Timeframe:</span> <strong style={{ color: 'var(--accent-primary)' }}>{timeframe}</strong>
             </div>
           )}

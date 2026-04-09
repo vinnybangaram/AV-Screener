@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, Activity, BarChart2, Shield, Target } from 'lucide-react';
 
 const Card = ({ title, value, subtext, icon: Icon, color }) => (
-  <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+  <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
       <div style={{ padding: '0.5rem', background: `${color}22`, borderRadius: '8px' }}>
         <Icon size={20} color={color} />

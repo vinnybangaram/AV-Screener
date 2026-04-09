@@ -13,8 +13,7 @@ const ScoreCard = ({ title, data, value, label, icon: Icon, color }) => {
   const statusColor = getStatusColor(statusLabel);
 
   return (
-    <div className="card" style={{ 
-      padding: '1.25rem', 
+    <div className="card-stat" style={{ 
       display: 'flex', 
       flexDirection: 'column', 
       justifyContent: 'center',
