@@ -1,3 +1,4 @@
+--no-cache-dir
 pip
 setuptools
 wheel
