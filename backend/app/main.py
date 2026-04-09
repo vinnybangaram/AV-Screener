@@ -63,3 +63,10 @@ app.include_router(analysis.router, prefix="/api/analyse-stock", tags=["analysis
 # app.include_router(screener.router, prefix="/api", tags=["screener"])
 app.include_router(screener.router, prefix="/api/multibagger")
 app.include_router(penny_storm.router)
+
+import os
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
