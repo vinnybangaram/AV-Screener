@@ -105,9 +105,11 @@ const HighchartsComponent = ({ data, symbol }) => {
     }
   };
 
+  const HighchartsReactComponent = HighchartsReact.default || HighchartsReact;
+
   return (
     <div className="card" style={{ marginBottom: '2.5rem' }}>
-      <HighchartsReact
+      <HighchartsReactComponent
         highcharts={Highcharts}
         constructorType={'stockChart'}
         options={options}

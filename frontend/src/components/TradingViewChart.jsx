@@ -38,7 +38,7 @@ const TradingViewChart = ({ symbol }) => {
           width="100%"
           height="100%"
           frameBorder="0"
-          allowTransparency="true"
+          allowtransparency="true"
           scrolling="no"
           allowFullScreen
           style={{ borderRadius: '8px' }}
@@ -57,7 +57,7 @@ const TradingViewChart = ({ symbol }) => {
               width="100%"
               height="100%"
               frameBorder="0"
-              allowTransparency="true"
+              allowtransparency="true"
               scrolling="no"
               style={{ borderRadius: '8px' }}
             />

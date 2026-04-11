@@ -10,6 +10,7 @@ import TechnicalSummaries from '../components/TechnicalSummaries';
 import HighchartsComponent from '../components/HighchartsComponent';
 import AIInsightBox from '../components/AIInsightBox';
 import TradingViewChart from '../components/TradingViewChart';
+import StockSearch from '../components/StockSearch';
 
 const AnalyseStock = () => {
   const [searchParams] = useSearchParams();
@@ -174,28 +175,46 @@ const AnalyseStock = () => {
 
       {/* ── Empty state — no symbol yet ── */}
       {!data && !loading && !error && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '70vh', gap: '1.5rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem' }}>🔍</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-primary)' }}>
-            Search a stock from the navbar
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '70vh', gap: '2rem', textAlign: 'center' }}>
+          <div style={{ 
+            width: '120px', height: '120px', background: 'var(--accent-primary)', borderRadius: '40px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+            boxShadow: '0 20px 50px rgba(99, 102, 241, 0.3)', marginBottom: '1rem',
+            animation: 'pulse 2s infinite'
+          }}>
+            <TrendingUp size={60} />
           </div>
-          <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', maxWidth: '380px' }}>
-            Use the search bar at the top to find any NSE/BSE listed stock and the analysis will load here automatically.
+          <div>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '0.5rem', letterSpacing: '-1px' }}>
+              Equity <span className="text-gradient">Intelligence</span>
+            </h1>
+            <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto 2.5rem' }}>
+              Instant quantitative scoring, institutional flows, and Gemini AI insights for any NSE/BSE listed asset.
+            </p>
           </div>
-          {/* Quick picks */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
-            {['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ZOMATO', 'TATAMOTORS', 'ADANIENT'].map(s => (
-              <button key={s} onClick={() => handleSearch(s)} style={{
-                background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)',
-                color: 'white', padding: '0.6rem 1.25rem', borderRadius: '30px',
-                cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s'
-              }}
-                onMouseEnter={e => e.target.style.background = 'var(--accent)'}
-                onMouseLeave={e => e.target.style.background = 'rgba(99,102,241,0.1)'}
-              >
-                {s}
-              </button>
-            ))}
+          
+          <div style={{ width: '100%', maxWidth: '600px' }}>
+            <StockSearch onSearch={handleSearch} />
+          </div>
+
+          <div style={{ marginTop: '2rem' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem' }}>
+              Trending Terminals
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
+                {['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ZOMATO', 'TATAMOTORS', 'ADANIENT'].map(s => (
+                <button key={s} onClick={() => handleSearch(s)} style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)', padding: '0.6rem 1.25rem', borderRadius: '30px',
+                    cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', transition: 'all 0.2s'
+                }}
+                    onMouseEnter={e => { e.target.style.background = 'var(--accent-primary)'; e.target.style.color = 'white'; }}
+                    onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.03)'; e.target.style.color = 'var(--text-primary)'; }}
+                >
+                    {s}
+                </button>
+                ))}
+            </div>
           </div>
         </div>
       )}
@@ -211,6 +230,11 @@ const AnalyseStock = () => {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); box-shadow: 0 20px 50px rgba(99, 102, 241, 0.3); }
+          50% { transform: scale(1.05); box-shadow: 0 25px 60px rgba(99, 102, 241, 0.5); }
+          100% { transform: scale(1); box-shadow: 0 20px 50px rgba(99, 102, 241, 0.3); }
         }
       `}</style>
     </div>

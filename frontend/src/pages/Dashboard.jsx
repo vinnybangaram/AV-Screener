@@ -8,6 +8,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
+import StockSearch from '../components/StockSearch';
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -88,6 +90,18 @@ const Dashboard = () => {
 
   return (
     <div className="container animate-in" style={{ paddingBottom: '5rem', maxWidth: '1600px' }}>
+      
+      {/* ── SEARCH HERO ── */}
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '1rem', letterSpacing: '-1px' }}>
+              Terminal <span className="text-gradient">Intelligence</span>
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '1.1rem' }}>
+              Search any NSE/BSE symbol for real-time institutional analysis & AI insights
+          </p>
+          <StockSearch onSearch={(s) => navigate(`/analyse-stock?symbol=${s}`)} />
+      </div>
+
       
       {/* ── TERMINAL HEADER ── */}
       <div style={{ 
