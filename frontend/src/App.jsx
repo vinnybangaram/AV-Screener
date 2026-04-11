@@ -16,25 +16,31 @@ import { Toaster } from 'react-hot-toast';
 function AppContent({ theme, toggleTheme }) {
   const location = useLocation();
   const isLoggedIn = !!localStorage.getItem('token');
-  const isLoginPage = location.pathname === '/login' || (!isLoggedIn && location.pathname === '/');
+  
+  // Define public routes that don't need Navbar/Sidebar or Protection
+  const publicRoutes = ['/login'];
+  const isPublicPage = publicRoutes.includes(location.pathname);
+  
+  // Also hide Navbar/Sidebar on root if not logged in (will redirect anyway)
+  const hideShell = isPublicPage || (!isLoggedIn && location.pathname === '/');
 
   return (
     <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
-      {!isLoginPage && <Navbar theme={theme} toggleTheme={toggleTheme} />}
+      {!hideShell && <Navbar theme={theme} toggleTheme={toggleTheme} />}
 
       <div style={{ display: 'flex', flex: 1 }}>
-        {!isLoginPage && <Sidebar />}
+        {!hideShell && <Sidebar />}
 
         <main style={{ flex: 1, overflowX: 'hidden' }}>
           <Routes>
-            <Route path="/" element={isLoggedIn ? <Dashboard /> : <Login />} />
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Login />} />
-            <Route path="/analyse-stock" element={<AnalyseStock />} />
-            <Route path="/multibagger" element={<Multibagger />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/analyse-stock" element={<ProtectedRoute><AnalyseStock /></ProtectedRoute>} />
+            <Route path="/multibagger" element={<ProtectedRoute><Multibagger /></ProtectedRoute>} />
             <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
-            <Route path="/penny-storm" element={<PennyStorm />} />
+            <Route path="/penny-storm" element={<ProtectedRoute><PennyStorm /></ProtectedRoute>} />
             <Route path="/intraday" element={<ProtectedRoute><Intraday /></ProtectedRoute>} />
           </Routes>
         </main>
