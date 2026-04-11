@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Rocket, Flame, ShieldAlert, Cpu, Gem, Zap, TrendingUp, Info, Search, RefreshCw, BarChart, ChevronRight, CheckCircle2, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Rocket, Flame, ShieldAlert, Cpu, Gem, Zap, TrendingUp, Info, Search, RefreshCw, BarChart, ChevronRight, CheckCircle2, AlertTriangle, HelpCircle, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import StockAnalysisPanel from '../components/StockAnalysisPanel';
 
-import { fetchMultibaggers, fetchAiStatus } from '../services/api';
+import { fetchMultibaggers, fetchAiStatus, addToWatchlist } from '../services/api';
 
 const Multibagger = () => {
   const [stocks, setStocks] = useState([]);
@@ -178,6 +179,34 @@ const StockCard = ({ stock, onAnalyze }) => {
         }}>
           {stock.score}
         </div>
+        <button 
+           onClick={async (e) => {
+             e.stopPropagation();
+             const userStr = localStorage.getItem('user');
+             if (!userStr) {
+               toast.error('Please login to add stocks to your watchlist.');
+               return;
+             }
+             const user = JSON.parse(userStr);
+             if (user && user.id) {
+               const res = await addToWatchlist(user.id, {
+                 symbol: stock.ticker || stock.symbol,
+                 added_price: stock.currentPrice,
+                 source: 'Multibagger'
+               });
+               if (res && (res.id || res.success)) {
+                 toast.success(`${stock.ticker || stock.symbol} added to watchlist!`);
+               } else {
+                 toast.error(`Failed to add ${stock.ticker || stock.symbol} to watchlist.`);
+               }
+             }
+           }}
+           style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginTop: '8px' }}
+           onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
+           onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}
+        >
+           <Bookmark size={18} />
+        </button>
       </div>
 
       {/* Header */}

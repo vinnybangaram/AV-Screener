@@ -1,132 +1,170 @@
-// const API_BASE_URL = import.meta.env.VITE_API_URL + "/api";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import axios from 'axios';
+import toast from 'react-hot-toast';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
+// ── AXIOS INSTANCE ──
+const api = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
+
+// ── AUTH INTERCEPTOR (Request) ──
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+}, (error) => Promise.reject(error));
+
+// ── AUTH INTERCEPTOR (Response) ──
+api.interceptors.response.use(
+    (response) => response.data,
+    (error) => {
+        if (error.response?.status === 401) {
+            console.error("🔑 [Auth] Session expired or invalid. Redirecting to login...");
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            // Force redirect if we are not already on the login page
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 /**
- * Fetch multibagger discovery results
+ * Institutional Dashboard API
+ */
+export const fetchDashboard = async () => {
+    try {
+        return await api.get('/dashboard/');
+    } catch (error) {
+        console.error("fetchDashboard error:", error);
+        throw error;
+    }
+};
+
+/**
+ * Authentication
+ */
+export const googleLogin = async (credential) => {
+    return await api.post('/auth/google', { token: credential });
+};
+
+/**
+ * Market/Stock APIs
  */
 export const fetchMultibaggers = async (refresh = false) => {
-  try {
-    const url = `${API_BASE_URL}/api/multibagger/${refresh ? '?refresh=true' : ''}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch multibaggers");
-    const result = await response.json();
-    if (result.success) {
-      // Backend returns standardized snake_case fields.
-      // We map them to the specific format expected by Multibagger.jsx and its StockCard.
-      const mappedData = result.data.map(d => ({
-        ...d,
-        symbol: d.ticker, // Legacy support
-        ticker: d.ticker ? d.ticker.replace('.NS', '').replace('.BO', '') : 'UNKNOWN',
-        currentPrice: d.current_price,
-        classification: d.signal_classification,
-        confidence: d.confidence_level,
-        breakdown: {
-          momentum: { achieved: d.scores_breakdown.momentum_score || 0 },
-          structure: { achieved: d.scores_breakdown.volume_score || 0 },
-          aiQuality: { achieved: d.scores_breakdown.fundamental_score || 0 },
-          risk: { achieved: d.scores_breakdown.risk_score || 0 }
+    try {
+        const result = await api.get(`/multibagger/${refresh ? '?refresh=true' : ''}`);
+        if (result.success) {
+            // Map to camelCase expected by Multibagger.jsx and StockCard.jsx
+            const mappedData = result.data.map(d => ({
+                ...d,
+                symbol: d.ticker,
+                ticker: d.ticker ? d.ticker.replace('.NS', '').replace('.BO', '') : 'UNKNOWN',
+                currentPrice: d.current_price,
+                classification: d.signal_classification,
+                confidence: d.confidence_level,
+                breakdown: {
+                    momentum: { achieved: d.scores_breakdown?.momentum_score || 0 },
+                    structure: { achieved: d.scores_breakdown?.volume_score || 0 },
+                    aiQuality: { achieved: d.scores_breakdown?.fundamental_score || 0 },
+                    risk: { achieved: d.scores_breakdown?.risk_score || 0 }
+                }
+            }));
+            return { success: true, data: mappedData };
         }
-      }));
-      return { success: true, data: mappedData };
+        return result;
+    } catch (error) {
+        console.error("Error in fetchMultibaggers:", error);
+        return { success: false, error: error.message };
     }
-    return result;
-  } catch (error) {
-    console.error("Error in fetchMultibaggers:", error);
-    return { success: false, error: error.message };
-  }
 };
 
-/**
- * Fetch detailed stock analysis (Institutional Deep Dive)
- */
+export const fetchScreenerResults = fetchMultibaggers;
+
 export const fetchStockAnalysis = async (symbol) => {
-  try {
-    const url = `${API_BASE_URL}/api/analyse-stock?symbol=${symbol}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch analysis");
-
-    const result = await response.json();
-    if (result.success) {
-      const { analysis, ai_insights, scores } = result.data;
-
-      // Map to structure expected by AnalyseStock.jsx and child components
-      return {
-        success: true,
-        analysis: {
-          ...analysis,
-          ticker: analysis.ticker.replace('.NS', '').replace('.BO', ''),
-          change_pct: analysis.change_pct || 0,
-        },
-        scores: scores,
-        ai_insights: ai_insights
-      };
+    try {
+        const result = await api.get(`/analyse-stock?symbol=${symbol}`);
+        if (result.success) {
+            const { analysis, ai_insights, scores } = result.data;
+            return {
+                success: true,
+                analysis: {
+                    ...analysis,
+                    ticker: analysis.ticker.replace('.NS', '').replace('.BO', ''),
+                    change_pct: analysis.change_pct || 0,
+                },
+                scores: scores,
+                ai_insights: ai_insights
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error in fetchStockAnalysis:", error);
+        return null;
     }
-    return null;
-  } catch (error) {
-    console.error("Error in fetchStockAnalysis:", error);
-    return null;
-  }
 };
 
-
-/**
- * Fetch AI Status
- */
 export const fetchAiStatus = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/ai-status`);
-    if (!response.ok) throw new Error("AI Status failed");
-    return await response.json();
-  } catch (error) {
-    console.error("Error in fetchAiStatus:", error);
-    return { status: 'OFFLINE' };
-  }
+    return await api.get('/ai-status');
 };
 
-/**
- * Generic search for tickers
- */
 export const searchTickers = async (query) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/analyse-stock/search?q=${query}`);
-    if (!response.ok) throw new Error("Failed to search tickers");
-    return await response.json();
-  } catch (error) {
-    console.error("Error searching tickers:", error);
-    return [];
-  }
+    return await api.get(`/analyse-stock/search?q=${query}`);
 };
 
-/**
- * Legacy/Dashboard support
- */
-export const fetchScreenerResults = async (refresh = false) => {
-  const result = await fetchMultibaggers(refresh);
-  if (result.success) {
-    return {
-      top_stocks: result.data,
-      timeframe_mode: "1D"
-    };
-  }
-  return null;
-};
-
-
-/**
- * Fetch Penny Storm high-probability penny stocks
- */
 export const fetchPennyStorm = async (refresh = false) => {
-  try {
-    const url = `${API_BASE_URL}/api/penny-storm/scan${refresh ? '?refresh=true' : ''}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch Penny Storm data");
-    const result = await response.json();
-    if (result.success) {
-      return { success: true, data: result.data };
-    }
-    return result;
-  } catch (error) {
-    console.error("Error in fetchPennyStorm:", error);
-    return { success: false, error: error.message };
-  }
+    return await api.get(`/penny-storm/scan${refresh ? '?refresh=true' : ''}`);
 };
+
+export const fetchIntraday = async (refresh = false) => {
+    return await api.get(`/intraday/scan${refresh ? '?refresh=true' : ''}`);
+};
+
+/**
+ * Watchlist API
+ */
+export const fetchWatchlist = async (userId) => {
+    return await api.get(`/watchlist?user_id=${userId}`);
+};
+
+export const addToWatchlist = async (userId, data) => {
+    return await api.post(`/watchlist/add?user_id=${userId}`, data);
+};
+
+export const updateWatchlist = async (userId, watchlistId, data) => {
+    return await api.put(`/watchlist/update?user_id=${userId}&watchlist_id=${watchlistId}`, data);
+};
+
+export const removeFromWatchlist = async (userId, watchlistId) => {
+    return await api.delete(`/watchlist/remove?user_id=${userId}&watchlist_id=${watchlistId}`);
+};
+
+export const fetchTopMovers = async () => {
+    return await api.get('/market/top-movers');
+};
+
+export const fetchDashboardMetrics = async (userId) => {
+    return await api.get(`/dashboard/metrics?user_id=${userId}`);
+};
+
+export const fetchNotifications = async (userId) => {
+    return await api.get(`/notifications?user_id=${userId}`);
+};
+
+export const markNotificationRead = async (userId, notificationId) => {
+    return await api.post(`/notifications/mark-read?user_id=${userId}&notification_id=${notificationId}`);
+};
+
+export const fetchStockNews = async (symbol) => {
+    return await api.get(`/news/${symbol}`);
+};
+
+export default api;

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
     Zap, Flame, Cpu, TrendingUp, RefreshCw,
     ChevronRight, AlertTriangle, HelpCircle,
-    ShieldAlert, Gem
+    ShieldAlert, Gem, Bookmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import StockAnalysisPanel from '../components/StockAnalysisPanel';
-import { fetchPennyStorm, fetchAiStatus } from '../services/api';
+import { fetchPennyStorm, fetchAiStatus, addToWatchlist } from '../services/api';
 
 const VERDICT_CONFIG = {
     'STORM READY': { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)', emoji: '🟢' },
@@ -237,6 +238,34 @@ const StormCard = ({ stock, onAnalyze }) => {
                 <div style={{ fontSize: '2rem', fontWeight: '950', color: cfg.color, lineHeight: '1', letterSpacing: '-1px' }}>
                     {stock.score}
                 </div>
+                <button 
+                   onClick={async (e) => {
+                     e.stopPropagation();
+                   const userStr = localStorage.getItem('user');
+                   if (!userStr) {
+                     toast.error('Please login to add stocks to your watchlist.');
+                     return;
+                   }
+                   const user = JSON.parse(userStr);
+                   if (user && user.id) {
+                     const res = await addToWatchlist(user.id, {
+                       symbol: stock.ticker,
+                       added_price: stock.price,
+                       source: 'PennyStorm'
+                     });
+                     if (res && (res.id || res.success)) {
+                       toast.success(`${stock.ticker} added to watchlist!`);
+                     } else {
+                       toast.error(`Failed to add ${stock.ticker} to watchlist.`);
+                     }
+                   }
+                   }}
+                   style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginTop: '8px' }}
+                   onMouseEnter={e => e.target.style.color = '#eab308'}
+                   onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}
+                >
+                   <Bookmark size={18} />
+                </button>
             </div>
 
             {/* Header */}

@@ -1,33 +1,48 @@
 import React from "react";
 import { User, Mail } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
+import { googleLogin } from "../services/api";
+import toast from "react-hot-toast";
 import "./Login.css";
 
 const Login = () => {
+  const [manualData, setManualData] = React.useState({ username: "", email: "" });
+
+  const handleManualLogin = () => {
+    if (!manualData.username || !manualData.email) {
+      toast.error("Please enter both username and email.");
+      return;
+    }
+    const fakeUser = {
+      id: 1,
+      name: manualData.username,
+      email: manualData.email,
+      picture: null
+    };
+    localStorage.setItem("token", "manual-token-123");
+    localStorage.setItem("user", JSON.stringify(fakeUser));
+    toast.success("Welcome back, " + fakeUser.name);
+    window.location.href = "/dashboard";
+  };
+
   const handleLoginSuccess = async (credentialResponse) => {
     try {
       console.log("🎟️ [Login] Google token received, verifying with backend...");
       
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:10000";
-      const response = await fetch(`${API_BASE}/api/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: credentialResponse.credential }),
-      });
-
-      const data = await response.json();
+      const data = await googleLogin(credentialResponse.credential);
 
       if (data.success) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        console.log("✅ [Login] Auth successful, redirecting...");
+        toast.success("Welcome back, " + data.user.name);
+        console.log("✅ [Login] Auth successful, session established.");
         window.location.href = "/dashboard";
       } else {
-        alert("Authentication failed: " + data.error);
+        toast.error("Authentication failed: " + (data.error || data.detail));
       }
     } catch (error) {
       console.error("❌ [Login] Auth error:", error);
-      alert("An error occurred during login.");
+      toast.error("An error occurred during login.");
     }
   };
 
@@ -46,22 +61,35 @@ const Login = () => {
 
           <div className="input-group">
             <User size={20} />
-            <input type="text" placeholder="Username" />
+            <input 
+              type="text" 
+              placeholder="Username" 
+              value={manualData.username}
+              onChange={(e) => setManualData({...manualData, username: e.target.value})}
+            />
           </div>
 
           <div className="input-group">
             <Mail size={20} />
-            <input type="email" placeholder="Email" />
+            <input 
+              type="email" 
+              placeholder="Email" 
+              value={manualData.email}
+              onChange={(e) => setManualData({...manualData, email: e.target.value})}
+            />
           </div>
 
-          <button className="primary-btn">Sign In</button>
+          <button className="primary-btn" onClick={handleManualLogin}>Sign In</button>
 
           <div className="divider">OR</div>
 
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <GoogleLogin
               onSuccess={handleLoginSuccess}
-              onError={() => console.log("Login Failed")}
+              onError={() => {
+                console.error("❌ [Login] Google Auth Failed");
+                toast.error("Google Login Failed. If this is a 403 error, please whitelist http://localhost:5173 in Google Console.");
+              }}
               theme="outline"
               size="large"
               width="340"

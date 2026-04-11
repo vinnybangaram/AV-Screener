@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { TrendingUp } from 'lucide-react';
-import { fetchStockAnalysis } from '../services/api';
+import { fetchStockAnalysis, fetchStockNews } from '../services/api';
 
 import ScoreBlocks from '../components/ScoreBlocks';
 import MetricsGrid from '../components/MetricsGrid';
 import FinancialTable from '../components/FinancialTable';
 import TechnicalSummaries from '../components/TechnicalSummaries';
-import CandlestickChart from '../components/CandlestickChart';
+import HighchartsComponent from '../components/HighchartsComponent';
 import AIInsightBox from '../components/AIInsightBox';
 import TradingViewChart from '../components/TradingViewChart';
 
 const AnalyseStock = () => {
   const [searchParams] = useSearchParams();
   const [data, setData] = useState(null);
+  const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -30,6 +31,8 @@ const AnalyseStock = () => {
     const result = await fetchStockAnalysis(symbol);
     if (result && result.scores) {
       setData(result);
+      // Fetch news in parallel
+      fetchStockNews(symbol).then(setNews);
     } else {
       setError(`Analysis engine could not retrieve data for "${symbol}". Ensure ticker is valid for NSE.`);
     }
@@ -118,14 +121,36 @@ const AnalyseStock = () => {
             <TradingViewChart symbol={data.analysis.ticker} />
           </div>
 
-          {/* Section 5: AI + Candlestick */}
+          {/* Section 5: AI + Highcharts */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <AIInsightBox insights={data.ai_insights} />
-            <div className="card">
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: '700' }}>
-                Historical Perspective (60D)
-              </div>
-              <CandlestickChart data={data.analysis.chart_data} />
+            <HighchartsComponent data={data.analysis.chart_data} symbol={data.analysis.ticker.replace('.NS', '')} />
+          </div>
+
+          {/* Section 6: Accurate News System */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <TrendingUp size={20} color="var(--accent-primary)" /> Market Intelligence & News
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+              {news.length > 0 ? news.map(item => (
+                <div key={item.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{item.datetime} | {item.source}</span>
+                    <span className={`badge ${item.sentiment === 'Bullish' ? 'badge-success' : item.sentiment === 'Bearish' ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: '0.6rem' }}>
+                      {item.sentiment}
+                    </span>
+                  </div>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--text-primary)', textDecoration: 'none' }}>
+                    {item.headline}
+                  </a>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineBreak: 'anywhere' }}>
+                    {item.summary.length > 120 ? item.summary.substring(0, 120) + '...' : item.summary}
+                  </p>
+                </div>
+              )) : (
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', padding: '1rem' }}>No recent news found for this ticker.</div>
+              )}
             </div>
           </div>
 

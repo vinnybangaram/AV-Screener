@@ -1,11 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, TrendingUp, Zap } from 'lucide-react';
+// import { LayoutDashboard, TrendingUp, Zap } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, Zap, Activity, BarChart } from 'lucide-react';
 
 const NAV_ITEMS = [
     { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { to: '/watchlist', icon: <BarChart size={20} />, label: 'Watchlist' },
     { to: '/multibagger', icon: <TrendingUp size={20} />, label: 'Multibagger' },
     { to: '/penny-storm', icon: <Zap size={20} />, label: 'Penny Storm' },
+    { to: '/intraday', icon: <Activity size={20} />, label: 'Intraday', badge: 'LIVE' },
 ];
 
 const Sidebar = () => {

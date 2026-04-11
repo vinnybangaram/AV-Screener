@@ -1,15 +1,23 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.utils.config import settings
-from app.api import analysis, screener, penny_storm
+from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm
+from app.database import engine, Base
+from app.models import user, watchlist as watchlist_model, notification as notification_model, screener_result
+from sqlalchemy.orm import Session
+from app.database import get_db
 from dotenv import load_dotenv
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from app.utils.config import settings
 import os
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
 
 load_dotenv()
 
-print("🚀 Starting AV-Screener FastAPI...")
+print("Starting AV-Screener FastAPI...")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -28,7 +36,7 @@ app.add_middleware(
 # ── PULSE CHECK ──
 @app.get("/")
 def root():
-    return {"status": "ok", "message": "AV-SCREENER PULSE CHECK ✅"}
+    return {"status": "ok", "message": "AV-SCREENER PULSE CHECK OK"}
 
 # ── AI STATUS ──
 @app.get("/api/ai-status")
@@ -37,7 +45,7 @@ def ai_status():
 
 # ── GOOGLE AUTH — reads real token, returns real user ──
 @app.post("/api/auth/google")
-async def google_auth(request: Request):
+async def google_auth(request: Request, db: Session = Depends(get_db)):
     try:
         body       = await request.json()
         credential = body.get("credential") or body.get("token")
@@ -53,12 +61,26 @@ async def google_auth(request: Request):
             GOOGLE_CLIENT_ID
         )
 
+        email = idinfo.get("email")
+        name = idinfo.get("name", "Trader")
+        
+        db_user = db.query(user.User).filter(user.User.email == email).first()
+        if not db_user:
+            db_user = user.User(email=email, name=name)
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
+
+        from app.utils.auth import create_access_token
+        access_token = create_access_token(data={"user_id": str(db_user.id), "email": db_user.email})
+
         return {
             "success": True,
-            "token": credential,
+            "token": access_token,
             "user": {
-                "name":    idinfo.get("name",    "Trader"),
-                "email":   idinfo.get("email",   ""),
+                "id":      db_user.id,
+                "name":    db_user.name,
+                "email":   db_user.email,
                 "picture": idinfo.get("picture", ""),
             }
         }
@@ -69,9 +91,15 @@ async def google_auth(request: Request):
 app.include_router(analysis.router,     prefix="/api/analyse-stock", tags=["Analysis"])
 app.include_router(screener.router,     prefix="/api/multibagger",   tags=["Multibagger"])
 app.include_router(penny_storm.router,                               tags=["Penny Storm"])
+app.include_router(intraday.router) 
+app.include_router(watchlist.router,    prefix="/api/watchlist",     tags=["Watchlist"])
+app.include_router(market.router,       prefix="/api/market",        tags=["Market"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+app.include_router(news.router,         prefix="/api/news",          tags=["News"])
+app.include_router(dashboard.router,    prefix="/api/dashboard",     tags=["Dashboard"])
 
 # ── ENTRY POINT ──
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 5000))
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)

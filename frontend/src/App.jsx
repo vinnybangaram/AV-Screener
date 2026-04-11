@@ -8,6 +8,10 @@ import PennyStorm from './pages/PennyStorm';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import './index.css';
+import Intraday from './pages/Intraday';
+import Watchlist from './pages/Watchlist';
+import ProtectedRoute from './components/ProtectedRoute';
+import { Toaster } from 'react-hot-toast';
 
 function AppContent({ theme, toggleTheme }) {
   const location = useLocation();
@@ -16,6 +20,7 @@ function AppContent({ theme, toggleTheme }) {
 
   return (
     <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
       {!isLoginPage && <Navbar theme={theme} toggleTheme={toggleTheme} />}
 
       <div style={{ display: 'flex', flex: 1 }}>
@@ -28,7 +33,9 @@ function AppContent({ theme, toggleTheme }) {
             <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Login />} />
             <Route path="/analyse-stock" element={<AnalyseStock />} />
             <Route path="/multibagger" element={<Multibagger />} />
+            <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
             <Route path="/penny-storm" element={<PennyStorm />} />
+            <Route path="/intraday" element={<ProtectedRoute><Intraday /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>

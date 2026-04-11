@@ -1,4 +1,6 @@
-import React from 'react';
+import { Bookmark, BookmarkCheck } from 'lucide-react';
+import { addToWatchlist } from '../services/api';
+import toast from 'react-hot-toast';
 
 const StockCard = ({ stock }) => {
   const { ticker, current_price, score, signal_classification, background, scores_breakdown } = stock;
@@ -25,8 +27,38 @@ const StockCard = ({ stock }) => {
             {signal_classification}
           </span>
         </div>
-        <div style={{ fontSize: '1.25rem', fontWeight: '900', color: getScoreColor(score) }}>
-          {score}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: '900', color: getScoreColor(score) }}>
+            {score}
+          </div>
+          <button 
+            onClick={async (e) => {
+                e.stopPropagation();
+                const userStr = localStorage.getItem('user');
+                if (!userStr) {
+                    toast.error('Please login to add stocks to your watchlist.');
+                    return;
+                }
+                const user = JSON.parse(userStr);
+                if (user && user.id) {
+                    const result = await addToWatchlist(user.id, {
+                        symbol: ticker,
+                        added_price: current_price,
+                        source: 'Dashboard'
+                    });
+                    if (result && (result.id || result.success)) {
+                        toast.success(`${ticker} added to watchlist!`);
+                    } else {
+                        toast.error(`Failed to add ${ticker} to watchlist.`);
+                    }
+                }
+            }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex' }}
+            onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
+            onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}
+          >
+            <Bookmark size={18} />
+          </button>
         </div>
       </div>
       
