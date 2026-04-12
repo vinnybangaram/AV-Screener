@@ -12,6 +12,7 @@ import Intraday from './pages/Intraday';
 import Watchlist from './pages/Watchlist';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
+import ChatWidget from './components/AIChatWidget/ChatWidget';
 
 function AppContent({ theme, toggleTheme }) {
   const location = useLocation();
@@ -56,6 +57,8 @@ function AppContent({ theme, toggleTheme }) {
           </Routes>
         </main>
       </div>
+
+      {!hideShell && <ChatWidget />}
 
       <style>{`
         .sidebar-wrapper {

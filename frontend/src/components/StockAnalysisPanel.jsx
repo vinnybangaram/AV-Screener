@@ -3,11 +3,13 @@ import { X, Flame, ShieldAlert, TrendingUp, Info, Loader2, Target, Zap, Waves, B
 import { motion } from 'framer-motion';
 
 import { fetchStockAnalysis } from '../services/api';
+import ChatAnalyst from './Chat/ChatAnalyst';
 
 const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' or 'chat'
 
   useEffect(() => {
     if (isOpen && stock) {
@@ -83,9 +85,39 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
         <div style={{ fontSize: '1.5rem', fontWeight: '950', color: 'var(--accent-primary)' }}>{stock?.score || 0}%</div>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', margin: '0 2.5rem 1rem' }}>
+        <button 
+          onClick={() => setActiveTab('analytics')}
+          style={{ 
+            flex: 1, padding: '1rem', background: 'none', border: 'none', 
+            color: activeTab === 'analytics' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+            fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+            borderBottom: activeTab === 'analytics' ? '2px solid var(--accent-primary)' : 'none',
+            transition: 'all 0.2s'
+          }}
+        >
+          ANALYTICS
+        </button>
+        <button 
+          onClick={() => setActiveTab('chat')}
+          style={{ 
+            flex: 1, padding: '1rem', background: 'none', border: 'none', 
+            color: activeTab === 'chat' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+            fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+            borderBottom: activeTab === 'chat' ? '2px solid var(--accent-primary)' : 'none',
+            transition: 'all 0.2s'
+          }}
+        >
+          AI CHAT
+        </button>
+      </div>
+
       {/* Content Body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 2.5rem 2.5rem' }}>
-        {loading ? (
+        {activeTab === 'chat' ? (
+           <ChatAnalyst symbol={stock?.symbol} />
+        ) : loading ? (
           <div style={{ padding: '6rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '1.5rem' }}>
              <div className="discovery-spinner"></div>
              <div>

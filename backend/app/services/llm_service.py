@@ -16,7 +16,7 @@ def get_ai_analysis(tech_data: Dict[str, Any]) -> Dict[str, str]:
 
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-pro')
         
         prompt = f"""
         Analyze the following institutional stock data for {tech_data['ticker']} and provide a professional-grade synthesis:

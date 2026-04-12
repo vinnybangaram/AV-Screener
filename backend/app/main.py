@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm
+from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat
 from app.database import engine, Base
-from app.models import user, watchlist as watchlist_model, notification as notification_model, screener_result
+from app.models import user, watchlist as watchlist_model, notification as notification_model, screener_result, chat as chat_model
 from sqlalchemy.orm import Session
 from app.database import get_db
 from dotenv import load_dotenv
@@ -97,6 +97,7 @@ app.include_router(market.router,       prefix="/api/market",        tags=["Mark
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(news.router,         prefix="/api/news",          tags=["News"])
 app.include_router(dashboard.router,    prefix="/api/dashboard",     tags=["Dashboard"])
+app.include_router(chat.router,         prefix="/api/chat",          tags=["AI Chat"])
 
 # ── ENTRY POINT ──
 if __name__ == "__main__":

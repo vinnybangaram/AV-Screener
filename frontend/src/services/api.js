@@ -168,4 +168,26 @@ export const fetchStockNews = async (symbol) => {
     return await api.get(`/news/${symbol}`);
 };
 
+/**
+ * AI Chat Analyst API
+ */
+export const askAnalyst = async (symbol, question) => {
+    try {
+        return await api.post('/chat/ask', { symbol, question });
+    } catch (error) {
+        console.error("askAnalyst error:", error);
+        throw error;
+    }
+};
+
+export const fetchChatHistory = async (symbol = null) => {
+    try {
+        const url = symbol ? `/chat/history?symbol=${symbol}` : '/chat/history';
+        return await api.get(url);
+    } catch (error) {
+        console.error("fetchChatHistory error:", error);
+        throw error;
+    }
+};
+
 export default api;
