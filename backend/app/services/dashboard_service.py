@@ -95,7 +95,8 @@ def get_dashboard_data(db: Session, user_id: int) -> Dict[str, Any]:
         "global": _global_cache["data"],
         "user": {
             "metrics": user_metrics,
-            "notifications": formatted_notifs
+            "notifications": formatted_notifs,
+            "watchlist": watchlist
         },
         "lastUpdated": _global_cache["last_updated"].isoformat()
     }
