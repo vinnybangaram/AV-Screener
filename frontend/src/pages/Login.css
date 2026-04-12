@@ -206,14 +206,70 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-@media (max-width: 1024px) {
+/* Responsive Overrides */
+@media (max-width: 1200px) {
   .login-left {
-    display: none;
+    padding: 0 60px;
+  }
+  .login-left h1, .login-left h2 {
+    font-size: 64px;
+    letter-spacing: -2px;
   }
   .login-right {
-    padding: 20px;
+    padding-right: 60px;
   }
+}
+
+@media (max-width: 1024px) {
+  .login-page-wrapper {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  
+  .login-left {
+    flex: none;
+    padding: 80px 40px 40px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .login-left .logo-top {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 30px;
+  }
+
+  .login-left h1, .login-left h2 {
+    font-size: 48px;
+    letter-spacing: -1px;
+  }
+
+  .login-left p {
+    margin: 1.5rem auto 0;
+    font-size: 1rem;
+  }
+
+  .login-right {
+    flex: 1;
+    padding: 20px 20px 60px;
+  }
+
   .login-card {
-    max-width: 100%;
+    padding: 32px 24px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-left {
+    padding-top: 60px;
+  }
+  .login-left h1, .login-left h2 {
+    font-size: 36px;
+  }
+  .login-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
   }
 }
