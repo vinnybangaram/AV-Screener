@@ -46,15 +46,15 @@ const Multibagger = () => {
   };
 
   return (
-    <div style={{ padding: '2rem 4rem', color: 'var(--text-primary)', background: 'var(--bg-primary)', minHeight: 'calc(100vh - 64px)' }}>
+    <div className="container" style={{ paddingBottom: '4rem', color: 'var(--text-primary)', background: 'var(--bg-primary)', minHeight: 'calc(100vh - 64px)' }}>
       
       {/* Hero Section */}
-      <div style={{ marginBottom: '3.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div className="hero-section" style={{ marginBottom: '3.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--accent-primary)', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
              <Rocket size={18} /> Multibagger Intelligence Engine
           </div>
-          <h1 style={{ margin: 0, fontSize: '2.75rem', fontWeight: '900', letterSpacing: '-1px' }}>
+          <h1 className="page-title" style={{ margin: 0, fontWeight: '900', letterSpacing: '-1px' }}>
             Discovery <span style={{ color: 'var(--accent-primary)' }}>Terminal</span>
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem' }}>
@@ -62,7 +62,7 @@ const Multibagger = () => {
                 <div style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
                 🟢 LIVE DATA ACTIVE
              </div>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: aiStatus.status === 'OK' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: aiStatus.status === 'OK' ? '#6366f1' : '#ef4444', padding: '0.4rem 0.75rem', borderRadius: '30px', fontSize: '0.75rem', fontWeight: '800', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+             <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: aiStatus.status === 'OK' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: aiStatus.status === 'OK' ? '#6366f1' : '#ef4444', padding: '0.4rem 0.75rem', borderRadius: '30px', fontSize: '0.75rem', fontWeight: '800', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
                 <Cpu size={14} /> AI LAYER: {aiStatus.status}
              </div>
           </div>
@@ -100,7 +100,7 @@ const Multibagger = () => {
           <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>Ensure the backend server is running and accessible.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '2rem' }}>
+        <div className="responsive-grid">
           {stocks.map((stock, i) => (
             <motion.div
               initial={{ opacity: 0, y: 30 }}

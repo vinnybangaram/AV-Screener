@@ -38,11 +38,11 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, right: 0, bottom: 0, width: '520px', background: 'var(--card-bg)',
+    <div className="analysis-panel" style={{
+      position: 'fixed', top: '64px', right: 0, height: 'calc(100vh - 64px)', background: 'var(--bg-card)',
       borderLeft: '1px solid var(--border-color)', boxShadow: '-12px 0 40px rgba(0,0,0,0.4)',
       zIndex: 2500, display: 'flex', flexDirection: 'column', color: 'var(--text-primary)',
-      backdropFilter: 'blur(10px)', animation: 'slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+      animation: 'slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
       {/* Header */}
       <div style={{
@@ -107,7 +107,7 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
             </section>
 
             {/* Qualitative Rating (1-10) */}
-            <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            <section className="responsive-grid">
                <QualityCard label="Business" value={analysis.business_quality} />
                <QualityCard label="Growth" value={analysis.growth_potential} />
                <QualityCard label="Management" value={analysis.management_quality} />
@@ -153,6 +153,14 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
         @keyframes slideIn {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
+        }
+        .analysis-panel {
+          width: 520px;
+        }
+        @media (max-width: 768px) {
+          .analysis-panel {
+            width: 100%;
+          }
         }
         .discovery-spinner {
           width: 50px;

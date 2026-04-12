@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 // import { LayoutDashboard, TrendingUp, Zap } from 'lucide-react';
-import { LayoutDashboard, TrendingUp, Zap, Activity, BarChart } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, Zap, Activity, BarChart, X } from 'lucide-react';
 
 const NAV_ITEMS = [
     { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
@@ -11,27 +11,33 @@ const NAV_ITEMS = [
     { to: '/intraday', icon: <Activity size={20} />, label: 'Intraday', badge: 'LIVE' },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
     const location = useLocation();
 
     return (
         <aside style={{
-            width: '220px',
+            width: '260px',
             minWidth: '220px',
             background: 'var(--nav-bg)',
             borderRight: '1px solid var(--border-color)',
             display: 'flex',
             flexDirection: 'column',
-            padding: '1.5rem 0.75rem',
+            padding: '1.5rem 1rem',
             gap: '0.375rem',
             minHeight: 'calc(100vh - 64px)',
             position: 'sticky',
             top: '64px',
             alignSelf: 'flex-start',
+            zIndex: 10
         }}>
 
-            <div style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1.5px', padding: '0 0.75rem', marginBottom: '0.5rem' }}>
-                Navigation
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1.5px', padding: '0 0.5rem' }}>
+                    Navigation
+                </div>
+                <button onClick={onClose} className="mobile-only" style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <X size={20} />
+                </button>
             </div>
 
             {NAV_ITEMS.map(({ to, icon, label }) => {

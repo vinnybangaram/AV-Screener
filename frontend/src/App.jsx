@@ -16,6 +16,7 @@ import { Toaster } from 'react-hot-toast';
 function AppContent({ theme, toggleTheme }) {
   const location = useLocation();
   const isLoggedIn = !!localStorage.getItem('token');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Define public routes that don't need Navbar/Sidebar or Protection
   const publicRoutes = ['/login'];
@@ -24,15 +25,25 @@ function AppContent({ theme, toggleTheme }) {
   // Also hide Navbar/Sidebar on root if not logged in (will redirect anyway)
   const hideShell = isPublicPage || (!isLoggedIn && location.pathname === '/');
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
-      {!hideShell && <Navbar theme={theme} toggleTheme={toggleTheme} />}
+      {!hideShell && <Navbar theme={theme} toggleTheme={toggleTheme} onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />}
 
-      <div style={{ display: 'flex', flex: 1 }}>
-        {!hideShell && <Sidebar />}
+      <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+        {!hideShell && (
+          <div className={`sidebar-wrapper ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+             <Sidebar onClose={() => setMobileMenuOpen(false)} />
+             {mobileMenuOpen && <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />}
+          </div>
+        )}
 
-        <main style={{ flex: 1, overflowX: 'hidden' }}>
+        <main style={{ flex: 1, overflowX: 'hidden', paddingBottom: '2rem' }}>
           <Routes>
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />
@@ -45,6 +56,35 @@ function AppContent({ theme, toggleTheme }) {
           </Routes>
         </main>
       </div>
+
+      <style>{`
+        .sidebar-wrapper {
+          transition: all 0.3s ease;
+        }
+        @media (max-width: 768px) {
+          .sidebar-wrapper {
+            position: fixed;
+            top: 64px;
+            left: -100%;
+            height: calc(100vh - 64px);
+            width: 260px;
+            z-index: 2001;
+          }
+          .sidebar-wrapper.mobile-open {
+            left: 0;
+          }
+          .mobile-overlay {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 64px);
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: -1;
+          }
+        }
+      `}</style>
     </div>
   );
 }

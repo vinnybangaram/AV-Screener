@@ -59,127 +59,109 @@ const PennyStorm = () => {
         : stocks.filter(s => s.verdict === filter);
 
     return (
-        <div style={{
-            padding: '2rem 4rem',
-            color: 'var(--text-primary)',
-            background: 'var(--bg-primary)',
-            minHeight: 'calc(100vh - 64px)'
-        }}>
+    <div className="container" style={{
+        paddingBottom: '4rem',
+        color: 'var(--text-primary)',
+        background: 'var(--bg-primary)',
+        minHeight: 'calc(100vh - 64px)'
+    }}>
 
-            {/* ── Hero ── */}
-            <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: '0.75rem',
-                        color: '#eab308', fontWeight: 'bold', marginBottom: '0.5rem',
-                        fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1.5px'
-                    }}>
-                        <Zap size={18} /> Penny Storm Intelligence Engine
-                    </div>
-                    <h1 style={{ margin: 0, fontSize: '2.75rem', fontWeight: '900', letterSpacing: '-1px' }}>
-                        Storm <span style={{ color: '#eab308' }}>Radar</span>
-                    </h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.95rem' }}>
-                        High-probability penny stocks ranked by Penny Storm Score · BSE/NSE · Under ₹100
-                    </p>
+        {/* ── Hero ── */}
+        <div className="hero-section" style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
+            <div>
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    color: '#eab308', fontWeight: 'bold', marginBottom: '0.5rem',
+                    fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1.5px'
+                }}>
+                    <Zap size={18} /> Penny Storm Intelligence Engine
+                </div>
+                <h1 className="page-title" style={{ margin: 0, fontWeight: '900', letterSpacing: '-1px' }}>
+                    Storm <span style={{ color: '#eab308' }}>Radar</span>
+                </h1>
+                <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.95rem' }}>
+                    Under ₹100 · High-probability rankings
+                </p>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem' }}>
-                        <div className="badge-live">
-                            🟢 LIVE SCAN ACTIVE
-                        </div>
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: '0.35rem',
-                            background: aiStatus.status === 'OK' ? 'rgba(99,102,241,0.1)' : 'rgba(239,68,68,0.1)',
-                            color: aiStatus.status === 'OK' ? '#6366f1' : '#ef4444',
-                            padding: '0.4rem 0.75rem', borderRadius: '30px',
-                            fontSize: '0.75rem', fontWeight: '800', border: '1px solid rgba(99,102,241,0.2)'
-                        }}>
-                            <Cpu size={14} /> AI LAYER: {aiStatus.status}
-                        </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem' }}>
+                    <div className="badge-live">
+                        🟢 LIVE SCAN
                     </div>
                 </div>
-
-                <button
-                    onClick={() => loadStocks(true)}
-                    disabled={loading}
-                    className="btn-storm refresh-btn"
-                    style={{
-                        padding: '1rem 1.75rem',
-                        borderRadius: '16px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 8px 24px rgba(234,179,8,0.3)',
-                        opacity: loading ? 0.7 : 1
-                    }}
-                >
-                    {loading ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
-                    Run Storm Scan
-                </button>
             </div>
 
-            {/* ── Verdict Filter Tabs ── */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                {FILTERS.map(v => {
-                    const cfg = VERDICT_CONFIG[v];
-                    const isActive = filter === v;
-                    return (
-                        <button
-                            key={v}
-                            onClick={() => setFilter(v)}
-                            style={{
-                                padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.8rem',
-                                fontWeight: '800', cursor: 'pointer', border: '1px solid',
-                                background: isActive ? (cfg?.bg || 'rgba(255,255,255,0.1)') : 'transparent',
-                                color: isActive ? (cfg?.color || 'var(--text-primary)') : 'var(--text-secondary)',
-                                borderColor: isActive ? (cfg?.border || 'var(--border-color)') : 'var(--border-color)',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            {cfg?.emoji || '⚡'} {v}
-                            {v !== 'ALL' && (
-                                <span style={{ marginLeft: '0.4rem', opacity: 0.7 }}>
-                                    ({stocks.filter(s => s.verdict === v).length})
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
+            <button
+                onClick={() => loadStocks(true)}
+                disabled={loading}
+                className="btn-storm refresh-btn"
+                style={{
+                    padding: '1rem 1.75rem',
+                    borderRadius: '16px',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 8px 24px rgba(234,179,8,0.3)',
+                    opacity: loading ? 0.7 : 1
+                }}
+            >
+                {loading ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
+                Run Storm Scan
+            </button>
+        </div>
 
-            {/* ── Feed ── */}
-            {loading ? (
-                <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem' }}>
-                    <div className="discovery-loader" style={{ borderTopColor: '#eab308' }} />
-                    <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>⚡ Scanning penny stocks across BSE/NSE...</div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Applying Penny Storm 100-point scoring framework...</div>
-                    </div>
+        {/* ── Verdict Filter Tabs ── */}
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+            {FILTERS.map(v => {
+                const cfg = VERDICT_CONFIG[v];
+                const isActive = filter === v;
+                return (
+                    <button
+                        key={v}
+                        onClick={() => setFilter(v)}
+                        style={{
+                            padding: '0.5rem 1.25rem', borderRadius: '30px', fontSize: '0.8rem',
+                            fontWeight: '800', cursor: 'pointer', border: '1px solid',
+                            background: isActive ? (cfg?.bg || 'rgba(255,255,255,0.1)') : 'transparent',
+                            color: isActive ? (cfg?.color || 'var(--text-primary)') : 'var(--text-secondary)',
+                            borderColor: isActive ? (cfg?.border || 'var(--border-color)') : 'var(--border-color)',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {cfg?.emoji || '⚡'} {v}
+                    </button>
+                );
+            })}
+        </div>
+
+        {/* ── Feed ── */}
+        {loading ? (
+            <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem' }}>
+                <div className="discovery-loader" style={{ borderTopColor: '#eab308' }} />
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>⚡ Scanning market...</div>
                 </div>
-            ) : error ? (
-                <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--card-bg)', borderRadius: '24px', border: '1px dashed var(--error)' }}>
-                    <AlertTriangle size={64} color="var(--error)" style={{ marginBottom: '1.5rem' }} />
-                    <div style={{ color: 'var(--error)', fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>{error}</div>
-                    <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>
-                        Ensure the backend is running and <code>/api/penny-storm/scan</code> is registered.
-                    </p>
-                </div>
-            ) : filtered.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-                    No stocks found for <strong>{filter}</strong> filter.
-                </div>
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '2rem' }}>
-                    {filtered.map((stock, i) => (
-                        <motion.div
-                            key={stock.ticker}
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                        >
-                            <StormCard stock={stock} onAnalyze={() => handleAnalyze(stock)} />
-                        </motion.div>
-                    ))}
-                </div>
-            )}
+            </div>
+        ) : error ? (
+            <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--card-bg)', borderRadius: '24px', border: '1px dashed var(--error)' }}>
+                <AlertTriangle size={64} color="var(--error)" style={{ marginBottom: '1.5rem' }} />
+                <div style={{ color: 'var(--error)', fontSize: '1.25rem', fontWeight: '700' }}>{error}</div>
+            </div>
+        ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
+                No stocks found.
+            </div>
+        ) : (
+            <div className="responsive-grid">
+                {filtered.map((stock, i) => (
+                    <motion.div
+                        key={stock.ticker}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                    >
+                        <StormCard stock={stock} onAnalyze={() => handleAnalyze(stock)} />
+                    </motion.div>
+                ))}
+            </div>
+        )}
 
             {/* ── Analysis Panel (reuses your existing component) ── */}
             <StockAnalysisPanel

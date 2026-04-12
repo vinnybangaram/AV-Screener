@@ -134,13 +134,13 @@ const Dashboard = () => {
           </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr', gap: '2rem' }}>
+      <div className="dashboard-grid">
         
         {/* ── LEFT COLUMN: MARKET INTELLIGENCE (GLOBAL) ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             
             {/* Top Movers Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="responsive-grid" style={{ gap: '1.5rem' }}>
                 <MoversTable 
                     title="Top Gainers" 
                     data={global?.topGainers || []} 
@@ -253,6 +253,18 @@ const Dashboard = () => {
 
         </div>
       </div>
+      <style>{`
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: 2.5fr 1fr;
+          gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+          .dashboard-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 };

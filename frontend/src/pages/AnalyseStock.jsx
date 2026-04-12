@@ -74,7 +74,7 @@ const AnalyseStock = () => {
         <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
 
           {/* Section 0: Header */}
-          <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div className="card header-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
               <h2 style={{ fontSize: '1.75rem', fontWeight: '800', margin: 0, letterSpacing: '-0.5px' }}>
                 {data.analysis.ticker.replace('.NS', '')}
@@ -83,7 +83,7 @@ const AnalyseStock = () => {
                 {data.scores.final_score > 75 ? 'Market Leader' : 'Mid Performer'}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            <div className="header-stats" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary)' }}>
                   ₹{data.analysis.price.toLocaleString()}
@@ -92,8 +92,8 @@ const AnalyseStock = () => {
                   {data.analysis.change_pct >= 0 ? '+' : ''}{data.analysis.change_pct.toFixed(2)}%
                 </span>
               </div>
-              <div style={{ height: '30px', width: '1px', background: 'var(--border-color)' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <div className="hide-mobile" style={{ height: '30px', width: '1px', background: 'var(--border-color)' }} />
+              <div className="hide-mobile" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: '700' }}>Vol (NSE)</span>
                 <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-primary)' }}>
                   {(data.analysis.volume.current / 1000000).toFixed(2)}M
@@ -106,10 +106,29 @@ const AnalyseStock = () => {
           <ScoreBlocks scores={data.scores} />
 
           {/* Section 2: Metrics + Financials */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1.25fr) 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div className="analysis-data-grid">
             <MetricsGrid fundamentals={data.analysis.fundamentals} technical={data.analysis.technical} />
             <FinancialTable fundamentals={data.analysis.fundamentals} />
           </div>
+          
+          <style>{`
+            .analysis-data-grid {
+                display: grid;
+                grid-template-columns: 1.25fr 1fr;
+                gap: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+            @media (max-width: 1024px) {
+                .analysis-data-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+            @media (max-width: 768px) {
+                .header-card { flex-direction: column; gap: 1rem; }
+                .header-stats { gap: 1rem; }
+                .hide-mobile { display: none; }
+            }
+          `}</style>
 
           {/* Section 3: Technicals */}
           <TechnicalSummaries technical={data.analysis.technical} />
@@ -123,7 +142,7 @@ const AnalyseStock = () => {
           </div>
 
           {/* Section 5: AI + Highcharts */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div className="ai-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <AIInsightBox insights={data.ai_insights} />
             <HighchartsComponent data={data.analysis.chart_data} symbol={data.analysis.ticker.replace('.NS', '')} />
           </div>
@@ -133,7 +152,7 @@ const AnalyseStock = () => {
             <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <TrendingUp size={20} color="var(--accent-primary)" /> Market Intelligence & News
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            <div className="news-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
               {news.length > 0 ? news.map(item => (
                 <div key={item.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

@@ -39,7 +39,7 @@ const ScoreBlocks = ({ scores }) => {
   if (!scores) return null;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+    <div className="responsive-grid" style={{ marginBottom: '2rem' }}>
       <ScoreCard title="Master Score" value={scores.final_score} label={scores.classification} icon={Award} color="var(--text-primary)" />
       <ScoreCard title="Durability" data={scores.durability} icon={Shield} color="var(--accent-primary)" />
       <ScoreCard title="Valuation" data={scores.valuation} icon={DollarSign} color="var(--warning)" />
