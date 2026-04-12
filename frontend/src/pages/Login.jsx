@@ -88,7 +88,7 @@ const Login = () => {
               onSuccess={handleLoginSuccess}
               onError={() => {
                 console.error("❌ [Login] Google Auth Failed");
-                toast.error("Google Login Failed. If this is a 403 error, please whitelist http://localhost:5173 in Google Console.");
+                toast.error("Google Login Failed. Please check if your current origin is whitelisted in Google Console.");
               }}
               theme="outline"
               size="large"
