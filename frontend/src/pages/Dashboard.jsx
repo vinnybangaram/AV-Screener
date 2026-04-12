@@ -14,8 +14,7 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-
-import StockSearch from '../components/StockSearch';
+import Loader from '../components/Common/Loader';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -170,7 +169,7 @@ const Dashboard = () => {
         toast.success("CSV Export Triggered");
     };
 
-    if (loading && !data) return <div className="loading-container"><div className="spinner" /></div>;
+    if (loading && !data) return <Loader message="Synchronizing Terminal Intelligence..." />;
     
     const { global, lastUpdated } = data;
     const COLORS = ['#6366f1', '#22c55e', '#ef4444', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
