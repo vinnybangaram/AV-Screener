@@ -35,7 +35,7 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !stock) return null;
 
   return (
     <div className="analysis-panel" style={{
@@ -54,10 +54,12 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
             borderRadius: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'white', boxShadow: '0 8px 20px rgba(99, 102, 241, 0.4)'
           }}>
-            {stock.score >= 80 ? <Flame size={32} /> : <Target size={32} />}
+            {stock?.score >= 80 ? <Flame size={32} /> : <Target size={32} />}
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', letterSpacing: '-0.5px' }}>{stock?.company_name.replace('.NS', '')}</h2>
+            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', letterSpacing: '-0.5px' }}>
+                {(stock?.company_name || stock?.symbol || 'Institutional Logic').replace('.NS', '')}
+            </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.35rem' }}>
                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)' }}>{stock?.symbol}</div>
                <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#22c55e' }}>{analysis?.sector || stock?.sector || 'Institutional Discovery'}</div>
@@ -78,7 +80,7 @@ const StockAnalysisPanel = ({ isOpen, onClose, stock }) => {
         border: '1px solid rgba(99, 102, 241, 0.15)'
       }}>
         <div style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-secondary)' }}>Multibagger Probability</div>
-        <div style={{ fontSize: '1.5rem', fontWeight: '950', color: 'var(--accent-primary)' }}>{stock?.score}%</div>
+        <div style={{ fontSize: '1.5rem', fontWeight: '950', color: 'var(--accent-primary)' }}>{stock?.score || 0}%</div>
       </div>
 
       {/* Content Body */}
