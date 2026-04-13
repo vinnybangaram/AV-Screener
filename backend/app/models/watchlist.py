@@ -11,6 +11,7 @@ class Watchlist(Base):
     added_price = Column(Float)
     added_date = Column(DateTime, default=datetime.utcnow)
     source = Column(String) # multibagger/intraday/pennystorm/custom
+    status = Column(String, default="ACTIVE") # ACTIVE, SL_HIT, TARGET_HIT
     stop_loss = Column(Float, nullable=True)
     target_price = Column(Float, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

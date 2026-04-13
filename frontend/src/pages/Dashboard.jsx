@@ -85,12 +85,14 @@ const Dashboard = () => {
 
         // 1. Sector/Source Filter
         if (sectorFilter !== 'All') {
-            const sourceMap = {
-                'Multibaggers': 'multibagger',
-                'Penny Stocks': 'pennystorm',
-                'Intraday': 'intraday'
-            };
-            watchlist = watchlist.filter(item => item.source === sourceMap[sectorFilter]);
+            watchlist = watchlist.filter(item => {
+                if (!item.source) return false;
+                const src = item.source.toLowerCase();
+                if (sectorFilter === 'Multibaggers') return src.includes('multibagger');
+                if (sectorFilter === 'Penny Stocks') return src.includes('penny');
+                if (sectorFilter === 'Intraday') return src.includes('intraday');
+                return false;
+            });
         }
 
         // 2. Timeframe Logic (Conditional)
@@ -264,14 +266,28 @@ const Dashboard = () => {
                 />
                 <MetricCard 
                     title="Best Performer" 
-                    value={filteredData.metrics.best?.symbol || "---"} 
+                    value={
+                        <span 
+                            onClick={() => filteredData.metrics.best && (window.location.href = `/analyse-stock?symbol=${filteredData.metrics.best.symbol}`)}
+                            style={{ cursor: filteredData.metrics.best ? 'pointer' : 'default' }}
+                        >
+                            {filteredData.metrics.best?.symbol || "---"}
+                        </span>
+                    } 
                     sub={filteredData.metrics.best ? `${formatNumber(filteredData.metrics.best.profit_loss_pct)}%` : 'No data'}
                     trend={1}
                     icon={<ArrowUpRight size={20} />}
                 />
                 <MetricCard 
                     title="Worst Performer" 
-                    value={filteredData.metrics.worst?.symbol || "---"} 
+                    value={
+                        <span 
+                            onClick={() => filteredData.metrics.worst && (window.location.href = `/analyse-stock?symbol=${filteredData.metrics.worst.symbol}`)}
+                            style={{ cursor: filteredData.metrics.worst ? 'pointer' : 'default' }}
+                        >
+                            {filteredData.metrics.worst?.symbol || "---"}
+                        </span>
+                    } 
                     sub={filteredData.metrics.worst ? `${formatNumber(filteredData.metrics.worst.profit_loss_pct)}%` : 'No data'}
                     trend={-1}
                     icon={<ArrowDownRight size={20} />}
@@ -375,6 +391,103 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* 🔷 SYSTEM POSITIONS SECTION */}
+            <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+                <div className="card-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Award size={20} className="text-gradient" />
+                        <h3>System Positions <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>• Quantitative Strategy Engine</span></h3>
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '700' }}>
+                        ⚠️ SL & Target are system-generated estimates, not financial advice
+                    </div>
+                </div>
+
+                <div className="positions-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                    {['ACTIVE', 'TARGET_HIT', 'SL_HIT'].map(s => {
+                        const count = filteredData.watchlist.filter(item => item.status === s).length;
+                        return (
+                            <button 
+                                key={s} 
+                                className={`filter-chip ${s === (sectorFilter === 'Intraday' ? 'ACTIVE' : sectorFilter) ? '' : ''} ${s === (window._currentPosTab || 'ACTIVE') ? 'active' : ''}`}
+                                onClick={() => {
+                                    window._currentPosTab = s;
+                                    setData({...data}); // Force re-render
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                            >
+                                {s.replace('_', ' ')} <span style={{ opacity: 0.6 }}>({count})</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="positions-table-wrapper" style={{ overflowX: 'auto' }}>
+                    <table className="positions-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+                        <thead>
+                            <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                <th style={{ padding: '0 1rem' }}>Asset</th>
+                                <th>Strategy</th>
+                                <th>Entry</th>
+                                <th>Current</th>
+                                <th>System SL</th>
+                                <th>System Target</th>
+                                <th style={{ textAlign: 'right', padding: '0 1rem' }}>Return (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredData.watchlist
+                                .filter(item => item.status === (window._currentPosTab || 'ACTIVE'))
+                                .map(item => (
+                                    <tr key={item.id} className="table-row-hover" style={{ background: 'rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                        <td style={{ padding: '1rem', borderRadius: '12px 0 0 12px', border: '1px solid rgba(255,255,255,0.03)', borderRight: 'none' }}>
+                                            <div onClick={() => window.location.href = `/analyse-stock?symbol=${item.symbol}`} style={{ fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                {item.symbol}
+                                            </div>
+                                        </td>
+                                        <td style={{ borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+                                                {item.source.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontWeight: '700', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            ₹{formatNumber(item.added_price)}
+                                        </td>
+                                        <td style={{ fontWeight: '700', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            ₹{formatNumber(item.current_price)}
+                                        </td>
+                                        <td style={{ borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <div style={{ color: '#ef4444', fontWeight: '900', fontSize: '0.9rem' }}>₹{formatNumber(item.stop_loss)}</div>
+                                            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>Auto-buffer</div>
+                                        </td>
+                                        <td style={{ borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <div style={{ color: '#22c55e', fontWeight: '900', fontSize: '0.9rem' }}>₹{formatNumber(item.target_price)}</div>
+                                            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>Optimum Exit</div>
+                                        </td>
+                                        <td style={{ textAlign: 'right', padding: '1rem', borderRadius: '0 12px 12px 0', border: '1px solid rgba(255,255,255,0.03)', borderLeft: 'none' }}>
+                                            <div style={{ fontWeight: '800', color: item.profit_loss_pct >= 0 ? '#22c55e' : '#ef4444' }}>
+                                                {item.profit_loss_pct >= 0 ? '+' : ''}{formatNumber(item.profit_loss_pct)}%
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                        </tbody>
+                    </table>
+                    {filteredData.watchlist.filter(item => item.status === (window._currentPosTab || 'ACTIVE')).length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                           No {(window._currentPosTab || 'ACTIVE').replace('_', ' ').toLowerCase()} positions in this category.
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                .positions-table tr.table-row-hover:hover {
+                    background: rgba(255,255,255,0.05) !important;
+                    transform: translateX(4px);
+                }
+            `}</style>
+
             {/* Market Data */}
             <div className="market-row">
                 <div className="movers-column">
@@ -470,7 +583,16 @@ const MoversList = ({ title, data, type, formatCurrency, formatNumber }) => (
         <div className="movers-items">
             {(data || []).map((ticker, idx) => (
                 <div key={idx} className="mover-item">
-                    <div className="mover-info"><h5>{ticker.symbol}</h5></div>
+                    <div className="mover-info">
+                        <h5 
+                            onClick={() => window.location.href = `/analyse-stock?symbol=${ticker.symbol}`}
+                            style={{ cursor: 'pointer', margin: 0, transition: 'color 0.2s' }}
+                            onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
+                            onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
+                        >
+                            {ticker.symbol}
+                        </h5>
+                    </div>
                     <div className="mover-metrics">
                         <span className="price">{formatCurrency(ticker.price)}</span>
                         <span className={`change ${type === 'gainers' ? 'pos' : 'neg'}`}>{type === 'gainers' ? '+' : ''}{formatNumber(ticker.change_pct)}%</span>

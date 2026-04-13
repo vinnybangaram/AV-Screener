@@ -251,16 +251,14 @@ const StormCard = ({ stock, onAnalyze }) => {
             </div>
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <div style={{
-                    width: '60px', height: '60px', borderRadius: '20px',
-                    background: cfg.bg, border: `1px solid ${cfg.border}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: cfg.color
-                }}>
-                    {stock.verdict === 'STORM READY' ? <Flame size={32} /> : <Zap size={28} />}
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '1.5rem' }}>
                 <div>
-                    <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px' }}>
+                    <h3 
+                        onClick={() => window.location.href = `/analyse-stock?symbol=${stock.ticker}`}
+                        style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px', cursor: 'pointer', color: 'var(--text-primary)' }}
+                        onMouseEnter={e => e.target.style.color = '#eab308'}
+                        onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
+                    >
                         {stock.ticker}
                     </h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>

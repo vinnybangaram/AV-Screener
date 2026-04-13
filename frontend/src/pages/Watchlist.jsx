@@ -63,7 +63,12 @@ const Watchlist = () => {
 
     const filteredWatchlist = activeTab === 'All' 
         ? watchlist 
-        : watchlist.filter(item => item.source.toLowerCase() === activeTab.toLowerCase());
+        : watchlist.filter(item => {
+            if (!item.source) return false;
+            const src = item.source.toLowerCase();
+            const tab = activeTab.toLowerCase();
+            return src.includes(tab) || tab.includes(src);
+        });
 
     const tabs = ['All', 'Multibagger', 'Intraday', 'Penny', 'Custom'];
 
@@ -120,6 +125,15 @@ const Watchlist = () => {
                     ))}
                 </div>
             )}
+
+            <div style={{ marginTop: '4rem', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, fontWeight: '700' }}>
+                    🛡️ <span style={{ color: 'var(--accent-primary)' }}>AUTO SL & TARGET ENGINE:</span> All risk parameters are automatically calculated based on asset volatility and strategy category.
+                </p>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    SL & Target are system-generated estimates, not financial advice. Equity markets carry risk.
+                </div>
+            </div>
         </div>
     );
 };
@@ -137,7 +151,14 @@ const WatchlistCard = ({ item, onUpdate, onRemove, delay }) => {
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <div>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800' }}>{item.symbol}</h3>
+                    <h3 
+                        onClick={() => window.location.href = `/analyse-stock?symbol=${item.symbol}`}
+                        style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', cursor: 'pointer', color: 'var(--text-primary)' }}
+                        onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
+                        onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
+                    >
+                        {item.symbol}
+                    </h3>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase' }}>
                         Source: {item.source}
                     </span>
@@ -163,24 +184,18 @@ const WatchlistCard = ({ item, onUpdate, onRemove, delay }) => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.03)' }}>
                 <div>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '800', marginBottom: '4px' }}>STOP LOSS (SL)</div>
-                    <EditableValue 
-                        value={item.stop_loss} 
-                        onChange={(val) => onUpdate({ stop_loss: val })} 
-                        prefix="₹"
-                        color="#ef4444"
-                    />
+                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: '900', marginBottom: '6px', letterSpacing: '0.5px' }}>SYSTEM SL (AUTO)</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '900', color: '#ef4444' }}>
+                        {item.stop_loss ? `₹${item.stop_loss.toFixed(2)}` : '---'}
+                    </div>
                 </div>
                 <div>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '800', marginBottom: '4px' }}>TARGET PRICE</div>
-                    <EditableValue 
-                        value={item.target_price} 
-                        onChange={(val) => onUpdate({ target_price: val })} 
-                        prefix="₹"
-                        color="#22c55e"
-                    />
+                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: '900', marginBottom: '6px', letterSpacing: '0.5px' }}>SYSTEM TARGET (AUTO)</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '900', color: '#22c55e' }}>
+                        {item.target_price ? `₹${item.target_price.toFixed(2)}` : '---'}
+                    </div>
                 </div>
             </div>
 

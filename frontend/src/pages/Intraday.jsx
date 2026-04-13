@@ -198,13 +198,17 @@ const IntradayCard = ({ stock }) => {
             </div>
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: dirBg, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${dirColor}30` }}>
-                    {isLong ? <TrendingUp size={26} color={dirColor} /> : <TrendingDown size={26} color={dirColor} />}
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '1.25rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: '900' }}>{stock.ticker}</h3>
+                        <h3 
+                            onClick={() => window.location.href = `/analyse-stock?symbol=${stock.ticker}`}
+                            style={{ margin: 0, fontSize: '1.3rem', fontWeight: '900', cursor: 'pointer', color: 'var(--text-primary)' }}
+                            onMouseEnter={e => e.target.style.color = '#22c55e'}
+                            onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
+                        >
+                            {stock.ticker}
+                        </h3>
                         <span style={{ fontSize: '0.7rem', fontWeight: '800', padding: '2px 8px', borderRadius: '6px', background: dirBg, color: dirColor, border: `1px solid ${dirColor}30` }}>
                             {stock.direction}
                         </span>

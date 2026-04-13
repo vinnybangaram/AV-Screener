@@ -210,16 +210,16 @@ const StockCard = ({ stock, onAnalyze }) => {
       </div>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2rem' }}>
-        <div style={{
-          width: '60px', height: '60px', background: 'rgba(99, 102, 241, 0.08)', 
-          borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.15)'
-        }}>
-          {stock.score >= 80 ? <Flame size={32} /> : <Rocket size={28} />}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '2rem' }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px' }}>{(stock.company_name || stock.ticker || 'Stock').replace('.NS', '')}</h3>
+          <h3 
+            onClick={() => window.location.href = `/analyse-stock?symbol=${(stock.ticker || stock.symbol)}`}
+            style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px', cursor: 'pointer', color: 'var(--text-primary)' }}
+            onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
+            onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
+          >
+            {(stock.company_name || stock.ticker || 'Stock').replace('.NS', '')}
+          </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '700' }}>₹{stock.currentPrice?.toLocaleString()}</span>
              <span style={{ height: '4px', width: '4px', background: 'var(--border-color)', borderRadius: '50%' }}></span>
