@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat
+from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat, admin
 from app.database import engine, Base
 from app.models import user, watchlist as watchlist_model, notification as notification_model, screener_result, chat as chat_model
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from app.utils.config import settings
+from datetime import datetime
 import os
 
 # Create tables
@@ -58,21 +59,38 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
         idinfo = id_token.verify_oauth2_token(
             credential,
             google_requests.Request(),
-            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=10
         )
 
         email = idinfo.get("email")
         name = idinfo.get("name", "Trader")
+        google_id = idinfo.get("sub")
         
         db_user = db.query(user.User).filter(user.User.email == email).first()
         if not db_user:
-            db_user = user.User(email=email, name=name)
+            db_user = user.User(
+                email=email, 
+                name=name, 
+                google_id=google_id,
+                last_login=datetime.utcnow()
+            )
             db.add(db_user)
             db.commit()
             db.refresh(db_user)
+        else:
+            # Update last login and google_id if not present
+            db_user.last_login = datetime.utcnow()
+            if not db_user.google_id:
+                db_user.google_id = google_id
+            db.commit()
 
         from app.utils.auth import create_access_token
-        access_token = create_access_token(data={"user_id": str(db_user.id), "email": db_user.email})
+        access_token = create_access_token(data={
+            "user_id": str(db_user.id), 
+            "email": db_user.email,
+            "role": db_user.role
+        })
 
         return {
             "success": True,
@@ -81,10 +99,12 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
                 "id":      db_user.id,
                 "name":    db_user.name,
                 "email":   db_user.email,
+                "role":    db_user.role,
                 "picture": idinfo.get("picture", ""),
             }
         }
     except Exception as e:
+        print(f"[Auth Error] {str(e)}")
         raise HTTPException(status_code=401, detail=f"Auth failed: {str(e)}")
 
 # ── ROUTERS ──
@@ -98,6 +118,7 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["Not
 app.include_router(news.router,         prefix="/api/news",          tags=["News"])
 app.include_router(dashboard.router,    prefix="/api/dashboard",     tags=["Dashboard"])
 app.include_router(chat.router,         prefix="/api/chat",          tags=["AI Chat"])
+app.include_router(admin.router,        prefix="/api/admin",         tags=["Admin"])
 
 # ── ENTRY POINT ──
 if __name__ == "__main__":

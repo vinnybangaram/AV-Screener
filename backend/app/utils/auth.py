@@ -57,3 +57,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         print(f"[Auth Error] User {user_id} not found in database")
         raise credentials_exception
     return user
+
+def require_admin(user: user_model.User = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return user

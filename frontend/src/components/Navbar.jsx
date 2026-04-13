@@ -266,6 +266,14 @@ const Navbar = ({ theme, toggleTheme, onMenuClick }) => {
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{userData?.email}</div>
                   </div>
                   <DropdownItem icon={<User size={16} />} label="Profile" />
+                  {userData?.role === 'admin' && (
+                    <DropdownItem 
+                      icon={<Cpu size={16} />} 
+                      label="Admin Panel" 
+                      onClick={() => navigate('/admin')} 
+                      color="var(--accent-primary)"
+                    />
+                  )}
                   <DropdownItem icon={<Settings size={16} />} label="Settings" />
                   <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} />
                   <DropdownItem icon={<LogOut size={16} />} label="Logout" onClick={handleLogout} color="#ef4444" />

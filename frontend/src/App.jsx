@@ -13,6 +13,7 @@ import Watchlist from './pages/Watchlist';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import ChatWidget from './components/AIChatWidget/ChatWidget';
+import Admin from './pages/Admin';
 
 function AppContent({ theme, toggleTheme }) {
   const location = useLocation();
@@ -54,6 +55,8 @@ function AppContent({ theme, toggleTheme }) {
             <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
             <Route path="/penny-storm" element={<ProtectedRoute><PennyStorm /></ProtectedRoute>} />
             <Route path="/intraday" element={<ProtectedRoute><Intraday /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><Admin /></ProtectedRoute>} />
+            <Route path="/dashboard/admin" element={<ProtectedRoute requiredRole="admin"><Admin /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>

@@ -11,8 +11,15 @@ const NAV_ITEMS = [
     { to: '/intraday', icon: <Activity size={20} />, label: 'Intraday', badge: 'LIVE' },
 ];
 
+const ADMIN_NAV_ITEM = { to: '/admin', icon: <TrendingUp size={20} />, label: 'Admin Tools' };
+
 const Sidebar = ({ onClose }) => {
     const location = useLocation();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAdmin = user.role === 'admin';
+
+    const items = [...NAV_ITEMS];
+    if (isAdmin) items.push(ADMIN_NAV_ITEM);
 
     return (
         <aside style={{
@@ -40,7 +47,7 @@ const Sidebar = ({ onClose }) => {
                 </button>
             </div>
 
-            {NAV_ITEMS.map(({ to, icon, label }) => {
+            {items.map(({ to, icon, label }) => {
                 const active = location.pathname === to;
                 return (
                     <Link key={to} to={to} style={{ textDecoration: 'none' }}>
