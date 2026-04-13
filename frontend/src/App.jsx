@@ -14,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import ChatWidget from './components/AIChatWidget/ChatWidget';
 import Admin from './pages/Admin';
+import MeshBackground from './components/MeshBackground';
 
 function AppContent({ theme, toggleTheme }) {
   const location = useLocation();
@@ -34,6 +35,7 @@ function AppContent({ theme, toggleTheme }) {
 
   return (
     <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <MeshBackground />
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
       {!hideShell && <Navbar theme={theme} toggleTheme={toggleTheme} onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />}
 

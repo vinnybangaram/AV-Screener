@@ -62,7 +62,6 @@ const PennyStorm = () => {
     <div className="container" style={{
         paddingBottom: '4rem',
         color: 'var(--text-primary)',
-        background: 'var(--bg-primary)',
         minHeight: 'calc(100vh - 64px)'
     }}>
 
@@ -95,14 +94,16 @@ const PennyStorm = () => {
                 disabled={loading}
                 className="btn-storm refresh-btn"
                 style={{
-                    padding: '1rem 1.75rem',
-                    borderRadius: '16px',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '12px',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 8px 24px rgba(234,179,8,0.3)',
-                    opacity: loading ? 0.7 : 1
+                    boxShadow: '0 4px 12px rgba(234,179,8,0.2)',
+                    opacity: loading ? 0.7 : 1,
+                    fontSize: '0.85rem',
+                    fontWeight: '600'
                 }}
             >
-                {loading ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
+                {loading ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} />}
                 Run Storm Scan
             </button>
         </div>
@@ -197,223 +198,154 @@ const StormCard = ({ stock, onAnalyze }) => {
     const bd = stock.breakdown || {};
 
     return (
-        <div className="card-interactive storm-card" style={{
-            padding: '2rem',
-            transition: 'all 0.3s ease'
-        }}>
-
-            {/* Glow for Storm Ready */}
-            {stock.verdict === 'STORM READY' && (
-                <div style={{
-                    position: 'absolute', top: '-50px', right: '-50px',
-                    width: '150px', height: '150px',
-                    background: '#eab308', opacity: 0.06,
-                    filter: 'blur(50px)', borderRadius: '50%'
-                }} />
-            )}
-
-            {/* Score — top right (same as StockCard) */}
-            <div style={{ position: 'absolute', top: '1.75rem', right: '1.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
-                    Storm Score
-                </div>
-                <div style={{ fontSize: '2rem', fontWeight: '950', color: cfg.color, lineHeight: '1', letterSpacing: '-1px' }}>
-                    {stock.score}
-                </div>
+        <div 
+            className="card-interactive storm-card" 
+            style={{ padding: '1.25rem', position: 'relative', overflow: 'hidden' }}
+        >
+            {/* Score Cluster - Top Right */}
+            <div style={{ position: 'absolute', top: '1rem', right: '1.25rem', textAlign: 'right' }}>
+                <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Storm Score</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: cfg.color, lineHeight: 1 }}>{stock.score}</div>
                 <button 
                    onClick={async (e) => {
                      e.stopPropagation();
-                   const userStr = localStorage.getItem('user');
-                   if (!userStr) {
-                     toast.error('Please login to add stocks to your watchlist.');
-                     return;
-                   }
-                   const user = JSON.parse(userStr);
-                   if (user && user.id) {
-                     const res = await addToWatchlist(user.id, {
-                       symbol: stock.ticker,
-                       added_price: stock.price,
-                       source: 'PennyStorm'
-                     });
-                     if (res && (res.id || res.success)) {
-                       toast.success(`${stock.ticker} added to watchlist!`);
-                     } else {
-                       toast.error(`Failed to add ${stock.ticker} to watchlist.`);
-                     }
-                   }
+                     const userStr = localStorage.getItem('user');
+                     if (!userStr) { toast.error('Please login first.'); return; }
+                     const user = JSON.parse(userStr);
+                     const res = await addToWatchlist(user.id, { symbol: stock.ticker, added_price: stock.price, source: 'PennyStorm' });
+                     if (res?.success) toast.success(`${stock.ticker} added!`);
                    }}
-                   style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginTop: '8px' }}
-                   onMouseEnter={e => e.target.style.color = '#eab308'}
-                   onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}
+                   style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '0.4rem' }}
                 >
-                   <Bookmark size={18} />
+                   <Bookmark size={14} />
                 </button>
             </div>
 
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '1.5rem' }}>
-                <div>
-                    <h3 
-                        onClick={() => window.location.href = `/analyse-stock?symbol=${stock.ticker}`}
-                        style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px', cursor: 'pointer', color: 'var(--text-primary)' }}
-                        onMouseEnter={e => e.target.style.color = '#eab308'}
-                        onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
-                    >
-                        {stock.ticker}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                        <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
-                            ₹{stock.price?.toLocaleString() ?? '—'}
-                        </span>
-                        <span style={{ height: '4px', width: '4px', background: 'var(--border-color)', borderRadius: '50%' }} />
-                        <span style={{
-                            fontSize: '0.75rem', fontWeight: '800', padding: '2px 8px',
-                            borderRadius: '20px', background: cfg.bg, color: cfg.color
-                        }}>
-                            {cfg.emoji} {stock.verdict}
-                        </span>
-                    </div>
+            {/* Header - Compact */}
+            <div style={{ marginBottom: '1.25rem' }}>
+                <h3 
+                    onClick={() => window.location.href = `/analyse-stock?symbol=${stock.ticker}`}
+                    style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', cursor: 'pointer' }}
+                >
+                    {stock.ticker}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>₹{stock.price}</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '1px 6px', borderRadius: '4px', background: cfg.bg, color: cfg.color, textTransform: 'uppercase' }}>
+                        {stock.verdict}
+                    </span>
                 </div>
             </div>
 
-            {/* Storm Score Bar */}
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-secondary)' }}>Storm Probability</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: '900', color: 'var(--text-primary)' }}>{stock.score}/100</span>
+            {/* Probability Progress Bar */}
+            <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-muted)' }}>STORM PROBABILITY</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: cfg.color }}>{stock.score}%</span>
                 </div>
-                <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ height: '4px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${stock.score}%` }}
                         transition={{ duration: 1, ease: 'easeOut' }}
-                        style={{ height: '100%', background: `linear-gradient(90deg, ${cfg.color}88 0%, ${cfg.color} 100%)` }}
+                        style={{ height: '100%', background: cfg.color }}
                     />
                 </div>
             </div>
 
-            {/* Metrics Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div className="card-stat metric-item">
+            {/* Metrics Grid- Compact */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="metric-item">
                     <span className="label">Risk Level</span>
-                    <span className="value" style={{ color: stock.risk_level === 'Low' ? '#22c55e' : stock.risk_level === 'Extreme' ? '#ef4444' : '#eab308' }}>
+                    <span className="value" style={{ color: stock.risk_level === 'Low' ? 'var(--success)' : stock.risk_level === 'Extreme' ? 'var(--danger)' : cfg.color }}>
                         {stock.risk_level || '—'}
                     </span>
                 </div>
-                <div className="card-stat metric-item">
+                <div className="metric-item">
                     <span className="label">Sector</span>
                     <span className="value">{stock.sector || '—'}</span>
                 </div>
-                <div className="card-stat metric-item">
-                    <span className="label">Suggested Action</span>
-                    <span className="value" style={{ fontSize: '0.75rem' }}>{stock.suggested_action || '—'}</span>
-                </div>
-                <div className="card-stat metric-item">
-                    <span className="label">Change</span>
-                    <span className="value" style={{ color: (stock.change_pct ?? 0) >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {(stock.change_pct ?? 0) >= 0 ? '▲' : '▼'} {Math.abs(stock.change_pct ?? 0).toFixed(2)}%
+                <div className="metric-item">
+                    <span className="label">Change 24h</span>
+                    <span className="value" style={{ color: (stock.change_pct ?? 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                        {(stock.change_pct ?? 0) >= 0 ? '↑' : '↓'} {Math.abs(stock.change_pct ?? 0).toFixed(2)}%
                     </span>
+                </div>
+                <div className="metric-item">
+                   <span className="label">Radar</span>
+                   <span className="value" style={{ color: stock.sector_tailwind ? 'var(--success)' : 'var(--text-secondary)' }}>
+                        {stock.sector_tailwind ? 'Tailwind ↑' : 'Neutral'}
+                   </span>
                 </div>
             </div>
 
-            {/* One-liner */}
+            {/* One-liner Highlight */}
             {stock.one_liner && (
                 <div style={{
-                    background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)',
-                    borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1.5rem',
-                    fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic'
+                    background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)',
+                    borderRadius: '8px', padding: '0.6rem 0.8rem', marginBottom: '1.25rem',
+                    fontSize: '0.75rem', color: 'var(--text-secondary)', borderLeft: `3px solid ${cfg.color}`
                 }}>
-                    "{stock.one_liner}"
+                    {stock.one_liner}
                 </div>
             )}
 
-            {/* Score Breakdown toggle */}
-            <div style={{ marginBottom: '1.5rem' }}>
+            {/* Breakdown Toggle */}
+            <div style={{ marginBottom: '1.25rem' }}>
                 <button
                     onClick={() => setShowBreakdown(!showBreakdown)}
-                    style={{ background: 'none', border: 'none', color: cfg.color, fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{ background: 'none', border: 'none', color: cfg.color, fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                 >
-                    <HelpCircle size={14} /> {showBreakdown ? 'Hide Breakdown' : 'Show Score Breakdown'}
+                    <HelpCircle size={13} /> {showBreakdown ? 'HIDE INSIGHTS' : 'VIEW SCORE INSIGHTS'}
                 </button>
 
                 <AnimatePresence>
                     {showBreakdown && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            style={{ overflow: 'hidden', marginTop: '1rem' }}
-                        >
-                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'grid', gap: '0.75rem' }}>
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden', marginTop: '0.75rem' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'grid', gap: '0.6rem' }}>
                                 {Object.entries(bd).map(([key, val]) => (
-                                    <StormScoreLine
-                                        key={key}
-                                        label={key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                                        value={val.score ?? 0}
-                                        max={val.max ?? 25}
-                                        notes={val.notes}
-                                        color={cfg.color}
-                                    />
+                                    <div key={key}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '3px' }}>
+                                            <span style={{ color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>{key.replace(/_/g, ' ')}</span>
+                                            <span style={{ fontWeight: '800', color: cfg.color }}>{val.score}/{val.max}</span>
+                                        </div>
+                                        <div style={{ height: '3px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${(val.score / val.max) * 100}%`, background: cfg.color }} />
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
-
-                            {/* Red / Green flags */}
-                            {(stock.red_flags?.length > 0 || stock.green_flags?.length > 0) && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
-                                    <div style={{ background: 'rgba(239,68,68,0.05)', borderRadius: '12px', padding: '0.75rem', border: '1px solid rgba(239,68,68,0.15)' }}>
-                                        <div style={{ fontSize: '0.7rem', fontWeight: '900', color: '#ef4444', marginBottom: '0.5rem' }}>🚨 RED FLAGS</div>
-                                        {(stock.red_flags || []).map((f, i) => (
-                                            <div key={i} style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>• {f}</div>
-                                        ))}
-                                    </div>
-                                    <div style={{ background: 'rgba(34,197,94,0.05)', borderRadius: '12px', padding: '0.75rem', border: '1px solid rgba(34,197,94,0.15)' }}>
-                                        <div style={{ fontSize: '0.7rem', fontWeight: '900', color: '#22c55e', marginBottom: '0.5rem' }}>✅ GREEN FLAGS</div>
-                                        {(stock.green_flags || []).map((f, i) => (
-                                            <div key={i} style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>• {f}</div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
 
-            {/* CTA — same style as StockCard */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Action Footer */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                 <button
                     onClick={onAnalyze}
-                    className="btn-storm action-btn"
+                    className="btn"
                     style={{
-                        flex: 1, padding: '1rem',
-                        borderRadius: '14px',
-                        cursor: 'pointer',
+                        padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer',
+                        fontSize: '0.75rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)'
                     }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                    Full Storm Analysis <ChevronRight size={18} />
+                    View Analysis <ChevronRight size={14} />
                 </button>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--text-secondary)' }}>SECTOR TREND</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '900', color: cfg.color }}>
-                        {stock.sector_tailwind ? '↑ Tailwind' : 'Neutral'}
-                    </div>
+                <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-muted)' }}>
+                    SCAN: {stock.suggested_action}
                 </div>
             </div>
 
             <style>{`
-        .storm-card:hover {
-          transform: translateY(-8px);
-          border-color: ${cfg.color};
-          box-shadow: 0 16px 40px rgba(0,0,0,0.3);
-        }
-        .metric-item {
-          padding: 0.75rem 1rem; border-radius: 14px;
-          display: flex; flex-direction: column; gap: 0.25rem;
-        }
-        .metric-item .label { font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; }
-        .metric-item .value { font-size: 0.85rem; font-weight: 800; color: var(--text-primary); }
-        .action-btn:hover { filter: brightness(1.1); }
-      `}</style>
+                .storm-card:hover { transform: translateY(-4px); border-color: ${cfg.color}40 !important; }
+                .metric-item { display: flex; flex-direction: column; gap: 0.1rem; }
+                .metric-item .label { font-size: 0.55rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+                .metric-item .value { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+            `}</style>
         </div>
     );
 };

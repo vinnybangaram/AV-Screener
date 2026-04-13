@@ -4,86 +4,88 @@
    DESIGN TOKENS
 ═══════════════════════════════════════ */
 :root {
-  --bg-main: #080e1a;
-  --bg-card: #0d1526;
-  --bg-card-hover: #111d33;
-  --bg-card-elevated: #131f38;
+  /* Corporate Dark Palette */
+  --bg-main: #0a0c10;
+  --bg-card: #11141d;
+  --bg-card-hover: #161a26;
+  --bg-card-elevated: #1a1f2e;
 
-  --text-primary: #f0f4ff;
-  --text-secondary: #6b7fa3;
-  --text-muted: #3d4f6e;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
 
-  --accent-primary: #3b82f6;
-  --accent-secondary: #60a5fa;
-  --accent-glow: rgba(59, 130, 246, 0.12);
+  --accent-primary: #6366f1; /* Professional Indigo */
+  --accent-secondary: #818cf8;
+  --accent-glow: rgba(99, 102, 241, 0.1);
 
   --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.08);
-  --success-border: rgba(16, 185, 129, 0.2);
+  --success-bg: rgba(16, 185, 129, 0.05);
+  --success-border: rgba(16, 185, 129, 0.15);
 
   --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.08);
-  --warning-border: rgba(245, 158, 11, 0.2);
+  --warning-bg: rgba(245, 158, 11, 0.05);
+  --warning-border: rgba(245, 158, 11, 0.15);
 
   --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.08);
-  --danger-border: rgba(239, 68, 68, 0.2);
+  --danger-bg: rgba(239, 68, 68, 0.05);
+  --danger-border: rgba(239, 68, 68, 0.15);
 
-  --storm: #eab308;
-  --storm-bg: rgba(234, 179, 8, 0.08);
-  --storm-border: rgba(234, 179, 8, 0.2);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
 
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(255, 255, 255, 0.12);
+  --nav-bg: rgba(10, 12, 16, 0.8);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
 
-  --nav-bg: #080e1a;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* Glassmorphism Tokens */
+  --glass-bg: rgba(17, 20, 29, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 16px;
+  
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
 [data-theme='light'] {
-  --bg-main: #f0f4f8;
+  /* Corporate Light Palette — High Contrast Background vs Card */
+  --bg-main: #f1f5f9; /* Professional soft slate */
   --bg-card: #ffffff;
-  --bg-card-hover: #f8faff;
-  --bg-card-elevated: #f1f5fc;
+  --bg-card-hover: rgba(255, 255, 255, 0.9);
+  --bg-card-elevated: #e2e8f0;
 
   --text-primary: #0f172a;
-  --text-secondary: #64748b;
+  --text-secondary: #475569;
   --text-muted: #94a3b8;
 
-  --accent-primary: #2563eb;
-  --accent-secondary: #3b82f6;
-  --accent-glow: rgba(37, 99, 235, 0.08);
+  --accent-primary: #4f46e5;
+  --accent-secondary: #6366f1;
+  --accent-glow: rgba(79, 70, 229, 0.06);
 
   --success: #059669;
-  --success-bg: rgba(5, 150, 105, 0.06);
-  --success-border: rgba(5, 150, 105, 0.18);
+  --success-bg: rgba(5, 150, 105, 0.05);
+  --success-border: rgba(5, 150, 105, 0.12);
 
   --warning: #d97706;
-  --warning-bg: rgba(217, 119, 6, 0.06);
-  --warning-border: rgba(217, 119, 6, 0.18);
+  --warning-bg: rgba(217, 119, 6, 0.05);
+  --warning-border: rgba(217, 119, 6, 0.12);
 
   --danger: #dc2626;
-  --danger-bg: rgba(220, 38, 38, 0.06);
-  --danger-border: rgba(220, 38, 38, 0.18);
+  --danger-bg: rgba(220, 38, 38, 0.05);
+  --danger-border: rgba(220, 38, 38, 0.12);
 
-  --storm: #b45309;
-  --storm-bg: rgba(180, 83, 9, 0.06);
-  --storm-border: rgba(180, 83, 9, 0.18);
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-blur: 10px;
 
-  --border-color: rgba(0, 0, 0, 0.07);
-  --border-hover: rgba(0, 0, 0, 0.14);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.12);
 
-  --nav-bg: #ffffff;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.05);
 }
 
 /* ═══════════════════════════════════════
@@ -96,59 +98,112 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background: var(--bg-main);
+  font-family: 'Inter', system-ui, sans-serif;
+  background: none !important;
   color: var(--text-primary);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  line-height: 1.5;
+  transition: color 0.4s ease;
+  line-height: 1.6;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+html {
+  scroll-behavior: smooth;
+  background: none !important;
+}
+
+/* Glassmorphism Grain/Noise */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  opacity: 0.1;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+[data-theme='light'] body::after {
+    opacity: 0.04; /* Much subtler in light mode */
+}
+
+h1, h2, h3, h4 {
   font-family: 'Inter', sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   color: var(--text-primary);
+  font-weight: 600; /* No bulk */
 }
 
 /* ═══════════════════════════════════════
    LAYOUT
 ═══════════════════════════════════════ */
+.app-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .container {
+  position: relative;
+  z-index: 2;
   max-width: 1920px;
   margin: 0 auto;
-  padding: 2rem 2.5rem;
+  padding: 1.5rem 2rem;
 }
 
 /* ═══════════════════════════════════════
    CARD SYSTEM — used across all pages
 ═══════════════════════════════════════ */
 
-/* Base card */
+/* Base card — Glass Design */
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
 
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* Handle Nested Cards — Simplify to avoid bulky nesting */
+.card .card {
+  border: none;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  box-shadow: none;
+}
+
+[data-theme='light'] .card .card {
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Responsive Grid System */
 .responsive-grid {
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem; /* Compact gap */
   grid-template-columns: repeat(1, 1fr);
 }
 
@@ -192,22 +247,25 @@ h6 {
   overflow: hidden;
 }
 
-/* Interactive card — lifts on hover (stock cards, storm cards) */
+/* Interactive card — lifted but understated */
 .card-interactive {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: 1.75rem;
-  transition: all 0.25s ease;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
   cursor: pointer;
 }
 
 .card-interactive:hover {
-  transform: translateY(-4px);
   border-color: var(--accent-primary);
-  box-shadow: var(--shadow-lg);
+  background: var(--bg-card-hover);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transform: translateY(-4px);
 }
 
 /* Accent card — left border highlight (trade recommendation etc.) */
@@ -221,12 +279,11 @@ h6 {
   border-bottom-left-radius: 0;
 }
 
-/* Stat card — metric blocks (score cards, KPI tiles) */
 .card-stat {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem; /* Compact padding */
   transition: all 0.2s ease;
 }
 
@@ -405,11 +462,11 @@ h6 {
 }
 
 .page-title {
-  font-size: 2.5rem;
-  font-weight: 900;
-  letter-spacing: -1.5px;
-  line-height: 1.1;
-  margin-bottom: 0.6rem;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
 }
 
 .page-subtitle {
@@ -574,6 +631,20 @@ tr:hover td {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* Glass UI Elements */
+.glass-button {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-primary);
 }
 
 /* ═══════════════════════════════════════

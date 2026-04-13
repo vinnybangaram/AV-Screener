@@ -86,13 +86,19 @@ def calculate_performance(df: pd.DataFrame) -> Dict[str, float]:
     def get_ret(days):
         if len(df) > days:
             prev = df['Close'].iloc[-(days+1)]
-            return ((current - prev) / prev) * 100
+            return float(((current - prev) / prev) * 100)
         return 0.0
 
     return {
+        "1w": get_ret(5),
         "1m": get_ret(21),
         "3m": get_ret(63),
-        "1y": get_ret(252)
+        "6m": get_ret(126),
+        "9m": get_ret(189),
+        "1y": get_ret(252),
+        "2y": get_ret(504),
+        "3y": get_ret(756),
+        "5y": get_ret(1260)
     }
 
 def calculate_volume_analysis(df: pd.DataFrame) -> Dict[str, Any]:
@@ -117,11 +123,11 @@ def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
     # Standardize symbol for Yahoo Finance
     ticker = format_symbol(ticker)
     
-    # Fetch 2 years of data to support 1y performance and 200 DMA reliably
-    df = fetch_stock_data(ticker, period="2y") 
+    # Fetch 5 years of data to support 5y performance
+    df = fetch_stock_data(ticker, period="5y") 
     if df is None or df.empty: return None
     
-    # Technicals
+    # Technicals (using at least 2y for valid 200 DMA)
     rsi = calculate_rsi(df)
     mfi = calculate_mfi(df)
     macd = calculate_macd(df)
@@ -134,19 +140,48 @@ def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
     fundamentals = fetch_fundamentals(ticker)
     
     curr_price = float(df['Close'].iloc[-1])
+    prev_close = float(df['Close'].iloc[-2]) if len(df) > 1 else curr_price
+    
     # Simple trend logic: Price vs 50DMA
     trend = "Uptrend" if curr_price > ma_stack["sma"]["50"] else "Downtrend"
 
-    # Format chart data (last 60 days)
-    chart_data = df.tail(60).copy()
+    # Format chart data (all 5y for Highcharts Stock)
+    chart_data = df.copy()
     chart_data.reset_index(inplace=True)
     chart_data = chart_data.rename(columns={'index': 'date'})
-    chart_data['date'] = chart_data['date'].dt.strftime('%Y-%m-%d')
+    # Convert to timestamp for Highcharts
+    chart_data['timestamp'] = chart_data['date'].apply(lambda x: int(x.timestamp() * 1000))
+    chart_data['date_str'] = chart_data['date'].dt.strftime('%Y-%m-%d')
     
+    # History analysis for summary card
+    def get_period_stats(days):
+        sub_df = df.tail(days)
+        if sub_df.empty: return {"high": 0, "low": 0}
+        return {"high": float(sub_df['High'].max()), "low": float(sub_df['Low'].min())}
+
+    # Today's detailed metrics
+    last_row = df.iloc[-1]
+    today_metrics = {
+        "open": float(last_row['Open']),
+        "high": float(last_row['High']),
+        "low": float(last_row['Low']),
+        "close": float(last_row['Close']),
+        "volume": float(last_row['Volume']),
+        "prev_close": prev_close,
+        "avg_price": float((last_row['High'] + last_row['Low'] + last_row['Close']) / 3),
+        "upper_circuit": float(prev_close * 1.20),
+        "lower_circuit": float(prev_close * 0.80),
+        "stats_3m": get_period_stats(63),
+        "stats_1y": get_period_stats(252),
+        "stats_3y": get_period_stats(756),
+        "stats_5y": get_period_stats(1260)
+    }
+
     return {
         "ticker": ticker,
         "price": curr_price,
-        "change_pct": ((df['Close'].iloc[-1] - df['Close'].iloc[-2]) / df['Close'].iloc[-2]) * 100 if len(df) > 1 else 0,
+        "change_pct": ((curr_price - prev_close) / prev_close) * 100 if len(df) > 1 else 0,
+        "today": today_metrics,
         "technical": {
             "rsi": rsi,
             "mfi": mfi,
@@ -158,5 +193,6 @@ def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
         },
         "volume": volume,
         "fundamentals": fundamentals,
-        "chart_data": chart_data.to_dict(orient='records')
+        "chart_data": chart_data[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']].to_dict(orient='records'),
+        "history": chart_data.tail(10)[['date_str', 'Open', 'High', 'Low', 'Close', 'Volume']].to_dict(orient='records')
     }

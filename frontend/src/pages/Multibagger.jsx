@@ -46,7 +46,7 @@ const Multibagger = () => {
   };
 
   return (
-    <div className="container" style={{ paddingBottom: '4rem', color: 'var(--text-primary)', background: 'var(--bg-primary)', minHeight: 'calc(100vh - 64px)' }}>
+    <div className="container" style={{ paddingBottom: '4rem', color: 'var(--text-primary)', minHeight: 'calc(100vh - 64px)' }}>
       
       {/* Hero Section */}
       <div className="hero-section" style={{ marginBottom: '3.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
@@ -152,30 +152,19 @@ const Multibagger = () => {
 
 const StockCard = ({ stock, onAnalyze }) => {
   const [showExplanation, setShowExplanation] = useState(false);
+  const bd = stock.breakdown || {};
 
   return (
     <div className="card-interactive stock-card" style={{
-      padding: '2rem',
-      transition: 'all 0.3s ease'
+      padding: '1.25rem',
+      position: 'relative', overflow: 'hidden'
     }}>
-      {/* High Probability Glow */}
-      {stock.score >= 80 && (
+      {/* Score Cluster - Top Right */}
+      <div style={{ position: 'absolute', top: '1rem', right: '1.25rem', textAlign: 'right' }}>
+        <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Institutional Score</div>
         <div style={{ 
-          position: 'absolute', top: '-50px', right: '-50px', width: '150px', height: '150px', 
-          background: 'var(--accent-primary)', opacity: 0.08, filter: 'blur(50px)', borderRadius: '50%' 
-        }}></div>
-      )}
-
-      {/* Score Cluster */}
-      <div style={{
-        position: 'absolute', top: '1.75rem', right: '1.75rem', textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
-          Institutional Score
-        </div>
-        <div style={{ 
-          fontSize: '2rem', fontWeight: '950', color: stock.score >= 80 ? '#22c55e' : stock.score >= 60 ? '#6366f1' : 'var(--text-secondary)',
-          lineHeight: '1', letterSpacing: '-1px'
+          fontSize: '1.5rem', fontWeight: '700', color: stock.score >= 80 ? 'var(--success)' : stock.score >= 60 ? 'var(--accent-primary)' : 'var(--text-muted)',
+          lineHeight: 1
         }}>
           {stock.score}
         </div>
@@ -183,95 +172,73 @@ const StockCard = ({ stock, onAnalyze }) => {
            onClick={async (e) => {
              e.stopPropagation();
              const userStr = localStorage.getItem('user');
-             if (!userStr) {
-               toast.error('Please login to add stocks to your watchlist.');
-               return;
-             }
+             if (!userStr) { toast.error('Please login first.'); return; }
              const user = JSON.parse(userStr);
-             if (user && user.id) {
-               const res = await addToWatchlist(user.id, {
-                 symbol: stock.ticker || stock.symbol,
-                 added_price: stock.currentPrice,
-                 source: 'Multibagger'
-               });
-               if (res && (res.id || res.success)) {
-                 toast.success(`${stock.ticker || stock.symbol} added to watchlist!`);
-               } else {
-                 toast.error(`Failed to add ${stock.ticker || stock.symbol} to watchlist.`);
-               }
-             }
+             const res = await addToWatchlist(user.id, { symbol: stock.ticker || stock.symbol, added_price: stock.currentPrice, source: 'Multibagger' });
+             if (res?.success) toast.success(`${stock.ticker || stock.symbol} added!`);
            }}
-           style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginTop: '8px' }}
-           onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
-           onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}
+           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '0.4rem' }}
         >
-           <Bookmark size={18} />
+           <Bookmark size={14} />
         </button>
       </div>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '2rem' }}>
-        <div>
-          <h3 
-            onClick={() => window.location.href = `/analyse-stock?symbol=${(stock.ticker || stock.symbol)}`}
-            style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px', cursor: 'pointer', color: 'var(--text-primary)' }}
-            onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
-            onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
-          >
-            {(stock.company_name || stock.ticker || 'Stock').replace('.NS', '')}
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-             <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '700' }}>₹{stock.currentPrice?.toLocaleString()}</span>
-             <span style={{ height: '4px', width: '4px', background: 'var(--border-color)', borderRadius: '50%' }}></span>
-             <span style={{ fontSize: '0.8rem', color: '#22c55e', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <TrendingUp size={12} /> Live
-             </span>
-          </div>
+      {/* Header - Compact */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <h3 
+          onClick={() => window.location.href = `/analyse-stock?symbol=${(stock.ticker || stock.symbol)}`}
+          style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', cursor: 'pointer' }}
+        >
+          {(stock.company_name || stock.ticker || 'Stock').replace('.NS', '')}
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>₹{stock.currentPrice?.toLocaleString()}</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: '700', letterSpacing: '0.5px' }}>LIVE SCAN</span>
         </div>
       </div>
 
-      {/* Main Score Bar */}
-      <div style={{ marginBottom: '2rem' }}>
-         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-secondary)' }}>Multibagger Probability</span>
-            <span style={{ fontSize: '0.8rem', fontWeight: '900', color: 'var(--text-primary)' }}>{stock.score}%</span>
+      {/* Probability bar */}
+      <div style={{ marginBottom: '1.25rem' }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-muted)' }}>PROBABILITY</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: stock.score >= 80 ? 'var(--success)' : 'var(--accent-primary)' }}>{stock.score}%</span>
          </div>
-         <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden' }}>
+         <div style={{ height: '4px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${stock.score}%` }}
               transition={{ duration: 1, ease: 'easeOut' }}
               style={{ 
                 height: '100%', 
-                background: `linear-gradient(90deg, #6366f1 0%, ${stock.score >= 80 ? '#22c55e' : '#4f46e5'} 100%)` 
+                background: stock.score >= 80 ? 'var(--success)' : 'var(--accent-primary)' 
               }} 
             />
          </div>
       </div>
 
-      {/* Metrics Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-         <div className="card-stat metric-item">
+      {/* Metrics Grid - Compact */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+         <div className="metric-item">
             <span className="label">Structure</span>
-            <span className="value" style={{ color: stock.near52WeekHigh ? '#22c55e' : 'inherit' }}>
-                {stock.near52WeekHigh ? 'Near 52W High' : 'Consolidating'}
+            <span className="value" style={{ color: stock.near52WeekHigh ? 'var(--success)' : 'inherit' }}>
+                {stock.near52WeekHigh ? 'Breakout ↑' : 'Consolidating'}
             </span>
          </div>
-         <div className="card-stat metric-item">
+         <div className="metric-item">
             <span className="label">Momentum</span>
-            <span className="value" style={{ color: stock.trendUp ? '#22c55e' : '#ef4444' }}>
-                {stock.trendUp ? 'Bullish Trend' : 'Testing DMA'}
+            <span className="value" style={{ color: stock.trendUp ? 'var(--success)' : 'var(--danger)' }}>
+                {stock.trendUp ? 'Bullish' : 'Neutral'}
             </span>
          </div>
       </div>
 
-      {/* Explanation Section */}
-      <div style={{ marginBottom: '2rem' }}>
+      {/* Breakdown Toggle */}
+      <div style={{ marginBottom: '1.25rem' }}>
          <button 
            onClick={() => setShowExplanation(!showExplanation)}
-           style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+           style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
          >
-            <HelpCircle size={14} /> {showExplanation ? 'Hide Score Breakdown' : 'Explain Score Logic'}
+            <HelpCircle size={13} /> {showExplanation ? 'HIDE INSIGHTS' : 'VIEW SCORE INSIGHTS'}
          </button>
          
          <AnimatePresence>
@@ -280,13 +247,13 @@ const StockCard = ({ stock, onAnalyze }) => {
                initial={{ height: 0, opacity: 0 }}
                animate={{ height: 'auto', opacity: 1 }}
                exit={{ height: 0, opacity: 0 }}
-               style={{ overflow: 'hidden', marginTop: '1rem' }}
+               style={{ overflow: 'hidden', marginTop: '0.75rem' }}
              >
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'grid', gap: '0.75rem' }}>
-                   <ScoreLine label="Market Momentum" value={stock.breakdown.momentum.achieved} max={35} />
-                   <ScoreLine label="Price Structure" value={stock.breakdown.structure.achieved} max={20} />
-                   <ScoreLine label="AI Quality Score" value={stock.breakdown.aiQuality.achieved} max={25} />
-                   <ScoreLine label="Risk Profile" value={stock.breakdown.risk.achieved} max={20} />
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'grid', gap: '0.6rem' }}>
+                   <ScoreLine label="Momentum" value={bd.momentum?.achieved} max={35} />
+                   <ScoreLine label="Structure" value={bd.structure?.achieved} max={20} />
+                   <ScoreLine label="AI Quality" value={bd.aiQuality?.achieved} max={25} />
+                   <ScoreLine label="Risk" value={bd.risk?.achieved} max={20} />
                 </div>
              </motion.div>
            )}
@@ -294,55 +261,36 @@ const StockCard = ({ stock, onAnalyze }) => {
       </div>
 
       {/* Footer Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
           <button 
             onClick={onAnalyze}
-            className="btn action-btn"
+            className="btn"
             style={{ 
-              flex: 1, padding: '1rem', borderRadius: '14px',
-              cursor: 'pointer',
+              padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer',
+              fontSize: '0.75rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)'
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-           Institutional Analysis <ChevronRight size={18} />
+           View Analysis <ChevronRight size={14} />
          </button>
-         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--text-secondary)' }}>AI CONFIDENCE</div>
+         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ fontSize: '0.55rem', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>AI ENGINE</div>
             <div style={{ 
-               fontSize: '0.75rem', fontWeight: '900', 
-               color: stock.confidence === 'High' ? '#22c55e' : stock.confidence === 'Fallback' ? '#ef4444' : '#6366f1' 
+               fontSize: '0.7rem', fontWeight: '700', 
+               color: stock.confidence === 'High' ? 'var(--success)' : stock.confidence === 'Fallback' ? 'var(--danger)' : 'var(--accent-primary)' 
             }}>
-               {stock.confidence}
+               {stock.confidence?.toUpperCase()}
             </div>
          </div>
       </div>
 
       <style>{`
-        .stock-card:hover {
-          transform: translateY(-8px);
-          border-color: var(--accent-primary);
-          box-shadow: 0 16px 40px rgba(0,0,0,0.3);
-        }
-        .metric-item {
-          padding: 0.75rem 1rem;
-          border-radius: 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-        .metric-item .label {
-          font-size: 0.65rem;
-          font-weight: 800;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-        }
-        .metric-item .value {
-          font-size: 0.85rem;
-          font-weight: 800;
-          color: var(--text-primary);
-        }
-        .action-btn:hover {
-          filter: brightness(1.1);
-        }
+        .stock-card:hover { transform: translateY(-4px); border-color: var(--accent-primary)40 !important; }
+        .metric-item { display: flex; flex-direction: column; gap: 0.1rem; }
+        .metric-item .label { font-size: 0.55rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+        .metric-item .value { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
       `}</style>
     </div>
   );

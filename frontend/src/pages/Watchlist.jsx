@@ -143,73 +143,81 @@ const WatchlistCard = ({ item, onUpdate, onRemove, delay }) => {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay }}
             className="card-interactive"
-            style={{ padding: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}
+            style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}
         >
+            {/* Header - Compact */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <div>
                     <h3 
                         onClick={() => window.location.href = `/analyse-stock?symbol=${item.symbol}`}
-                        style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', cursor: 'pointer', color: 'var(--text-primary)' }}
+                        style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', cursor: 'pointer', color: 'var(--text-primary)' }}
                         onMouseEnter={e => e.target.style.color = 'var(--accent-primary)'}
                         onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
                     >
                         {item.symbol}
                     </h3>
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase' }}>
-                        Source: {item.source}
-                    </span>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '700', marginTop: '0.15rem', textTransform: 'uppercase' }}>
+                        {item.source} · {new Date(item.added_date).toLocaleDateString()}
+                    </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '800', color: isUp ? '#22c55e' : '#ef4444' }}>
-                        {isUp ? '+' : ''}{(item.profit_loss_pct || 0).toFixed(2)}%
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                        ₹{(item.profit_loss_abs || 0).toFixed(2)}
+                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: isUp ? 'var(--success)' : 'var(--danger)' }}>
+                        {isUp ? '↑' : '↓'} {(item.profit_loss_pct || 0).toFixed(2)}%
                     </div>
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div className="card-stat">
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '700' }}>ENTRY PRICE</span>
-                    <span style={{ fontSize: '1rem', fontWeight: '800' }}>₹{(item.added_price || 0).toFixed(2)}</span>
+            {/* Price Row - Clean Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div className="metric-item">
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Entry Price</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>₹{(item.added_price || 0).toFixed(2)}</span>
                 </div>
-                <div className="card-stat">
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: '700' }}>CURRENT PRICE</span>
-                    <span style={{ fontSize: '1rem', fontWeight: '800' }}>₹{(item.current_price || 0).toFixed(2)}</span>
+                <div className="metric-item">
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Market Price</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>₹{(item.current_price || 0).toFixed(2)}</span>
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.03)' }}>
-                <div>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: '900', marginBottom: '6px', letterSpacing: '0.5px' }}>SYSTEM SL (AUTO)</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '900', color: '#ef4444' }}>
+            {/* System Levels - Borderless & Tight */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                <div className="metric-item">
+                    <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: '800', marginBottom: '2px', letterSpacing: '0.4px' }}>AUTO STOP-LOSS</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--danger)' }}>
                         {item.stop_loss ? `₹${item.stop_loss.toFixed(2)}` : '---'}
                     </div>
                 </div>
-                <div>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: '900', marginBottom: '6px', letterSpacing: '0.5px' }}>SYSTEM TARGET (AUTO)</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '900', color: '#22c55e' }}>
+                <div className="metric-item">
+                    <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: '800', marginBottom: '2px', letterSpacing: '0.4px' }}>AUTO TARGET</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--success)' }}>
                         {item.target_price ? `₹${item.target_price.toFixed(2)}` : '---'}
                     </div>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Added: {new Date(item.added_date).toLocaleDateString()}</span>
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '0.75rem' }}>
+                <button 
+                  onClick={() => window.location.href = `/analyse-stock?symbol=${item.symbol}`}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                    TRACK <ChevronRight size={14} />
+                </button>
                 <button 
                     onClick={onRemove}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}
-                    onMouseEnter={e => e.target.style.color = '#ef4444'}
-                    onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem' }}
+                    onMouseEnter={e => e.target.style.color = 'var(--danger)'}
+                    onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}
                 >
-                    <Trash2 size={14} /> Remove
+                    <Trash2 size={12} /> Delete
                 </button>
             </div>
+            <style>{`
+                .metric-item { display: flex; flex-direction: column; gap: 0.1rem; }
+            `}</style>
         </motion.div>
     );
 };

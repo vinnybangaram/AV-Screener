@@ -10,6 +10,8 @@ const CONVICTION_COLOR = {
     LOW: { color: '#f97316', bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.2)' },
 };
 
+const UNIVERSE_COUNT = 60;
+
 const Intraday = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -19,7 +21,6 @@ const Intraday = () => {
 
     useEffect(() => {
         loadScan();
-        // Auto-refresh every 15 mins during market hours
         const interval = setInterval(loadScan, 15 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
@@ -47,33 +48,25 @@ const Intraday = () => {
         : (data?.shorts || []);
 
     return (
-        <div style={{ padding: '2rem 4rem', color: 'var(--text-primary)', background: 'var(--bg-primary)', minHeight: 'calc(100vh - 64px)' }}>
+        <div className="container" style={{ paddingBottom: '4rem', minHeight: 'calc(100vh - 64px)' }}>
 
-            {/* ── Hero ── */}
-            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            {/* Hero Section */}
+            <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#22c55e', fontWeight: '800', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '0.4rem' }}>
-                        <Zap size={16} /> Intraday Intelligence Engine
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--success)', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+                        <Zap size={18} /> Intraday Intelligence
                     </div>
-                    <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-1px' }}>
-                        Intraday <span style={{ color: '#22c55e' }}>Radar</span>
+                    <h1 className="page-title" style={{ margin: 0, fontWeight: '900', letterSpacing: '-1px' }}>
+                        Intraday <span style={{ color: 'var(--success)' }}>Radar</span>
                     </h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.4rem', fontSize: '0.9rem' }}>
-                        High-probability intraday setups · NSE · Long & Short · Auto-refreshes every 15 min
-                    </p>
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(34,197,94,0.1)', color: '#22c55e', padding: '0.35rem 0.75rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: '800', border: '1px solid rgba(34,197,94,0.2)' }}>
-                            <div style={{ width: '7px', height: '7px', background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', padding: '0.4rem 0.75rem', borderRadius: '30px', fontSize: '0.75rem', fontWeight: '800', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                            <div style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
                             {data?.market_open ? 'MARKET OPEN' : 'MARKET CLOSED'}
                         </div>
                         {lastScan && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255,255,255,0.04)', color: 'var(--text-secondary)', padding: '0.35rem 0.75rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: '700', border: '1px solid var(--border-color)' }}>
-                                <Clock size={12} /> Last scan: {lastScan}
-                            </div>
-                        )}
-                        {data && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255,255,255,0.04)', color: 'var(--text-secondary)', padding: '0.35rem 0.75rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: '700', border: '1px solid var(--border-color)' }}>
-                                <BarChart2 size={12} /> Scanned: {data.total_scanned} stocks
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
+                                Last Scan: {lastScan}
                             </div>
                         )}
                     </div>
@@ -82,22 +75,33 @@ const Intraday = () => {
                 <button
                     onClick={() => loadScan(true)}
                     disabled={loading}
-                    style={{ background: '#22c55e', border: 'none', padding: '0.9rem 1.5rem', borderRadius: '14px', color: '#000', fontWeight: '800', fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem', opacity: loading ? 0.7 : 1, transition: 'all 0.2s' }}
+                    className="btn refresh-btn"
+                    style={{
+                        padding: '0.75rem 1.5rem',
+                        borderRadius: '12px',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 4px 12px rgba(34,197,94,0.2)',
+                        opacity: loading ? 0.7 : 1,
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        background: 'var(--success)',
+                        color: '#000'
+                    }}
                 >
-                    {loading ? <RefreshCw size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-                    Refresh Scan
+                    {loading ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+                    Sync Radar
                 </button>
             </div>
 
-            {/* ── Long / Short Tabs ── */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.75rem' }}>
+            {/* Direction Tabs */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
                 {['LONG', 'SHORT'].map(t => (
                     <button key={t} onClick={() => setTab(t)} style={{
-                        padding: '0.6rem 1.75rem', borderRadius: '10px', fontWeight: '800',
-                        fontSize: '0.9rem', cursor: 'pointer', border: '1px solid',
-                        background: tab === t ? (t === 'LONG' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)') : 'transparent',
+                        padding: '0.5rem 1.5rem', borderRadius: '10px', fontWeight: '700',
+                        fontSize: '0.85rem', cursor: 'pointer', border: '1px solid',
+                        background: tab === t ? (t === 'LONG' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)') : 'transparent',
                         color: tab === t ? (t === 'LONG' ? '#22c55e' : '#ef4444') : 'var(--text-secondary)',
-                        borderColor: tab === t ? (t === 'LONG' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') : 'var(--border-color)',
+                        borderColor: tab === t ? (t === 'LONG' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)') : 'var(--border-color)',
                         transition: 'all 0.2s',
                         display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
@@ -107,200 +111,148 @@ const Intraday = () => {
                 ))}
             </div>
 
-            {/* ── Feed ── */}
+            {/* Content Feed */}
             {loading ? (
                 <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem' }}>
-                    <div className="discovery-loader" style={{ borderTopColor: '#22c55e' }} />
+                    <div className="discovery-loader" style={{ borderTopColor: 'var(--success)' }} />
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>⚡ Scanning {UNIVERSE_COUNT} NSE stocks...</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            Calculating RSI · VWAP · Volume · Gap · S&R levels
-                        </div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>⚡ Processing Liquidity Scans...</div>
                     </div>
                 </div>
             ) : error ? (
                 <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--card-bg)', borderRadius: '24px', border: '1px dashed var(--error)' }}>
-                    <AlertTriangle size={48} color="var(--error)" style={{ marginBottom: '1rem' }} />
+                    <AlertTriangle size={48} color="var(--error)" style={{ marginBottom: '1rem', margin: '0 auto' }} />
                     <div style={{ color: 'var(--error)', fontWeight: '700' }}>{error}</div>
                 </div>
-            ) : stocks.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-                    No high-probability {tab} setups found right now. Try refreshing after 9:15 AM IST.
-                </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.5rem' }}>
+                <div className="responsive-grid">
                     {stocks.map((stock, i) => (
-                        <motion.div key={stock.ticker} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                        <motion.div key={stock.ticker} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                             <IntradayCard stock={stock} />
                         </motion.div>
                     ))}
                 </div>
             )}
 
-            <p style={{ marginTop: '3rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                ⚠️ Intraday Radar is an analytical tool only. Not financial advice. Always use strict stop-losses.
-            </p>
-
             <style>{`
-        @keyframes pulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
-        .discovery-loader { width:50px; height:50px; border:4px solid rgba(255,255,255,0.05); border-top-color:#22c55e; border-radius:50%; animation:spin 1s linear infinite; }
-        @keyframes spin { to { transform:rotate(360deg); } }
-        .animate-spin { animation:spin 1s linear infinite; }
-      `}</style>
+                @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+                .discovery-loader { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.05); border-top-color: var(--success); border-radius: 50%; animation: spin 1s linear infinite; }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                .animate-spin { animation: spin 1s linear infinite; }
+            `}</style>
         </div>
     );
 };
-
-const UNIVERSE_COUNT = 60;
 
 const IntradayCard = ({ stock }) => {
     const [showBreakdown, setShowBreakdown] = useState(false);
     const isLong = stock.direction === 'LONG';
     const cfg = CONVICTION_COLOR[stock.conviction] || CONVICTION_COLOR.LOW;
-    const dirColor = isLong ? '#22c55e' : '#ef4444';
-    const dirBg = isLong ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
-
+    const dirColor = isLong ? 'var(--success)' : 'var(--danger)';
+    const bd = stock.breakdown || {};
+    
     return (
-        <div style={{ background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', position: 'relative', overflow: 'hidden', transition: 'all 0.25s' }}
-            className="intraday-card"
+        <div 
+            className="card-interactive intraday-card"
+            style={{ padding: '1.25rem', position: 'relative', overflow: 'hidden' }}
         >
-            {/* Score badge */}
-            <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.8rem', fontWeight: '900', color: cfg.color, lineHeight: 1 }}>{stock.score}</div>
+            {/* Score Cluster */}
+            <div style={{ position: 'absolute', top: '1rem', right: '1.25rem', textAlign: 'right' }}>
+                <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Score</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: cfg.color, lineHeight: 1 }}>{stock.score}</div>
                 <button 
                    onClick={async (e) => {
                      e.stopPropagation();
-                   const userStr = localStorage.getItem('user');
-                   if (!userStr) {
-                     toast.error('Please login to add stocks to your watchlist.');
-                     return;
-                   }
-                   const user = JSON.parse(userStr);
-                   if (user && user.id) {
-                     const res = await addToWatchlist(user.id, {
-                       symbol: stock.ticker,
-                       added_price: stock.price,
-                       source: 'Intraday'
-                     });
-                     if (res && (res.id || res.success)) {
-                       toast.success(`${stock.ticker} added to watchlist!`);
-                     } else {
-                       toast.error(`Failed to add ${stock.ticker} to watchlist.`);
-                     }
-                   }
+                     const userStr = localStorage.getItem('user');
+                     if (!userStr) { toast.error('Please login first.'); return; }
+                     const user = JSON.parse(userStr);
+                     const res = await addToWatchlist(user.id, { symbol: stock.ticker, added_price: stock.price, source: 'Intraday' });
+                     if (res?.success) toast.success(`${stock.ticker} added!`);
                    }}
-                   style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginTop: '6px' }}
-                   onMouseEnter={e => e.target.style.color = '#22c55e'}
-                   onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}
+                   style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '0.4rem' }}
                 >
-                   <Bookmark size={16} />
+                   <Bookmark size={14} />
                 </button>
             </div>
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '1.25rem' }}>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <h3 
-                            onClick={() => window.location.href = `/analyse-stock?symbol=${stock.ticker}`}
-                            style={{ margin: 0, fontSize: '1.3rem', fontWeight: '900', cursor: 'pointer', color: 'var(--text-primary)' }}
-                            onMouseEnter={e => e.target.style.color = '#22c55e'}
-                            onMouseLeave={e => e.target.style.color = 'var(--text-primary)'}
-                        >
-                            {stock.ticker}
-                        </h3>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '800', padding: '2px 8px', borderRadius: '6px', background: dirBg, color: dirColor, border: `1px solid ${dirColor}30` }}>
-                            {stock.direction}
-                        </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-secondary)' }}>₹{stock.price}</span>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '800', color: stock.gap_pct >= 0 ? '#22c55e' : '#ef4444' }}>
-                            {stock.gap_pct >= 0 ? '▲' : '▼'} {Math.abs(stock.gap_pct)}% gap
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Score bar */}
             <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--text-secondary)' }}>Intraday Probability</span>
-                    <span style={{ fontSize: '0.72rem', fontWeight: '900', color: cfg.color }}>{stock.conviction} CONVICTION</span>
-                </div>
-                <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${stock.score}%` }} transition={{ duration: 0.9, ease: 'easeOut' }}
-                        style={{ height: '100%', background: `linear-gradient(90deg, ${cfg.color}88, ${cfg.color})`, borderRadius: '99px' }} />
+                <h3 
+                    onClick={() => window.location.href = `/analyse-stock?symbol=${stock.ticker}`}
+                    style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', cursor: 'pointer' }}
+                >
+                    {stock.ticker}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>₹{stock.price}</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '700', padding: '1px 5px', borderRadius: '4px', background: isLong ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: dirColor }}>
+                        {stock.direction}
+                    </span>
                 </div>
             </div>
 
-            {/* Target / SL / RR */}
+            {/* Probability bar */}
+            <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-muted)' }}>PROBABILITY</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '700', color: cfg.color }}>{stock.conviction}</span>
+                </div>
+                <div style={{ height: '4px', background: 'var(--border-color)', borderRadius: '1px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${stock.score}%`, background: cfg.color }} />
+                </div>
+            </div>
+
+            {/* Levels Grid - Borderless */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: '10px', padding: '0.6rem 0.75rem' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: '800', color: '#22c55e', textTransform: 'uppercase', marginBottom: '2px' }}>
-                        <Target size={10} style={{ display: 'inline', marginRight: '3px' }} />Target
-                    </div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#22c55e' }}>₹{stock.target}</div>
+                <div className="metric-item">
+                    <span className="label" style={{ fontSize: '0.55rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target</span>
+                    <span className="value" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--success)' }}>₹{stock.target}</span>
                 </div>
-                <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '10px', padding: '0.6rem 0.75rem' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase', marginBottom: '2px' }}>
-                        <Shield size={10} style={{ display: 'inline', marginRight: '3px' }} />Stop Loss
-                    </div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#ef4444' }}>₹{stock.stoploss}</div>
+                <div className="metric-item">
+                    <span className="label" style={{ fontSize: '0.55rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Stop Loss</span>
+                    <span className="value" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--danger)' }}>₹{stock.stoploss}</span>
                 </div>
-                <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '10px', padding: '0.6rem 0.75rem' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', marginBottom: '2px' }}>R:R Ratio</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#6366f1' }}>{stock.risk_reward}x</div>
+                <div className="metric-item">
+                    <span className="label" style={{ fontSize: '0.55rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>R:R Ratio</span>
+                    <span className="value" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--accent-primary)' }}>{stock.risk_reward}x</span>
                 </div>
             </div>
 
-            {/* Key signals */}
+            {/* Score Breakdown Section */}
             <div style={{ marginBottom: '1.25rem' }}>
-                {(stock.signals || []).slice(0, 3).map((s, i) => (
-                    <div key={i} style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
-                        <span style={{ flexShrink: 0 }}>→</span>{s}
-                    </div>
-                ))}
-            </div>
-
-            {/* Breakdown toggle */}
-            <div style={{ marginBottom: '1.25rem' }}>
-                <button onClick={() => setShowBreakdown(!showBreakdown)}
-                    style={{ background: 'none', border: 'none', color: dirColor, fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <HelpCircle size={13} /> {showBreakdown ? 'Hide' : 'Show'} Score Breakdown
+                <button
+                    onClick={() => setShowBreakdown(!showBreakdown)}
+                    style={{ background: 'none', border: 'none', color: cfg.color, fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                >
+                    <HelpCircle size={13} /> {showBreakdown ? 'HIDE INSIGHTS' : 'VIEW SCORE INSIGHTS'}
                 </button>
 
                 <AnimatePresence>
                     {showBreakdown && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden', marginTop: '0.75rem' }}>
-                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'grid', gap: '0.5rem' }}>
-                                {Object.entries(stock.breakdown || {}).map(([key, val]) => (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginTop: '0.75rem', display: 'grid', gap: '0.6rem' }}>
+                                {Object.entries(bd).map(([key, val]) => (
                                     <div key={key}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '3px' }}>
-                                            <span style={{ color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'capitalize' }}>
-                                                {key.replace(/_/g, ' ')}
-                                            </span>
-                                            <span style={{ fontWeight: '900', color: dirColor }}>{val.score}/{val.max}</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '3px' }}>
+                                            <span style={{ color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>{key.replace(/_/g, ' ')}</span>
+                                            <span style={{ fontWeight: '800', color: cfg.color }}>{val.score}/{val.max}</span>
                                         </div>
-                                        <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '99px' }}>
-                                            <div style={{ height: '100%', width: `${(val.score / val.max) * 100}%`, background: dirColor, borderRadius: '99px', transition: 'width 0.6s ease' }} />
+                                        <div style={{ height: '3px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${(val.score / val.max) * 100}%`, background: cfg.color }} />
                                         </div>
-                                        {val.notes && <div style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{val.notes}</div>}
                                     </div>
                                 ))}
                             </div>
-
-                            {/* RSI / VWAP quick stats */}
+                            
+                            {/* RSI/VWAP Quick Badges */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
                                 {[
-                                    { label: 'RSI (14)', value: stock.rsi },
-                                    { label: 'VWAP', value: `₹${stock.vwap}` },
-                                    { label: 'Support', value: `₹${stock.support}` },
-                                    { label: 'Resistance', value: `₹${stock.resistance}` },
-                                ].map(({ label, value }) => (
-                                    <div key={label} style={{ background: 'rgba(255,255,255,0.02)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                                        <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{label}</div>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: '800' }}>{value}</div>
+                                    { label: 'RSI', val: stock.rsi },
+                                    { label: 'VWAP', val: `₹${stock.vwap}` }
+                                ].map(m => (
+                                    <div key={m.label} style={{ background: 'rgba(255,255,255,0.02)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                        <div style={{ fontSize: '0.55rem', fontWeight: '700', color: 'var(--text-muted)' }}>{m.label}</div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '700' }}>{m.val}</div>
                                     </div>
                                 ))}
                             </div>
@@ -309,25 +261,20 @@ const IntradayCard = ({ stock }) => {
                 </AnimatePresence>
             </div>
 
-            {/* Vol ratio */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '700' }}>
-                    Vol: {stock.vol_ratio}x avg · Scanned {stock.scan_time}
-                </span>
-                {stock.red_flags?.length > 0 && (
-                    <span style={{ fontSize: '0.65rem', color: '#f97316', fontWeight: '700' }}>
-                        ⚠️ {stock.red_flags.length} flag{stock.red_flags.length > 1 ? 's' : ''}
-                    </span>
-                )}
+            {/* Footer */}
+            <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Vol: {stock.vol_ratio}x · {stock.scan_time}</span>
+                <button 
+                  onClick={() => window.location.href = `/analyse-stock?symbol=${stock.ticker}`}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                    ANALYZE <ChevronRight size={14} />
+                </button>
             </div>
 
             <style>{`
-        .intraday-card:hover {
-          transform: translateY(-4px);
-          border-color: ${dirColor}60 !important;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.3);
-        }
-      `}</style>
+                .intraday-card:hover { transform: translateY(-4px); border-color: var(--accent-primary)40 !important; }
+                .metric-item { display: flex; flex-direction: column; gap: 0.1rem; }
+            `}</style>
         </div>
     );
 };

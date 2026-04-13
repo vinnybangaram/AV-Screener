@@ -11,98 +11,96 @@ if (typeof indicatorsAll === 'function') {
 const HighchartsComponent = ({ data, symbol }) => {
   if (!data || data.length === 0) return null;
 
-  // Format data for Highcharts: [timestamp, open, high, low, close]
-  const ohlc = data.map(d => [
-    new Date(d.date).getTime(),
-    d.Open,
-    d.High,
-    d.Low,
-    d.Close
-  ]);
-
-  const volume = data.map(d => [
-    new Date(d.date).getTime(),
-    d.Volume
-  ]);
+  // Format data for Highcharts: [timestamp, close] and [timestamp, volume]
+  const ohlc = data.map(d => [d.timestamp, d.Close]);
+  const volume = data.map(d => [d.timestamp, d.Volume]);
 
   const options = {
     rangeSelector: {
       selected: 1,
+      buttons: [
+        { type: 'day', count: 1, text: '1D' },
+        { type: 'day', count: 5, text: '5D' },
+        { type: 'month', count: 1, text: '1M' },
+        { type: 'month', count: 6, text: '6M' },
+        { type: 'year', count: 1, text: '1Y' },
+        { type: 'all', text: 'Max' }
+      ],
       buttonTheme: {
-        fill: '#1a1d23',
-        stroke: '#333',
-        style: { color: '#ccc' },
+        fill: 'rgba(255,255,255,0.03)',
+        stroke: 'var(--border-color)',
+        'stroke-width': 1,
+        style: { color: 'var(--text-secondary)', fontWeight: '700' },
         states: {
-          select: { fill: 'var(--accent)', style: { color: 'white' } }
+          select: { fill: 'var(--accent-primary)', style: { color: 'white' } },
+          hover: { fill: 'rgba(255,255,255,0.08)', style: { color: 'white' } }
         }
-      }
+      },
+      inputEnabled: false
     },
     chart: {
       backgroundColor: 'transparent',
       style: { fontFamily: 'inherit' },
-      height: 500
+      height: 550,
+      spacingTop: 20
     },
-    title: {
-      text: `${symbol} Performance`,
-      style: { color: 'var(--text-secondary)', fontSize: '16px' }
+    navigator: {
+        enabled: true,
+        maskFill: 'rgba(99, 102, 241, 0.1)',
+        outlineColor: 'var(--border-color)',
+        handles: { backgroundColor: '#666', borderColor: '#999' }
     },
+    scrollbar: { enabled: false },
     xAxis: {
-      gridLineColor: 'rgba(255, 255, 255, 0.05)',
-      labels: { style: { color: '#999' } }
+      gridLineColor: 'rgba(255, 255, 255, 0.03)',
+      lineColor: 'var(--border-color)',
+      tickColor: 'var(--border-color)',
+      labels: { style: { color: 'var(--text-secondary)', fontWeight: '600' } }
     },
     yAxis: [{
-      labels: { align: 'right', x: -3, style: { color: '#999' } },
-      title: { text: 'Price' },
-      height: '70%',
-      lineWidth: 2,
-      resize: { enabled: true },
-      gridLineColor: 'rgba(255, 255, 255, 0.05)'
+      labels: { align: 'right', x: -10, style: { color: 'var(--text-secondary)', fontWeight: '600' } },
+      gridLineColor: 'rgba(255, 255, 255, 0.03)',
+      height: '75%',
+      lineWidth: 0,
+      resize: { enabled: true }
     }, {
-      labels: { align: 'right', x: -3, style: { color: '#999' } },
-      title: { text: 'Volume' },
+      labels: { enabled: false },
       top: '75%',
       height: '25%',
       offset: 0,
-      lineWidth: 2,
-      gridLineColor: 'rgba(255, 255, 255, 0.05)'
+      lineWidth: 0,
+      gridLineColor: 'transparent'
     }],
     tooltip: {
-      split: true,
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
-      style: { color: '#F0F0F0' }
+      backgroundColor: '#1e293b',
+      borderColor: 'var(--accent-primary)',
+      style: { color: '#fff' },
+      shared: true
     },
     series: [{
-      type: 'candlestick',
+      type: 'area',
       name: symbol,
       data: ohlc,
       id: 'main-series',
-      upColor: '#10b981',
-      color: '#ef4444',
-      upLineColor: '#10b981',
-      lineColor: '#ef4444'
+      color: '#10b981',
+      fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [
+              [0, 'rgba(16, 185, 129, 0.2)'],
+              [1, 'rgba(16, 185, 129, 0)']
+          ]
+      },
+      threshold: null,
+      tooltip: { valueDecimals: 2 }
     }, {
       type: 'column',
       name: 'Volume',
       data: volume,
       yAxis: 1,
-      color: 'rgba(59, 130, 246, 0.3)'
-    }, {
-      type: 'sma',
-      linkedTo: 'main-series',
-      params: { period: 20 },
-      styles: { strokeWidth: 1, stroke: '#f59e0b' }
-    }, {
-      type: 'ema',
-      linkedTo: 'main-series',
-      params: { period: 50 },
-      styles: { strokeWidth: 1, stroke: '#8b5cf6' }
+      color: 'rgba(59, 130, 246, 0.3)',
+      borderColor: 'transparent'
     }],
-    credits: { enabled: false },
-    plotOptions: {
-      candlestick: {
-        dataGrouping: { enabled: false }
-      }
-    }
+    credits: { enabled: false }
   };
 
   const HighchartsReactComponent = HighchartsReact.default || HighchartsReact;
