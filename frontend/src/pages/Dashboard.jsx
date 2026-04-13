@@ -173,6 +173,30 @@ const Dashboard = () => {
 
     if (loading && !data) return <Loader message="Synchronizing Terminal Intelligence..." />;
     
+    if (error) {
+        return (
+            <div className="container" style={{ padding: '8rem 2rem', textAlign: 'center', background: 'var(--bg-primary)', minHeight: '100vh' }}>
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                >
+                    <AlertCircle size={64} color="#ef4444" style={{ marginBottom: '1.5rem', opacity: 0.8 }} />
+                    <h2 style={{ fontSize: '2rem', fontWeight: '850', marginBottom: '1rem' }}>Terminal Connection Offline</h2>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '2.5rem', maxWidth: '500px', margin: '0 auto 2.5rem' }}>
+                        The Intelligence Engine (Port 5000) appears to be unreachable. Please ensure the backend server is active.
+                    </p>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        <button className="primary-btn" onClick={() => loadData()} style={{ padding: '0.8rem 2rem' }}>
+                            Retry Connection
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
+
+    if (!data) return null;
+
     const { global, lastUpdated } = data;
     const COLORS = ['#6366f1', '#22c55e', '#ef4444', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
