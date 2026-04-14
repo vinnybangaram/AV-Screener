@@ -204,7 +204,10 @@ from app.services.alerts_scheduler import scheduler
 
 @app.on_event("startup")
 async def startup_event():
-    scheduler.start()
+    try:
+        scheduler.start()
+    except Exception as e:
+        print(f"[Startup] Background scheduler failed: {e}")
 
 # ── ENTRY POINT ──
 if __name__ == "__main__":
