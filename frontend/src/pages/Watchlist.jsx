@@ -73,7 +73,7 @@ const Watchlist = () => {
     const tabs = ['All', 'Multibagger', 'Intraday', 'Penny', 'Custom'];
 
     return (
-        <div style={{ padding: '2rem 4rem', color: 'var(--text-primary)' }}>
+        <div className="container" style={{ paddingBottom: '4rem', color: 'var(--text-primary)' }}>
             <div style={{ marginBottom: '3rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--accent-primary)', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.8rem', textTransform: 'uppercase' }}>
                     <Bookmark size={16} /> Portfolio & Tracking
@@ -166,7 +166,7 @@ const WatchlistCard = ({ item, onUpdate, onRemove, delay }) => {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '1.1rem', fontWeight: '700', color: isUp ? 'var(--success)' : 'var(--danger)' }}>
-                        {isUp ? '↑' : '↓'} {(item.profit_loss_pct || 0).toFixed(2)}%
+                        {isUp ? '↑' : '↓'} {Number(item.profit_loss_pct || 0).toFixed(2)}%
                     </div>
                 </div>
             </div>
@@ -175,11 +175,11 @@ const WatchlistCard = ({ item, onUpdate, onRemove, delay }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div className="metric-item">
                     <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Entry Price</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>₹{(item.added_price || 0).toFixed(2)}</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>₹{Number(item.added_price || 0).toFixed(2)}</span>
                 </div>
                 <div className="metric-item">
                     <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Market Price</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>₹{(item.current_price || 0).toFixed(2)}</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>₹{Number(item.current_price || 0).toFixed(2)}</span>
                 </div>
             </div>
 
@@ -188,13 +188,13 @@ const WatchlistCard = ({ item, onUpdate, onRemove, delay }) => {
                 <div className="metric-item">
                     <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: '800', marginBottom: '2px', letterSpacing: '0.4px' }}>AUTO STOP-LOSS</div>
                     <div style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--danger)' }}>
-                        {item.stop_loss ? `₹${item.stop_loss.toFixed(2)}` : '---'}
+                        {item.stop_loss ? `₹${Number(item.stop_loss).toFixed(2)}` : '---'}
                     </div>
                 </div>
                 <div className="metric-item">
                     <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: '800', marginBottom: '2px', letterSpacing: '0.4px' }}>AUTO TARGET</div>
                     <div style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--success)' }}>
-                        {item.target_price ? `₹${item.target_price.toFixed(2)}` : '---'}
+                        {item.target_price ? `₹${Number(item.target_price).toFixed(2)}` : '---'}
                     </div>
                 </div>
             </div>

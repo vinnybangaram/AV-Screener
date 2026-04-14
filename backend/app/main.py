@@ -107,6 +107,55 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
         print(f"[Auth Error] {str(e)}")
         raise HTTPException(status_code=401, detail=f"Auth failed: {str(e)}")
 
+# ── MANUAL AUTH (DEV) ──
+@app.post("/api/auth/manual")
+async def manual_auth(request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+        email = body.get("email")
+        name = body.get("name") or body.get("username")
+        
+        if not email or not name:
+            raise HTTPException(status_code=400, detail="Missing email or username")
+
+        db_user = db.query(user.User).filter(user.User.email == email).first()
+        if not db_user:
+            db_user = user.User(
+                email=email, 
+                name=name, 
+                last_login=datetime.utcnow()
+            )
+            if email == "vinny009@gmail.com":
+                db_user.role = "admin"
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
+        else:
+            db_user.last_login = datetime.utcnow()
+            db.commit()
+
+        from app.utils.auth import create_access_token
+        access_token = create_access_token(data={
+            "user_id": str(db_user.id), 
+            "email": db_user.email,
+            "role": db_user.role
+        })
+
+        return {
+            "success": True,
+            "token": access_token,
+            "user": {
+                "id":      db_user.id,
+                "name":    db_user.name,
+                "email":   db_user.email,
+                "role":    db_user.role,
+                "picture": "",
+            }
+        }
+    except Exception as e:
+        print(f"[Manual Auth Error] {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Manual Auth failed: {str(e)}")
+
 # ── ROUTERS ──
 app.include_router(analysis.router,     prefix="/api/analyse-stock", tags=["Analysis"])
 app.include_router(screener.router,     prefix="/api/multibagger",   tags=["Multibagger"])

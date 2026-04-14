@@ -57,6 +57,10 @@ export const googleLogin = async (credential) => {
     return await api.post('/auth/google', { token: credential });
 };
 
+export const manualLogin = async (username, email) => {
+    return await api.post('/auth/manual', { username, email });
+};
+
 /**
  * Market/Stock APIs
  */

@@ -1,28 +1,33 @@
 import React from "react";
 import { User, Mail } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
-import { googleLogin } from "../services/api";
+import { googleLogin, manualLogin } from "../services/api";
 import toast from "react-hot-toast";
 import "./Login.css";
 
 const Login = () => {
   const [manualData, setManualData] = React.useState({ username: "", email: "" });
 
-  const handleManualLogin = () => {
+  const handleManualLogin = async () => {
     if (!manualData.username || !manualData.email) {
       toast.error("Please enter both username and email.");
       return;
     }
-    const fakeUser = {
-      id: 1,
-      name: manualData.username,
-      email: manualData.email,
-      picture: null
-    };
-    localStorage.setItem("token", "manual-token-123");
-    localStorage.setItem("user", JSON.stringify(fakeUser));
-    toast.success("Welcome back, " + fakeUser.name);
-    window.location.href = "/dashboard";
+    
+    try {
+      const data = await manualLogin(manualData.username, manualData.email);
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        toast.success("Welcome back, " + data.user.name);
+        window.location.href = "/dashboard";
+      } else {
+        toast.error("Login failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      toast.error("Login request failed!");
+      console.error(err);
+    }
   };
 
   const handleLoginSuccess = async (credentialResponse) => {
