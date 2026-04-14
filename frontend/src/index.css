@@ -49,8 +49,8 @@
 }
 
 [data-theme='light'] {
-  /* Corporate Light Palette — High Contrast Background vs Card */
-  --bg-main: #f1f5f9; /* Professional soft slate */
+  /* Corporate Light Palette — Low Contrast Background vs Card */
+  --bg-main: #fafbfc; /* Subtle bright background */
   --bg-card: #ffffff;
   --bg-card-hover: rgba(255, 255, 255, 0.9);
   --bg-card-elevated: #e2e8f0;
@@ -145,7 +145,6 @@ h1, h2, h3, h4 {
   position: relative;
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }

@@ -22,9 +22,9 @@ const MeshBackground = () => {
 
         const initParticles = () => {
             const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-            // Vibrant colors for visibility verification
-            const blobColor1 = isLight ? 'rgba(79, 70, 229, 0.15)' : 'rgba(99, 102, 241, 0.25)';
-            const blobColor2 = isLight ? 'rgba(99, 102, 241, 0.12)' : 'rgba(129, 140, 248, 0.2)';
+            // Subtle colors for light mode to reduce contrast
+            const blobColor1 = isLight ? 'rgba(79, 70, 229, 0.05)' : 'rgba(99, 102, 241, 0.25)';
+            const blobColor2 = isLight ? 'rgba(99, 102, 241, 0.03)' : 'rgba(129, 140, 248, 0.2)';
             
             particles = [];
             for (let i = 0; i < particleCount; i++) {
@@ -43,8 +43,8 @@ const MeshBackground = () => {
 
         const animate = () => {
             const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-            // Use a slightly different color than the CSS fallback to verify canvas is rendering
-            const bgColor = isLight ? '#f1f5f9' : '#0a0d14'; 
+            // Align canvas background with our lighter CSS variables
+            const bgColor = isLight ? '#fafbfc' : '#0a0d14'; 
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = bgColor;

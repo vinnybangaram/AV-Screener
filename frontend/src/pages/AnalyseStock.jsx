@@ -40,7 +40,7 @@ const AnalyseStock = () => {
   };
 
   return (
-    <div className="container animate-in" style={{ paddingBottom: '3rem', maxWidth: '1280px' }}>
+    <div className="container animate-in" style={{ paddingBottom: '4rem', color: 'var(--text-primary)' }}>
 
       {/* ── Search Bar (Minimized if data) ── */}
       {!data && !loading && (
