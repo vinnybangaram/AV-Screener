@@ -41,7 +41,7 @@ const HighchartsComponent = ({ data, symbol }) => {
     chart: {
       backgroundColor: 'transparent',
       style: { fontFamily: 'inherit' },
-      height: 550,
+      height: window.innerWidth < 768 ? 350 : 550,
       spacingTop: 20
     },
     navigator: {

@@ -7,7 +7,7 @@ const MarketSummary = ({ today, ticker }) => {
     const formatNum = (val) => Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2 });
     
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div className="market-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
             {/* Row 1: Today's Extremes */}
             <StatGroup title="Session Extremes" items={[
                 { label: 'High', value: formatNum(today.high) },
@@ -62,5 +62,25 @@ const StatGroup = ({ title, items }) => (
         </div>
     </div>
 );
+
+const styles = `
+  @media (max-width: 1024px) {
+    .market-summary-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+  @media (max-width: 640px) {
+    .market-summary-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`;
+
+if (typeof document !== 'undefined' && !document.getElementById('market-summary-styles')) {
+    const styleSheet = document.createElement("style");
+    styleSheet.id = 'market-summary-styles';
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+}
 
 export default MarketSummary;

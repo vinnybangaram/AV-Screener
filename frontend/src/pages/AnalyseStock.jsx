@@ -71,28 +71,28 @@ const AnalyseStock = () => {
           <SummaryBanner insights={data.ai_insights} ticker={data.analysis.ticker} />
 
           {/* 2. Page Header / Price Overview */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1rem', padding: '0 0.5rem' }}>
+          <div className="terminal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
             <div>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: '700', margin: 0, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+                <h2 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
                     {data.analysis.ticker.replace('.NS', '')}
                 </h2>
                 <div style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.8px', marginTop: '0.2rem' }}>
                     NSE • Equity • Market Segment
                 </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
+            <div className="terminal-price-section" style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
                     ₹{data.analysis.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
                 <div style={{ 
-                    fontSize: '0.9rem', 
+                    fontSize: '1rem', 
                     fontWeight: '600', 
                     marginTop: '0.4rem',
                     color: data.analysis.change_pct >= 0 ? 'var(--success)' : 'var(--danger)',
                     display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.3rem'
                 }}>
                     {data.analysis.change_pct >= 0 ? '+' : ''}{data.analysis.change_pct.toFixed(2)}%
-                    {data.analysis.change_pct >= 0 ? <TrendingUp size={14} /> : <Activity size={14} />}
+                    {data.analysis.change_pct >= 0 ? <TrendingUp size={16} /> : <Activity size={16} />}
                 </div>
             </div>
           </div>
@@ -144,32 +144,35 @@ const AnalyseStock = () => {
           </div>
 
           {/* 9. Bottom Action Card */}
-          <div className="card" style={{ 
+          <div className="card terminal-action-card" style={{ 
               background: 'var(--bg-card-hover)', 
               border: '1px solid var(--accent-primary)20',
               padding: '1.25rem 1.75rem',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              borderRadius: 'var(--radius-md)'
+              borderRadius: 'var(--radius-md)',
+              gap: '1rem'
           }}>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ width: '40px', height: '40px', background: 'var(--accent-primary)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '40px', height: '40px', background: 'var(--accent-primary)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <ShieldCheck size={22} color="white" />
                 </div>
                 <div>
-                   <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '600' }}>Institutional Verdict</h4>
-                   <p style={{ margin: '1px 0 0 0', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '500' }}>Alpha Score: {data.scores.final_score} | Sentiment: {data.scores.classification}</p>
+                   <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>Institutional Verdict</h4>
+                   <p style={{ margin: '1px 0 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: '500' }}>Alpha Score: {data.scores.final_score} | Sentiment: {data.scores.classification}</p>
                 </div>
             </div>
             <div style={{ 
                 background: data.scores.classification.includes('Buy') ? 'var(--success)' : 'var(--warning)', 
                 color: 'white', 
-                padding: '0.5rem 1.5rem', 
-                borderRadius: '6px', 
+                padding: '0.6rem 1.5rem', 
+                borderRadius: '8px', 
                 fontWeight: '700',
-                fontSize: '0.85rem',
-                letterSpacing: '0.5px'
+                fontSize: '0.9rem',
+                letterSpacing: '0.5px',
+                textAlign: 'center',
+                whiteSpace: 'nowrap'
             }}>
                 {data.scores.classification.toUpperCase()}
             </div>
@@ -189,6 +192,27 @@ const AnalyseStock = () => {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 768px) {
+          .terminal-header {
+             flex-direction: column;
+             align-items: flex-start !important;
+             gap: 1rem;
+          }
+          .terminal-price-section {
+             text-align: left !important;
+          }
+          .terminal-price-section div {
+             justify-content: flex-start !important;
+          }
+          .terminal-action-card {
+             flex-direction: column;
+             align-items: stretch !important;
+             text-align: center;
+          }
+          .terminal-action-card > div {
+             justify-content: center;
+          }
         }
       `}</style>
     </div>

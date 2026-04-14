@@ -23,13 +23,15 @@ const SummaryBanner = ({ insights, ticker }) => {
                 gap: '0.75rem'
             }}
         >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                <Zap size={20} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--accent-primary)' }}>
-                    AI Intelligence Brief
-                </span>
+            <div className="banner-header" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                    <Zap size={20} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--accent-primary)' }}>
+                        AI Intelligence Brief
+                    </span>
+                </div>
                 {insights?.outlook && (
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                    <div className="banner-badges" style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <LabelBadge label="Strength" value={insights.strength} />
                         <LabelBadge label="Risk" value={insights.risk} />
                         <LabelBadge label="Outlook" value={insights.outlook} />
@@ -49,5 +51,26 @@ const LabelBadge = ({ label, value }) => (
         <span style={{ color: 'var(--text-primary)' }}>{value}</span>
     </div>
 );
+
+const styles = `
+  @media (max-width: 768px) {
+    .banner-badges {
+      margin-left: 0 !important;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    .banner-header {
+      flex-direction: column;
+      align-items: flex-start !important;
+    }
+  }
+`;
+
+if (typeof document !== 'undefined' && !document.getElementById('summary-banner-styles')) {
+    const styleSheet = document.createElement("style");
+    styleSheet.id = 'summary-banner-styles';
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+}
 
 export default SummaryBanner;

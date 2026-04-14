@@ -2,7 +2,7 @@ const PerformanceStats = ({ performance }) => {
     if (!performance) return null;
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div className="perf-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
             <PerformanceBox 
                 title="Weekly/Monthly" 
                 items={[{ label: '1 Week', key: '1w' }, { label: '1 Month', key: '1m' }]} 
@@ -53,5 +53,25 @@ const PerformanceBox = ({ title, items, performance, accent }) => (
         </div>
     </div>
 );
+
+const styles = `
+  @media (max-width: 1024px) {
+    .perf-summary-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+  @media (max-width: 640px) {
+    .perf-summary-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`;
+
+if (typeof document !== 'undefined' && !document.getElementById('perf-stats-styles')) {
+    const styleSheet = document.createElement("style");
+    styleSheet.id = 'perf-stats-styles';
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+}
 
 export default PerformanceStats;
