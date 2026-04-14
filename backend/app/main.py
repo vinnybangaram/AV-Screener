@@ -64,47 +64,57 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
                 credential,
                 google_requests.Request(),
                 GOOGLE_CLIENT_ID,
-                clock_skew_in_seconds=20 # Increased buffer
+                clock_skew_in_seconds=30 # Relaxed even further
             )
         except Exception as ve:
-            print(f"[Auth Error] Token verification failed: {str(ve)}")
-            raise HTTPException(status_code=401, detail=f"Token verification failed: {str(ve)}")
+            print(f"❌ [Google Auth] Token verification failed: {str(ve)}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail=f"Google token verification failed: {str(ve)}"
+            )
 
         email = idinfo.get("email")
         name = idinfo.get("name", "Trader")
         google_id = idinfo.get("sub")
         
-        # Upsert Logic
-        db_user = db.query(user.User).filter(user.User.email == email).first()
-        if not db_user:
-            db_user = user.User(
-                email=email, 
-                name=name, 
-                avatar_url=idinfo.get("picture", ""),
-                google_id=google_id,
-                last_login_at=datetime.utcnow(),
-                login_count=1
-            )
-            # Default admin
-            if email == "vinny009@gmail.com":
-                db_user.role = "admin"
-            db.add(db_user)
-        else:
-            # Update existing user
-            db_user.last_login_at = datetime.utcnow()
-            db_user.login_count += 1
-            db_user.name = name
-            db_user.avatar_url = idinfo.get("picture", "")
-            if not db_user.google_id:
-                db_user.google_id = google_id
-        
-        db.commit()
-        db.refresh(db_user)
+        # ── DATABASE OPERATIONS ──
+        try:
+            db_user = db.query(user.User).filter(user.User.email == email).first()
+            if not db_user:
+                db_user = user.User(
+                    email=email, 
+                    name=name, 
+                    avatar_url=idinfo.get("picture", ""),
+                    google_id=google_id,
+                    last_login_at=datetime.utcnow(),
+                    login_count=1
+                )
+                if email == "vinny009@gmail.com":
+                    db_user.role = "admin"
+                db.add(db_user)
+            else:
+                db_user.last_login_at = datetime.utcnow()
+                db_user.login_count += 1
+                db_user.name = name
+                db_user.avatar_url = idinfo.get("picture", "")
+                if not db_user.google_id:
+                    db_user.google_id = google_id
+            
+            db.commit()
+            db.refresh(db_user)
 
-        # Log Activity
-        event = user.ActivityEvent(user_id=db_user.id, event_type="login")
-        db.add(event)
-        db.commit()
+            # Log Activity
+            event = user.ActivityEvent(user_id=db_user.id, event_type="login")
+            db.add(event)
+            db.commit()
+
+        except Exception as de:
+            print(f"❌ [Database Error] Auth upsert failed: {str(de)}")
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database synchronization failed: {str(de)}"
+            )
 
         from app.utils.auth import create_access_token
         access_token = create_access_token(data={
@@ -125,9 +135,11 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
                 "avatar":  db_user.avatar_url,
             }
         }
-    except Exception as e:
-        print(f"[Auth Error] {str(e)}")
-        raise HTTPException(status_code=401, detail=f"Auth failed: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as ge:
+        print(f"❌ [Global Auth Error] {str(ge)}")
+        raise HTTPException(status_code=401, detail=f"Authentication encountered a critical error")
 
 # ── MANUAL AUTH (DEV) ──
 @app.post("/api/auth/manual")
