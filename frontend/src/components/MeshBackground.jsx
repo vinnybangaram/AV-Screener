@@ -23,8 +23,8 @@ const MeshBackground = () => {
         const initParticles = () => {
             const isLight = document.documentElement.getAttribute('data-theme') === 'light';
             // Subtle colors for light mode to reduce contrast
-            const blobColor1 = isLight ? 'rgba(79, 70, 229, 0.05)' : 'rgba(99, 102, 241, 0.25)';
-            const blobColor2 = isLight ? 'rgba(99, 102, 241, 0.03)' : 'rgba(129, 140, 248, 0.2)';
+            const blobColor1 = isLight ? 'rgba(79, 70, 229, 0.015)' : 'rgba(99, 102, 241, 0.075)';
+            const blobColor2 = isLight ? 'rgba(99, 102, 241, 0.009)' : 'rgba(129, 140, 248, 0.06)';
             
             particles = [];
             for (let i = 0; i < particleCount; i++) {
