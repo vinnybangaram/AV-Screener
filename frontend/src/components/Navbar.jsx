@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sun, Moon, Cpu, User, Settings, LogOut, ChevronDown, Search, TrendingUp, X, Bell, MailOpen, Check, Menu } from 'lucide-react';
-import { searchTickers, fetchNotifications, markNotificationRead } from '../services/api';
+import { searchTickers } from '../services/api';
+import AlertBell from './Alerts/AlertBell';
 
-const Navbar = ({ theme, toggleTheme, onMenuClick }) => {
+const Navbar = ({ theme, toggleTheme, onMenuClick, onAlertsClick }) => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -18,21 +19,9 @@ const Navbar = ({ theme, toggleTheme, onMenuClick }) => {
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      const u = JSON.parse(userStr);
-      setUserData(u);
-      loadNotifications(u.id);
+      setUserData(JSON.parse(userStr));
     }
   }, []);
-
-  const loadNotifications = async (userId) => {
-    const res = await fetchNotifications(userId);
-    if (Array.isArray(res)) setNotifications(res);
-  };
-
-  const handleMarkRead = async (id) => {
-    await markNotificationRead(userData.id, id);
-    loadNotifications(userData.id);
-  };
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -187,51 +176,8 @@ const Navbar = ({ theme, toggleTheme, onMenuClick }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Notifications Bell */}
-          <div ref={notifRef} style={{ position: 'relative' }}>
-             <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center' }}
-             >
-                <Bell size={20} />
-                {notifications.some(n => !n.is_read) && (
-                    <span style={{ position: 'absolute', top: '-1px', right: '-1px', width: '8px', height: '8px', background: 'var(--accent-primary)', borderRadius: '50%', border: '2px solid var(--nav-bg)' }} />
-                )}
-             </button>
-
-             {showNotifications && (
-                 <div className="card" style={{ 
-                    position: 'absolute', top: 'calc(100% + 15px)', right: '-10px', width: '280px', 
-                    maxHeight: '400px', overflowY: 'auto', padding: '0.5rem', zIndex: 2000 
-                }}>
-                    <div style={{ padding: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '800' }}>NOTIFICATIONS</span>
-                        <MailOpen size={14} color="var(--text-secondary)" />
-                    </div>
-                    {notifications.length === 0 ? (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                            Zero alerts right now.
-                        </div>
-                    ) : (
-                        notifications.map(n => (
-                            <div key={n.id} style={{ 
-                                padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', 
-                                opacity: n.is_read ? 0.6 : 1, transition: 'all 0.2s', position: 'relative' 
-                            }}>
-                                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '4px' }}>{n.title}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{n.message}</div>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--accent-primary)', marginTop: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                                    {new Date(n.created_at).toLocaleTimeString()}
-                                    {!n.is_read && <button onClick={() => handleMarkRead(n.id)} style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '800', fontSize: '0.65rem' }}>
-                                        <Check size={10} /> Mark read
-                                    </button>}
-                                </div>
-                            </div>
-                        ))
-                    )}
-                 </div>
-             )}
-          </div>
+          {/* Smart Alerts Bell */}
+          <AlertBell onClick={onAlertsClick} />
 
           {/* User Dropdown */}
           <div style={{ position: 'relative' }}>

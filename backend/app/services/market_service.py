@@ -12,7 +12,7 @@ def get_market_context() -> Dict[str, Any]:
         nifty = yf.Ticker("^NSEI")
         hist = nifty.history(period="5d")
         if hist.empty:
-            return {"trend": "Neutral", "volatility": "Low", "sentiment": "Stable"}
+            return {"trend": "Neutral", "volatility": "Low", "change_pct": 0, "last_price": 0, "sentiment": "Stable"}
 
         last_close = hist['Close'].iloc[-1]
         prev_close = hist['Close'].iloc[-2]

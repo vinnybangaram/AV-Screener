@@ -15,11 +15,14 @@ import { Toaster } from 'react-hot-toast';
 import ChatWidget from './components/AIChatWidget/ChatWidget';
 import Admin from './pages/Admin';
 import MeshBackground from './components/MeshBackground';
+import AlertsCenter from './components/Alerts/AlertsCenter';
+import FeedbackWidget from './components/Community/FeedbackWidget';
 
 function AppContent({ theme, toggleTheme }) {
   const location = useLocation();
   const isLoggedIn = !!localStorage.getItem('token');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   
   // Define public routes that don't need Navbar/Sidebar or Protection
   const publicRoutes = ['/login'];
@@ -37,7 +40,14 @@ function AppContent({ theme, toggleTheme }) {
     <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <MeshBackground />
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
-      {!hideShell && <Navbar theme={theme} toggleTheme={toggleTheme} onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />}
+      {!hideShell && (
+        <Navbar 
+          theme={theme} 
+          toggleTheme={toggleTheme} 
+          onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+          onAlertsClick={() => setAlertsOpen(true)}
+        />
+      )}
 
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         {!hideShell && (
@@ -64,6 +74,8 @@ function AppContent({ theme, toggleTheme }) {
       </div>
 
       {!hideShell && <ChatWidget />}
+      {!hideShell && <AlertsCenter isOpen={alertsOpen} onClose={() => setAlertsOpen(false)} />}
+      {!hideShell && <FeedbackWidget />}
 
       <style>{`
         .sidebar-wrapper {

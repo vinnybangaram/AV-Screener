@@ -194,4 +194,132 @@ export const fetchChatHistory = async (symbol = null) => {
     }
 };
 
+export const fetchForecast = async (symbol, horizon) => {
+    try {
+        return await api.get(`/forecast/${symbol}?horizon=${horizon}`);
+    } catch (error) {
+        console.error("fetchForecast error:", error);
+        throw error;
+    }
+};
+
+
+export const fetchConfluence = async (symbol) => {
+    try {
+        return await api.get(/confluence/ + symbol);
+    } catch (error) {
+        console.error("fetchConfluence error:", error);
+        throw error;
+    }
+};
+
+
+export const fetchTradeSetup = async (symbol) => {
+    try {
+        return await api.get(/trade-setup/ + symbol);
+    } catch (error) {
+        console.error("fetchTradeSetup error:", error);
+        throw error;
+    }
+};
+
+
+export const fetchPriceTargets = async (symbol) => {
+    try {
+        return await api.get(/price-target/ + symbol);
+    } catch (error) {
+        console.error("fetchPriceTargets error:", error);
+        throw error;
+    }
+};
+
+
+export const fetchAlerts = async () => {
+    try {
+        return await api.get('/alerts');
+    } catch (error) {
+        console.error("fetchAlerts error:", error);
+        throw error;
+    }
+};
+
+export const fetchUnreadAlertCount = async () => {
+    try {
+        return await api.get('/alerts/unread-count');
+    } catch (error) {
+        console.error("fetchUnreadAlertCount error:", error);
+        throw error;
+    }
+};
+
+export const markAlertRead = async (id) => {
+    try {
+        return await api.post('/alerts/read/' + id);
+    } catch (error) {
+        console.error("markAlertRead error:", error);
+        throw error;
+    }
+};
+
+export const markAllAlertsRead = async () => {
+    try {
+        return await api.post('/alerts/read-all');
+    } catch (error) {
+        console.error("markAllAlertsRead error:", error);
+        throw error;
+    }
+};
+
+
+export const submitFeedback = async (data) => {
+    try {
+        return await api.post('/feedback', data);
+    } catch (error) {
+        console.error("submitFeedback error:", error);
+        throw error;
+    }
+};
+
+export const fetchComments = async (symbol) => {
+    try {
+        return await api.get('/comments/' + symbol);
+    } catch (error) {
+        console.error("fetchComments error:", error);
+        throw error;
+    }
+};
+
+export const postComment = async (symbol, message) => {
+    try {
+        return await api.post('/comments/' + symbol, message, {
+            headers: { 'Content-Type': 'text/plain' }
+        });
+    } catch (error) {
+        console.error("postComment error:", error);
+        throw error;
+    }
+};
+
+export const likeComment = async (id) => {
+    try {
+        return await api.post('/comments/' + id + '/like');
+    } catch (error) {
+        console.error("likeComment error:", error);
+        throw error;
+    }
+};
+
+export const trackShare = async (symbol, platform) => {
+    try {
+        return await api.post('/share/track', { symbol, platform });
+    } catch (error) {
+        console.error("trackShare error:", error);
+        throw error;
+    }
+};
+
 export default api;
+
+
+
+

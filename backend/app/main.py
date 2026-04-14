@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat, admin
+from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat, admin, forecast, confluence, trade_setup, price_target, alerts, community
 from app.database import engine, Base
 from app.models import user, watchlist as watchlist_model, notification as notification_model, screener_result, chat as chat_model
 from sqlalchemy.orm import Session
@@ -168,6 +168,18 @@ app.include_router(news.router,         prefix="/api/news",          tags=["News
 app.include_router(dashboard.router,    prefix="/api/dashboard",     tags=["Dashboard"])
 app.include_router(chat.router,         prefix="/api/chat",          tags=["AI Chat"])
 app.include_router(admin.router,        prefix="/api/admin",         tags=["Admin"])
+app.include_router(forecast.router,     prefix="/api",              tags=["Forecast"])
+app.include_router(confluence.router,   prefix="/api",              tags=["Decision Score"])
+app.include_router(trade_setup.router,  prefix="/api",              tags=["Trade Planning"])
+app.include_router(price_target.router, prefix="/api",              tags=["Market Forecasts"])
+app.include_router(alerts.router,       prefix="/api",              tags=["Market Surveillance"])
+app.include_router(community.router,    prefix="/api",              tags=["Community & Growth"])
+
+from app.services.alerts_scheduler import scheduler
+
+@app.on_event("startup")
+async def startup_event():
+    scheduler.start()
 
 # ── ENTRY POINT ──
 if __name__ == "__main__":
