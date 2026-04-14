@@ -84,7 +84,29 @@ const Watchlist = () => {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            {/* Mobile Dropdown */}
+            <div className="mobile-dropdown-container">
+                <select 
+                    value={activeTab} 
+                    onChange={(e) => setActiveTab(e.target.value)} 
+                    className="mobile-dropdown"
+                >
+                    {tabs.map(tab => {
+                        const count = tab === 'All' ? watchlist.length : watchlist.filter(item => {
+                            if (!item.source) return false;
+                            const src = item.source.toLowerCase();
+                            const t = tab.toLowerCase();
+                            return src.includes(t) || t.includes(src);
+                        }).length;
+                        return (
+                            <option key={tab} value={tab}>{tab} ({count})</option>
+                        );
+                    })}
+                </select>
+            </div>
+
+            {/* Desktop Tabs */}
+            <div className="desktop-tabs-container" style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 {tabs.map(tab => {
                     const count = tab === 'All' 
                         ? watchlist.length 
@@ -145,6 +167,22 @@ const Watchlist = () => {
                     ))}
                 </div>
             )}
+
+            <style>{`
+                .mobile-dropdown-container { display: none; }
+                .mobile-dropdown {
+                    width: 100%; padding: 0.75rem; border-radius: 8px;
+                    background: var(--bg-card); color: var(--text-primary);
+                    border: 1px solid var(--border-color); margin-bottom: 2rem;
+                    font-weight: 700; cursor: pointer; font-size: 0.9rem;
+                    outline: none;
+                }
+                .mobile-dropdown:focus { border-color: var(--accent-primary); }
+                @media (max-width: 768px) {
+                    .mobile-dropdown-container { display: block; }
+                    .desktop-tabs-container { display: none !important; }
+                }
+            `}</style>
 
             <div style={{ marginTop: '4rem', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, fontWeight: '700' }}>

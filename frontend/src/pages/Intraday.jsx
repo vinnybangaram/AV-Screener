@@ -94,7 +94,21 @@ const Intraday = () => {
             </div>
 
             {/* Direction Tabs */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
+            {/* Mobile Dropdown */}
+            <div className="mobile-dropdown-container">
+                <select 
+                    value={tab} 
+                    onChange={(e) => setTab(e.target.value)} 
+                    className="mobile-dropdown"
+                >
+                    {['LONG', 'SHORT'].map(t => (
+                        <option key={t} value={t}>{t === 'LONG' ? '📈' : '📉'} {t} ({t === 'LONG' ? data?.longs?.length ?? 0 : data?.shorts?.length ?? 0})</option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Desktop Tabs */}
+            <div className="desktop-tabs-container" style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
                 {['LONG', 'SHORT'].map(t => (
                     <button key={t} onClick={() => setTab(t)} style={{
                         padding: '0.5rem 1.5rem', borderRadius: '10px', fontWeight: '700',
@@ -135,6 +149,20 @@ const Intraday = () => {
             )}
 
             <style>{`
+                .mobile-dropdown-container { display: none; }
+                .mobile-dropdown {
+                    width: 100%; padding: 0.75rem; border-radius: 8px;
+                    background: var(--bg-card); color: var(--text-primary);
+                    border: 1px solid var(--border-color); margin-bottom: 2rem;
+                    font-weight: 700; cursor: pointer; font-size: 0.9rem;
+                    outline: none;
+                }
+                .mobile-dropdown:focus { border-color: var(--accent-primary); }
+                @media (max-width: 768px) {
+                    .mobile-dropdown-container { display: block; }
+                    .desktop-tabs-container { display: none !important; }
+                }
+
                 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
                 .discovery-loader { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.05); border-top-color: var(--success); border-radius: 50%; animation: spin 1s linear infinite; }
                 @keyframes spin { to { transform: rotate(360deg); } }
