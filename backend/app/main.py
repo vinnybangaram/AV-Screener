@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat, admin, forecast, confluence, trade_setup, price_target, alerts, community
+from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat, admin, forecast, confluence, trade_setup, price_target, alerts, community, activity
 from app.database import engine, Base
 from app.models import user, watchlist as watchlist_model, notification as notification_model, screener_result, chat as chat_model
 from sqlalchemy.orm import Session
@@ -67,23 +67,37 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
         name = idinfo.get("name", "Trader")
         google_id = idinfo.get("sub")
         
+        # Upsert Logic
         db_user = db.query(user.User).filter(user.User.email == email).first()
         if not db_user:
             db_user = user.User(
                 email=email, 
                 name=name, 
+                avatar_url=idinfo.get("picture", ""),
                 google_id=google_id,
-                last_login=datetime.utcnow()
+                last_login_at=datetime.utcnow(),
+                login_count=1
             )
+            # Default admin
+            if email == "vinny009@gmail.com":
+                db_user.role = "admin"
             db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
         else:
-            # Update last login and google_id if not present
-            db_user.last_login = datetime.utcnow()
+            # Update existing user
+            db_user.last_login_at = datetime.utcnow()
+            db_user.login_count += 1
+            db_user.name = name
+            db_user.avatar_url = idinfo.get("picture", "")
             if not db_user.google_id:
                 db_user.google_id = google_id
-            db.commit()
+        
+        db.commit()
+        db.refresh(db_user)
+
+        # Log Activity
+        event = user.ActivityEvent(user_id=db_user.id, event_type="login")
+        db.add(event)
+        db.commit()
 
         from app.utils.auth import create_access_token
         access_token = create_access_token(data={
@@ -100,7 +114,8 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
                 "name":    db_user.name,
                 "email":   db_user.email,
                 "role":    db_user.role,
-                "picture": idinfo.get("picture", ""),
+                "plan":    db_user.plan,
+                "avatar":  db_user.avatar_url,
             }
         }
     except Exception as e:
@@ -123,16 +138,24 @@ async def manual_auth(request: Request, db: Session = Depends(get_db)):
             db_user = user.User(
                 email=email, 
                 name=name, 
-                last_login=datetime.utcnow()
+                last_login_at=datetime.utcnow(),
+                login_count=1
             )
             if email == "vinny009@gmail.com":
                 db_user.role = "admin"
             db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
         else:
-            db_user.last_login = datetime.utcnow()
-            db.commit()
+            db_user.last_login_at = datetime.utcnow()
+            db_user.login_count += 1
+            db_user.name = name
+        
+        db.commit()
+        db.refresh(db_user)
+
+        # Log Activity
+        event = user.ActivityEvent(user_id=db_user.id, event_type="login_manual")
+        db.add(event)
+        db.commit()
 
         from app.utils.auth import create_access_token
         access_token = create_access_token(data={
@@ -149,7 +172,8 @@ async def manual_auth(request: Request, db: Session = Depends(get_db)):
                 "name":    db_user.name,
                 "email":   db_user.email,
                 "role":    db_user.role,
-                "picture": "",
+                "plan":    db_user.plan,
+                "avatar":  "",
             }
         }
     except Exception as e:
@@ -174,6 +198,7 @@ app.include_router(trade_setup.router,  prefix="/api",              tags=["Trade
 app.include_router(price_target.router, prefix="/api",              tags=["Market Forecasts"])
 app.include_router(alerts.router,       prefix="/api",              tags=["Market Surveillance"])
 app.include_router(community.router,    prefix="/api",              tags=["Community & Growth"])
+app.include_router(activity.router,     prefix="/api/activity",     tags=["Intelligence"])
 
 from app.services.alerts_scheduler import scheduler
 
