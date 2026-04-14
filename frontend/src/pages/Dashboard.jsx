@@ -171,7 +171,7 @@ const Dashboard = () => {
         toast.success("CSV Export Triggered");
     };
 
-    if (loading && !data) return <Loader message="Synchronizing Terminal Intelligence..." />;
+    if (loading && !data) return <Loader message="Synchronizing Terminal Intelligence..." fullPage={false} />;
     
     if (error) {
         return (
@@ -452,10 +452,12 @@ const Dashboard = () => {
                             <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: '800' }}>
                                 <th style={{ padding: '0.5rem 1rem' }}>Asset</th>
                                 <th style={{ padding: '0.5rem' }}>Strategy</th>
+                                <th style={{ padding: '0.5rem' }}>Entry Date</th>
                                 <th style={{ padding: '0.5rem' }}>Entry</th>
                                 <th style={{ padding: '0.5rem' }}>Current</th>
                                 <th style={{ padding: '0.5rem' }}>Stop Loss</th>
                                 <th style={{ padding: '0.5rem' }}>Target</th>
+                                <th style={{ padding: '0.5rem' }}>Exit Date</th>
                                 <th style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>P/L %</th>
                             </tr>
                         </thead>
@@ -474,6 +476,9 @@ const Dashboard = () => {
                                                 {item.source}
                                             </span>
                                         </td>
+                                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            {item.added_date ? new Date(item.added_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '---'}
+                                        </td>
                                         <td style={{ padding: '0.75rem 0.5rem', fontWeight: '600', fontSize: '0.9rem', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                                             ₹{formatNumber(item.added_price)}
                                         </td>
@@ -485,6 +490,9 @@ const Dashboard = () => {
                                         </td>
                                         <td style={{ padding: '0.75rem 0.5rem', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                                             <div style={{ color: 'var(--success)', fontWeight: '700', fontSize: '0.9rem' }}>₹{formatNumber(item.target_price)}</div>
+                                        </td>
+                                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            {item.status !== 'ACTIVE' && item.updated_at ? new Date(item.updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '---'}
                                         </td>
                                         <td style={{ textAlign: 'right', padding: '0.75rem 1rem', borderRadius: '0 8px 8px 0', border: '1px solid rgba(255,255,255,0.03)', borderLeft: 'none' }}>
                                             <div style={{ fontWeight: '700', color: item.profit_loss_pct >= 0 ? 'var(--success)' : 'var(--danger)', fontSize: '0.95rem' }}>

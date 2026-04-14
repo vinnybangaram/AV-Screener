@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { TrendingUp, Activity, BarChart3, ShieldCheck } from 'lucide-react';
 import { fetchStockAnalysis, fetchStockNews } from '../services/api';
+import Loader from '../components/Common/Loader';
 
 import ScoreBlocks from '../components/ScoreBlocks';
 import HighchartsComponent from '../components/HighchartsComponent';
@@ -55,6 +56,11 @@ const AnalyseStock = () => {
              <StockSearch onSearch={handleSearch} />
           </div>
         </div>
+      )}
+
+      {/* ── LOADING STATE ── */}
+      {loading && (
+        <Loader message="Synthesizing Quant Data and Market Sentiments..." fullPage={false} />
       )}
 
       {/* ── THE TERMINAL ── */}

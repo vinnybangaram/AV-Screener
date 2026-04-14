@@ -2,11 +2,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #080e1a;
+    background: transparent;
     position: relative;
     overflow: hidden;
-    color: white;
+    color: var(--text-primary);
     font-family: 'Inter', sans-serif;
+    width: 100%;
+    min-height: calc(100vh - 140px); /* Viewport height minus navbar */
+    padding: 4rem 2rem;
 }
 
 .terminal-loader-container.full-page {
@@ -16,6 +19,8 @@
     width: 100vw;
     height: 100vh;
     z-index: 9999;
+    padding: 0;
+    background: var(--bg-primary);
 }
 
 .loader-content {
