@@ -16,15 +16,18 @@ def get_ai_analysis(tech_data: Dict[str, Any]) -> Dict[str, str]:
 
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         
         prompt = f"""
         Analyze the following institutional stock data for {tech_data['ticker']} and provide a professional-grade synthesis:
         
         1. STRATEGIC SUMMARY (Max 3 lines): High-level outlook based on fundamental/technical alignment.
-        2. STRENGTH (Strong / Moderate / Weak): Based on the Master Score of {tech_data.get('scores', {}).get('final_score', 'N/A')}.
-        3. RISK LEVEL (High / Moderate / Low): Based on Valuation and Debt status.
-        4. OUTLOOK (Bullish / Neutral / Bearish): Short-to-medium term projection.
+        2. BUSINESS QUALITY (1-10): Score based on ROE and fundamentally solid metrics.
+        3. GROWTH POTENTIAL (1-10): Score based on trend and volume momentum.
+        4. MANAGEMENT QUALITY (1-10): Estimate between 5-10 based on debt levels (low debt = high management score).
+        5. VERDICT: Single word (Bullish / Neutral / Bearish).
+        6. RISKS: Short sentence describing key potential risks based on valuation/debt.
+        7. CONFIDENCE: "High" or "Moderate" based on data clarity.
 
         KEY DATA PAYLOAD:
         * PRICE: ₹{tech_data['price']} ({tech_data['change_pct']:.2f}% change)
@@ -40,12 +43,16 @@ def get_ai_analysis(tech_data: Dict[str, Any]) -> Dict[str, str]:
         Return only a valid JSON object:
         {{
           "summary": "...",
-          "strength": "...",
-          "risk": "...",
-          "outlook": "..."
+          "business_quality": 8,
+          "growth_potential": 7,
+          "management_quality": 8,
+          "verdict": "Bullish",
+          "risks": "...",
+          "confidence": "High"
         }}
         """
         
+        print("🔥 [DEBUG] Calling Gemini with model parameter: models/gemini-2.5-flash")
         response = model.generate_content(prompt)
         text = response.text
         
@@ -78,11 +85,14 @@ def get_fallback_analysis(tech_data: Dict[str, Any]) -> Dict[str, str]:
     if macd.get('status') == "Bullish":
         summary += " MACD shows a bullish crossover supporting momentum."
         
-    outlook = "Bullish" if trend == "Uptrend" else "Bearish" if trend == "Downtrend" else "Sideways"
+    outlook = "Bullish" if trend == "Uptrend" else "Bearish" if trend == "Downtrend" else "Neutral"
     
     return {
         "summary": summary,
-        "strength": "Moderate" if trend == "Uptrend" else "Weak",
-        "risk": "Moderate",
-        "outlook": outlook
+        "business_quality": 6,
+        "growth_potential": 8 if trend == "Uptrend" else 4,
+        "management_quality": 6,
+        "verdict": outlook,
+        "risks": "General market volatility and macroeconomic uncertainties.",
+        "confidence": "Low"
     }

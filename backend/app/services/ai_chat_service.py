@@ -9,7 +9,7 @@ from datetime import datetime
 
 # Initialize Gemini
 genai.configure(api_key=settings.GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('models/gemini-2.5-flash')
 
 async def process_chat_query(db: Session, user_id: int, symbol: str, question: str):
     # 1. Fetch Real Context Data
@@ -63,6 +63,7 @@ async def process_chat_query(db: Session, user_id: int, symbol: str, question: s
     """
 
     try:
+        print("🔥 [DEBUG] Calling Gemini with model parameter: models/gemini-2.5-flash")
         response = model.generate_content(prompt)
         text = response.text
         
