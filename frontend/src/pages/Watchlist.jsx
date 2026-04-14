@@ -84,24 +84,44 @@ const Watchlist = () => {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                {tabs.map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        style={{
-                            background: 'none', border: 'none', padding: '0.75rem 1.5rem',
-                            color: activeTab === tab ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                            fontWeight: '700', cursor: 'pointer', position: 'relative',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        {tab}
-                        {activeTab === tab && (
-                            <motion.div layoutId="watchlist-tab" style={{ position: 'absolute', bottom: '-1px', left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
-                        )}
-                    </button>
-                ))}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                {tabs.map(tab => {
+                    const count = tab === 'All' 
+                        ? watchlist.length 
+                        : watchlist.filter(item => {
+                            if (!item.source) return false;
+                            const src = item.source.toLowerCase();
+                            const t = tab.toLowerCase();
+                            return src.includes(t) || t.includes(src);
+                        }).length;
+
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            style={{
+                                background: 'none', border: 'none', padding: '0.75rem 1.5rem',
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap',
+                                color: activeTab === tab ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                fontWeight: '700', cursor: 'pointer', position: 'relative',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {tab}
+                            <span style={{ 
+                                background: activeTab === tab ? 'var(--accent-primary)' : 'var(--bg-card-elevated)', 
+                                color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
+                                padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800',
+                                border: `1px solid ${activeTab === tab ? 'var(--accent-primary)' : 'var(--border-color)'}`
+                            }}>
+                                {count}
+                            </span>
+                            {activeTab === tab && (
+                                <motion.div layoutId="watchlist-tab" style={{ position: 'absolute', bottom: '-1px', left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
+                            )}
+                        </button>
+                    );
+                })}
             </div>
 
             {loading ? (
