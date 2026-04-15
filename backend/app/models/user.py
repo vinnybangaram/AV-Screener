@@ -37,7 +37,7 @@ class AdminSession(Base):
     
     user = relationship("User", back_populates="user_sessions")
 
-class Notification(Base):
+class AdminNotification(Base):
     __tablename__ = "admin_notifications"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
@@ -60,7 +60,7 @@ class NotificationReceipt(Base):
     delivered_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="receipts")
-    notification = relationship("Notification", back_populates="receipts")
+    notification = relationship("AdminNotification", back_populates="receipts")
 
 class Subscription(Base):
     __tablename__ = "subscriptions"

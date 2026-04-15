@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 from datetime import datetime, timedelta
-from app.models.user import User, ActivityEvent, Subscription, Notification, NotificationReceipt
+from app.models.user import User, ActivityEvent, Subscription, AdminNotification, NotificationReceipt
 import io
 import csv
 
@@ -51,7 +51,7 @@ class AdminService:
 
     def broadcast_notification(self, db: Session, title: str, message: str, group: str, admin_id: int):
         # 1. Create Notification Record
-        notif = Notification(
+        notif = AdminNotification(
             title=title, 
             message=message, 
             target_group=group, 
