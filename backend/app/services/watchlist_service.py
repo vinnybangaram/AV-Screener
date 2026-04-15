@@ -7,18 +7,79 @@ from typing import List, Dict
 from app.utils.strategy_engine import get_strategy_recommendation
 from concurrent.futures import ThreadPoolExecutor
 
+def _normalize_symbol(symbol: str) -> str:
+    """
+    Normalize symbol to Yahoo Finance compatible NSE ticker.
+    Handles special cases like L&T -> LT, ZOMATO -> ETERNAL (rebranded 2025), etc.
+    """
+    import re
+    # Map known renamed/problematic NSE symbols
+    SYMBOL_MAP = {
+        "L&T": "LT",
+        "M&M": "MM",
+        "M&MFIN": "MMFIN",
+        "PVR": "PVRINOX",       # renamed after merger
+        "ZOMATO": "ETERNAL",    # Zomato rebranded to Eternal Ltd (2025)
+    }
+    s = symbol.upper().strip()
+    if s in SYMBOL_MAP:
+        return SYMBOL_MAP[s]
+    # Strip any character that's not alphanumeric or -/. (e.g. &)
+    s = re.sub(r'[^A-Z0-9\-\.]', '', s)
+    return s
+
+
 def fetch_live_price(symbol: str):
-    """Fetch live NSE price via yfinance. Returns None on failure."""
+    """
+    Fetch live NSE/BSE price via yfinance 1.x.
+    Fallback chain: 2d → 5d → 1d-1m → fast_info
+    Returns None on all failures (caller falls back to added_price).
+    """
     try:
-        ticker_symbol = symbol if (symbol.endswith(".NS") or symbol.endswith(".BO")) else f"{symbol}.NS"
+        clean = _normalize_symbol(symbol)
+        ticker_symbol = clean if (clean.endswith(".NS") or clean.endswith(".BO")) else f"{clean}.NS"
         ticker = yf.Ticker(ticker_symbol)
-        hist = ticker.history(period="1d", interval="1m")
-        if not hist.empty:
-            return float(hist['Close'].iloc[-1])
-        info = ticker.fast_info
-        return float(info.last_price) if hasattr(info, 'last_price') else None
-    except Exception:
+
+        # Primary: 2d history (works after market close too)
+        try:
+            hist = ticker.history(period="2d")
+            if not hist.empty:
+                return float(hist['Close'].iloc[-1])
+        except Exception:
+            pass
+
+        # Secondary: 5d (helps recently-listed stocks with sparse 2d data)
+        try:
+            hist5 = ticker.history(period="5d")
+            if not hist5.empty:
+                return float(hist5['Close'].iloc[-1])
+        except Exception:
+            pass
+
+        # Tertiary: 1m intraday (only during market hours)
+        try:
+            hist1m = ticker.history(period="1d", interval="1m")
+            if not hist1m.empty:
+                return float(hist1m['Close'].iloc[-1])
+        except Exception:
+            pass
+
+        # Quaternary: fast_info (yfinance 1.x dict-style access)
+        try:
+            fi = ticker.fast_info
+            price = fi.get("lastPrice") or fi.get("last_price") or fi.get("regularMarketPrice")
+            if price:
+                return float(price)
+        except Exception:
+            pass
+
+        print(f"[WatchlistService] No price found for {symbol} (tried as {ticker_symbol})")
         return None
+
+    except Exception as e:
+        print(f"[WatchlistService] fetch_live_price crashed for {symbol}: {e}")
+        return None
+
 
 def get_watchlist(db: Session, user_id: int):
     # ── INTRADAY CLEANUP LOGIC ──

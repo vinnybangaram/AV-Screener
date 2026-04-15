@@ -8,12 +8,20 @@ import {
     FiShield, 
     FiTrendingUp, 
     FiUserCheck,
-    FiExternalLink
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
+// ── Safe Format Helpers ────────────────────────────────────────────────────────
+const formatNumber   = (v) => Number(v ?? 0).toLocaleString();
+const formatCurrency = (v) => `₹${Number(v ?? 0).toLocaleString()}`;
+const formatPercent  = (v) => `${Number(v ?? 0).toFixed(2)}%`;
+const formatDateTime = (v) => v ? new Date(v).toLocaleString()    : 'Never';
+const formatDate     = (v) => v ? new Date(v).toLocaleDateString() : '—';
+const safeText       = (v) => v ?? '—';
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const Admin = () => {
-    const [stats, setStats] = useState(null);
+    const [stats, setStats]     = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -23,9 +31,10 @@ const Admin = () => {
                 const token = localStorage.getItem('token');
                 if (!token) { navigate('/login'); return; }
 
-                const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/admin/analytics`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const response = await axios.get(
+                    `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/admin/analytics`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
                 setStats(response.data);
             } catch (error) {
                 console.error('Error fetching analytics:', error);
@@ -51,14 +60,29 @@ const Admin = () => {
         );
     }
 
-    if (!stats) return null;
+    if (!stats) {
+        return (
+            <div className="container animate-in">
+                <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-secondary)' }}>
+                    <FiShield size={40} style={{ marginBottom: '1rem', opacity: 0.4 }} />
+                    <p>No analytics data available.</p>
+                </div>
+            </div>
+        );
+    }
 
     const cards = [
-        { title: 'Total Users', value: stats.totalUsers, icon: <FiUsers />, color: 'var(--accent-primary)' },
-        { title: 'DAU (24h)', value: stats.dailyActiveUsers, icon: <FiActivity />, color: 'var(--success)' },
-        { title: 'MAU (30d)', value: stats.monthlyActiveUsers, icon: <FiTrendingUp />, color: '#a855f7' },
-        { title: 'Paid Users', value: stats.paidUsers, icon: <FiShield />, color: 'var(--warning)' },
+        { title: 'Total Users',  value: stats?.totalUsers         ?? stats?.total_users         ?? 0, icon: <FiUsers />,     color: 'var(--accent-primary)' },
+        { title: 'DAU (24h)',    value: stats?.dailyActiveUsers    ?? stats?.dau                 ?? 0, icon: <FiActivity />,   color: 'var(--success)' },
+        { title: 'MAU (30d)',    value: stats?.monthlyActiveUsers  ?? stats?.mau                 ?? 0, icon: <FiTrendingUp />, color: '#a855f7' },
+        { title: 'Paid Users',   value: stats?.paidUsers           ?? stats?.paid_users          ?? 0, icon: <FiShield />,    color: 'var(--warning)' },
     ];
+
+    const recentUsers = Array.isArray(stats?.recentUsers)
+        ? stats.recentUsers
+        : Array.isArray(stats?.recent_logins)
+            ? stats.recent_logins
+            : [];
 
     return (
         <div className="container animate-in">
@@ -88,7 +112,7 @@ const Admin = () => {
                         </div>
                         <div className="metric-label">{card.title}</div>
                         <div className="page-title" style={{ fontSize: '2rem', marginBottom: 0, marginTop: '0.25rem' }}>
-                            {card.value.toLocaleString()}
+                            {formatNumber(card.value)}
                         </div>
                     </div>
                 ))}
@@ -100,53 +124,73 @@ const Admin = () => {
                     <FiUserCheck color="var(--accent-primary)" />
                     <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Recent User Activity</h2>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ margin: 0, borderSpacing: 0 }}>
-                        <thead style={{ background: 'rgba(0,0,0,0.2)' }}>
-                            <tr>
-                                <th style={{ padding: '1rem 1.5rem' }}>User</th>
-                                <th>Role</th>
-                                <th>Plan</th>
-                                <th>Joined</th>
-                                <th>Last Login</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {stats.recentUsers.map((user) => (
-                                <tr key={user.id}>
-                                    <td style={{ padding: '1rem 1.5rem' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{user.name}</span>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{user.email}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`badge ${user.role === 'admin' ? 'badge-storm' : 'badge-accent'}`}>
-                                            {user.role}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className={`badge ${user.plan === 'pro' ? 'badge-warning' : 'badge-secondary'}`} 
-                                              style={user.plan !== 'pro' ? { background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)'} : {}}>
-                                            {user.plan}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="metric-value" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                                            <FiClock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                                            {new Date(user.created_at).toLocaleDateString()}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="metric-value" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                                            {new Date(user.last_login).toLocaleDateString()}
-                                        </div>
-                                    </td>
+
+                {recentUsers.length === 0 ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        <FiActivity size={32} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
+                        <p>No user activity yet.</p>
+                    </div>
+                ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ margin: 0, borderSpacing: 0 }}>
+                            <thead style={{ background: 'rgba(0,0,0,0.2)' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem 1.5rem' }}>User</th>
+                                    <th>Role</th>
+                                    <th>Plan</th>
+                                    <th>Logins</th>
+                                    <th>Joined</th>
+                                    <th>Last Login</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {recentUsers.map((user, idx) => (
+                                    <tr key={user?.id ?? idx}>
+                                        <td style={{ padding: '1rem 1.5rem' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                    {safeText(user?.name)}
+                                                </span>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                    {safeText(user?.email)}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${user?.role === 'admin' ? 'badge-storm' : 'badge-accent'}`}>
+                                                {safeText(user?.role)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span 
+                                                className={`badge ${user?.plan === 'pro' ? 'badge-warning' : 'badge-secondary'}`} 
+                                                style={user?.plan !== 'pro' ? { background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' } : {}}
+                                            >
+                                                {safeText(user?.plan)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                                                {formatNumber(user?.login_count)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="metric-value" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                                <FiClock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                                                {formatDate(user?.created_at ?? user?.joined_at)}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="metric-value" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                                {formatDateTime(user?.last_login ?? user?.last_login_at)}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             <style>{`

@@ -25,7 +25,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response.data,
     (error) => {
-        if (error.response?.status === 401) {
+        const isAuthEndpoint = error.config?.url?.includes('/auth/');
+        if (error.response?.status === 401 && !isAuthEndpoint) {
             console.error("🔑 [Auth] Session expired or invalid. Redirecting to login...");
             localStorage.removeItem('token');
             localStorage.removeItem('user');

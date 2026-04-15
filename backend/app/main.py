@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import intraday, watchlist, market, notifications, news, dashboard, analysis, screener, penny_storm, chat, admin, forecast, confluence, trade_setup, price_target, alerts, community, activity
 from app.database import engine, Base
@@ -69,7 +69,7 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
         except Exception as ve:
             print(f"❌ [Google Auth] Token verification failed: {str(ve)}")
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, 
+                status_code=401, 
                 detail=f"Google token verification failed: {str(ve)}"
             )
 
@@ -112,7 +112,7 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
             print(f"❌ [Database Error] Auth upsert failed: {str(de)}")
             db.rollback()
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=500,
                 detail=f"Database synchronization failed: {str(de)}"
             )
 
