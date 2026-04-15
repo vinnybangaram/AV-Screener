@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 from datetime import datetime, timedelta
 from app.models.user import User, ActivityEvent, Subscription, AdminNotification, NotificationReceipt
+from app.models.community import Feedback
 import io
 import csv
 
@@ -93,5 +94,21 @@ class AdminService:
             writer.writerow([u.id, u.name, u.email, u.plan, u.login_count, u.last_login_at, u.created_at])
             
         return output.getvalue()
+        
+    def get_feedbacks(self, db: Session):
+        feedbacks = db.query(Feedback).order_by(Feedback.created_at.desc()).all()
+        results = []
+        for f in feedbacks:
+            user = db.query(User).filter(User.id == f.user_id).first()
+            results.append({
+                "id": f.id,
+                "user": {"name": user.name if user else "Trader", "email": user.email if user else ""},
+                "category": f.category,
+                "rating": f.rating,
+                "message": f.message,
+                "page_context": f.page_context,
+                "created_at": f.created_at
+            })
+        return results
 
 admin_service = AdminService()

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { trackShare } from '../../services/api';
+import { trackShare, API_BASE_URL } from '../../services/api';
 import { Share2, Copy, Send, MessageCircle, Briefcase, Globe, Image as ImageIcon, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -7,7 +7,7 @@ const ShareMenu = ({ symbol, title = "" }) => {
   const [open, setOpen] = useState(false);
   
   // Point to the OG Proxy to enable thumbnails on WhatsApp/Twitter
-  const shareUrl = `http://localhost:8000/api/share/v/${symbol}`;
+  const shareUrl = `${API_BASE_URL}/share/v/${symbol}`;
   const shareText = `${symbol} Analysis - AV Screener Terminal.`;
 
   const handleShare = async (platform) => {
@@ -32,7 +32,7 @@ const ShareMenu = ({ symbol, title = "" }) => {
 
   const downloadSnapshot = () => {
     // We point to our dynamic image-gen API
-    const apiUrl = `http://localhost:8000/api/share/thumbnail/${symbol}`;
+    const apiUrl = `${API_BASE_URL}/share/thumbnail/${symbol}`;
     const link = document.createElement('a');
     link.href = apiUrl;
     link.download = `${symbol}_analysis.png`;

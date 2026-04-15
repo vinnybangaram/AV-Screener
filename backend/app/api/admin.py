@@ -42,3 +42,9 @@ def export_users(db: Session = Depends(get_db), current_admin: User = Depends(re
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=av_screener_users.csv"}
     )
+@router.get("/feedback")
+def get_feedback(db: Session = Depends(get_db), current_admin: User = Depends(require_admin)):
+    """
+    Returns all product feedback submitted by users.
+    """
+    return admin_service.get_feedbacks(db)

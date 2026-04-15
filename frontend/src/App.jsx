@@ -13,6 +13,7 @@ import Watchlist from './pages/Watchlist';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import ChatWidget from './components/AIChatWidget/ChatWidget';
+import LiveTickerRibbon from './components/MarketTicker/LiveTickerRibbon';
 import Admin from './pages/Admin';
 import MeshBackground from './components/MeshBackground';
 import AlertsCenter from './components/Alerts/AlertsCenter';
@@ -41,12 +42,15 @@ function AppContent({ theme, toggleTheme }) {
       <MeshBackground />
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
       {!hideShell && (
-        <Navbar 
-          theme={theme} 
-          toggleTheme={toggleTheme} 
-          onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-          onAlertsClick={() => setAlertsOpen(true)}
-        />
+        <>
+          <Navbar 
+            theme={theme} 
+            toggleTheme={toggleTheme} 
+            onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            onAlertsClick={() => setAlertsOpen(true)}
+          />
+          <LiveTickerRibbon />
+        </>
       )}
 
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
@@ -84,9 +88,9 @@ function AppContent({ theme, toggleTheme }) {
         @media (max-width: 768px) {
           .sidebar-wrapper {
             position: fixed;
-            top: 64px;
+            top: 96px;
             left: -100%;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 96px);
             width: 260px;
             z-index: 2001;
           }
@@ -95,10 +99,10 @@ function AppContent({ theme, toggleTheme }) {
           }
           .mobile-overlay {
             position: fixed;
-            top: 64px;
+            top: 96px;
             left: 0;
             width: 100vw;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 96px);
             background: rgba(0,0,0,0.5);
             backdrop-filter: blur(4px);
             z-index: -1;

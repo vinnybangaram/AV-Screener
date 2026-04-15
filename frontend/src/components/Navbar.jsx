@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sun, Moon, Cpu, User, Settings, LogOut, ChevronDown, Search, TrendingUp, X, Bell, MailOpen, Check, Menu } from 'lucide-react';
+import { Sun, Moon, Cpu, User, Settings, LogOut, ChevronDown, Search, X, Menu } from 'lucide-react';
 import { searchTickers } from '../services/api';
+import MarketIndicesBar from './MarketIndices/MarketIndicesBar';
 import AlertBell from './Alerts/AlertBell';
 
 const Navbar = ({ theme, toggleTheme, onMenuClick, onAlertsClick }) => {
@@ -11,10 +12,7 @@ const Navbar = ({ theme, toggleTheme, onMenuClick, onAlertsClick }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const searchRef = useRef(null);
-  const notifRef = useRef(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -28,9 +26,6 @@ const Navbar = ({ theme, toggleTheme, onMenuClick, onAlertsClick }) => {
     const handler = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setResults([]);
-      }
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifications(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -165,15 +160,7 @@ const Navbar = ({ theme, toggleTheme, onMenuClick, onAlertsClick }) => {
       {/* ── Right Controls ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
 
-        {/* NIFTY ticker - Hide on mobile */}
-        <div className="desktop-only" style={{ paddingRight: '1rem', borderRight: '1px solid var(--border-color)', textAlign: 'right', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>NIFTY 50</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'flex-end' }}>
-              +0.85% <TrendingUp size={12} />
-            </div>
-          </div>
-        </div>
+        <MarketIndicesBar />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {/* Smart Alerts Bell */}

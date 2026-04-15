@@ -1,7 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 console.log("🌐 [API] Base URL:", API_BASE_URL);
 
 // ── AXIOS INSTANCE ──
@@ -161,6 +161,11 @@ export const fetchDashboardMetrics = async (userId) => {
     return await api.get(`/dashboard/metrics?user_id=${userId}`);
 };
 
+export const fetchMarketContext = async () => {
+    return await api.get('/market/context');
+};
+
+
 export const fetchNotifications = async (userId) => {
     return await api.get(`/notifications?user_id=${userId}`);
 };
@@ -292,9 +297,7 @@ export const fetchComments = async (symbol) => {
 
 export const postComment = async (symbol, message) => {
     try {
-        return await api.post('/comments/' + symbol, message, {
-            headers: { 'Content-Type': 'text/plain' }
-        });
+        return await api.post('/comments/' + symbol, { message });
     } catch (error) {
         console.error("postComment error:", error);
         throw error;

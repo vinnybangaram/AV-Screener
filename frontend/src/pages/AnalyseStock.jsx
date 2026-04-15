@@ -143,7 +143,7 @@ const AnalyseStock = () => {
                         {data.scores.classification.toUpperCase()}
                     </div>
                  </div>
-                 <div className="card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <div className="card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', overflow: 'visible' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                        <ShareMenu symbol={data.analysis.ticker} />
                     </div>

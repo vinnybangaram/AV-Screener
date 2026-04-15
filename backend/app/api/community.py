@@ -8,6 +8,7 @@ from app.services.moderation import moderation
 from app.services.share_card_service import share_card_service
 from fastapi.responses import Response, HTMLResponse
 from typing import List, Optional
+from app.utils.config import settings
 
 router = APIRouter()
 
@@ -48,7 +49,7 @@ async def get_comments(symbol: str, db: Session = Depends(get_db)):
         user = db.query(User).filter(User.id == c.user_id).first()
         results.append({
             "id": c.id,
-            "user": {"name": user.name if user else "Trader", "picture": user.picture if user else None},
+            "user": {"name": user.name if user else "Trader", "picture": user.avatar_url if user else None},
             "message": c.message,
             "likes": c.likes,
             "createdAt": c.created_at,
@@ -59,11 +60,12 @@ async def get_comments(symbol: str, db: Session = Depends(get_db)):
 @router.post("/comments/{symbol}")
 async def post_comment(
     symbol: str,
-    message: str = Body(...),
+    payload: dict = Body(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    if moderation.is_spam(message):
+    message = payload.get("message", "")
+    if not message or moderation.is_spam(message):
         raise HTTPException(status_code=400, detail="Comment flagged as spam")
         
     new_c = StockComment(
@@ -112,9 +114,9 @@ async def share_proxy_page(symbol: str):
     Open Graph Proxy Page.
     Returns meta tags for crawlers (WhatsApp, Twitter) and redirects users to the app.
     """
-    # In production, this would be your actual domain
-    base_url = "http://localhost:8000" 
-    frontend_url = f"http://localhost:5173/analyse-stock?symbol={symbol}" # Vite default port
+    # In production, these should be your actual domains set in .env
+    base_url = settings.BASE_URL
+    frontend_url = f"{settings.FRONTEND_URL}/analyse-stock?symbol={symbol}" 
     thumbnail_url = f"{base_url}/api/share/thumbnail/{symbol}"
     
     html_content = f"""

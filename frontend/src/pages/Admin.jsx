@@ -8,6 +8,8 @@ import {
     FiShield, 
     FiTrendingUp, 
     FiUserCheck,
+    FiMessageSquare,
+    FiStar
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -22,6 +24,7 @@ const safeText       = (v) => v ?? '—';
 // ── Component ─────────────────────────────────────────────────────────────────
 const Admin = () => {
     const [stats, setStats]     = useState(null);
+    const [feedback, setFeedback] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -35,7 +38,14 @@ const Admin = () => {
                     `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/admin/analytics`,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
+                
+                const feedbackRes = await axios.get(
+                    `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/admin/feedback`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
                 setStats(response.data);
+                setFeedback(feedbackRes.data);
             } catch (error) {
                 console.error('Error fetching analytics:', error);
                 if (error.response?.status === 403) {
@@ -183,6 +193,69 @@ const Admin = () => {
                                         <td>
                                             <div className="metric-value" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
                                                 {formatDateTime(user?.last_login ?? user?.last_login_at)}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* User Feedback Section */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: '3rem', marginBottom: '4rem' }}>
+                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <FiMessageSquare color="var(--accent-primary)" />
+                    <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Product Feedback</h2>
+                </div>
+
+                {feedback.length === 0 ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        <FiMessageSquare size={32} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
+                        <p>No user feedback received yet.</p>
+                    </div>
+                ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ margin: 0, borderSpacing: 0 }}>
+                            <thead style={{ background: 'rgba(0,0,0,0.2)' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem 1.5rem' }}>User</th>
+                                    <th>Category</th>
+                                    <th>Rating</th>
+                                    <th>Message</th>
+                                    <th>Page</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {feedback.map((f, idx) => (
+                                    <tr key={f.id ?? idx}>
+                                        <td style={{ padding: '1rem 1.5rem' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{f.user?.name}</span>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{f.user?.email}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span className="badge badge-accent">{f.category}</span>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--warning)' }}>
+                                                {f.rating} <FiStar size={12} fill="currentColor" />
+                                            </div>
+                                        </td>
+                                        <td style={{ maxWidth: '300px' }}>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'normal', lineBreak: 'anywhere' }}>
+                                                {f.message}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <code style={{ fontSize: '0.7rem', color: 'var(--accent-primary)', opacity: 0.8 }}>{f.page_context}</code>
+                                        </td>
+                                        <td>
+                                            <div className="metric-value" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                                {formatDateTime(f.created_at)}
                                             </div>
                                         </td>
                                     </tr>
