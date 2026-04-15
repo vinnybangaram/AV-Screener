@@ -1,12 +1,20 @@
+.login-main-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .login-page-wrapper {
   margin: 0;
   padding: 0;
   display: flex;
-  min-height: 100vh;
+  flex: 1; /* Take remaining space */
   background: none;
   color: white;
   font-family: 'Inter', sans-serif;
-  overflow: hidden;
   position: relative;
   z-index: 2;
 }

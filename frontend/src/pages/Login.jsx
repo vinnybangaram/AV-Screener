@@ -3,6 +3,7 @@ import { User, Mail } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import { googleLogin, manualLogin } from "../services/api";
 import toast from "react-hot-toast";
+import LoginFooter from "../components/Legal/LoginFooter";
 import "./Login.css";
 
 const Login = () => {
@@ -52,7 +53,8 @@ const Login = () => {
   };
 
   return (
-    <div className="login-page-wrapper">
+    <div className="login-main-container">
+      <div className="login-page-wrapper">
       <div className="login-left">
         <div className="logo-top">AV SCREENER.</div>
         <h1>AV</h1>
@@ -107,6 +109,8 @@ const Login = () => {
         </div>
       </div>
     </div>
+    <LoginFooter />
+  </div>
   );
 };
 
