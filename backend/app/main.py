@@ -11,8 +11,12 @@ from google.auth.transport import requests as google_requests
 from app.utils.config import settings
 from datetime import datetime
 import os
+from app.startup_migrations import run_migrations
 
-# Create tables
+# 1. Run idempotent column migrations FIRST (adds missing cols to existing tables)
+run_migrations()
+
+# 2. Create any brand-new tables
 Base.metadata.create_all(bind=engine)
 
 
