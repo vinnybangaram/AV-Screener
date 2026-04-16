@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.alert import Alert
-from app.models.watchlist import Watchlist
+from app.models.watchlist import WatchlistPosition
 from app.services.stock_analysis_service import get_full_analysis
 from app.services.confluence_engine import engine as confluence_engine
 from app.services.trade_setup_engine import engine as setup_engine
@@ -14,7 +14,10 @@ class AlertsEngine:
 
     def process_user_alerts(self, db: Session, user_id: int):
         # 1. Fetch user's active watchlist
-        watchlist_items = db.query(Watchlist).filter(Watchlist.user_id == user_id, Watchlist.status == "ACTIVE").all()
+        watchlist_items = db.query(WatchlistPosition).filter(
+            WatchlistPosition.user_id == user_id, 
+            WatchlistPosition.is_active == True
+        ).all()
         
         for item in watchlist_items:
             try:
@@ -28,12 +31,10 @@ class AlertsEngine:
                 if item.target_price and cmp >= item.target_price:
                     self._create_alert(db, user_id, item.symbol, "TARGET_HIT", "High", 
                                      "Target Achieved", f"{item.symbol} crossed your target of ₹{item.target_price}")
-                    item.status = "TARGET_HIT" # Close the monitoring for this
                 
                 elif item.stop_loss and cmp <= item.stop_loss:
                     self._create_alert(db, user_id, item.symbol, "SL_HIT", "Critical", 
                                      "Stop Loss Triggered", f"{item.symbol} dropped below ₹{item.stop_loss} support")
-                    item.status = "SL_HIT"
 
                 # Check for Signal Changes (Setup/Confluence)
                 # We check every ~30 min for these to avoid spamming

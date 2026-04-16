@@ -30,9 +30,15 @@ app = FastAPI(
 )
 
 # ── CORS ──
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    settings.FRONTEND_URL,
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[str(origin) for origin in origins if origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -229,6 +235,7 @@ from app.services.alerts_scheduler import scheduler
 async def startup_event():
     try:
         scheduler.start()
+        print("[Startup] Background scheduler active.")
     except Exception as e:
         print(f"[Startup] Background scheduler failed: {e}")
 

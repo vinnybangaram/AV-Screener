@@ -174,7 +174,12 @@ const StockCard = ({ stock, onAnalyze }) => {
              const userStr = localStorage.getItem('user');
              if (!userStr) { toast.error('Please login first.'); return; }
              const user = JSON.parse(userStr);
-             const res = await addToWatchlist(user.id, { symbol: stock.ticker || stock.symbol, added_price: stock.currentPrice, source: 'Multibagger' });
+             const res = await addToWatchlist({ 
+               symbol: stock.ticker || stock.symbol, 
+               added_price: stock.currentPrice, 
+               source_module: 'Multibagger',
+               category: 'Multibagger'
+             });
              if (res?.success) toast.success(`${stock.ticker || stock.symbol} added!`);
            }}
            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '0.4rem' }}

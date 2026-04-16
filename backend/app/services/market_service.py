@@ -5,24 +5,35 @@ from app.data.ticker_db import TICKER_DB
 
 def get_market_context() -> Dict[str, Any]:
     """
-    Analyzes overall market sentiment and volatility.
+    Analyzes overall market sentiment and volatility with strict timeouts.
     """
     try:
-        # Fetch NIFTY 50 index data
-        nifty = yf.Ticker("^NSEI")
-        hist = nifty.history(period="5d")
-        if hist.empty:
-            return {"trend": "Neutral", "volatility": "Low", "change_pct": 0, "last_price": 0, "sentiment": "Stable"}
+        data = yf.download("^NSEI", period="2d", interval="1d", progress=False, timeout=5)
+        if data.empty:
+            return {"trend": "Neutral", "volatility": "Low", "change_pct": 0, "last_price": 0}
+        
+        # Check for Close column regardless of MultiIndex or SingleIndex
+        close_col = None
+        if isinstance(data.columns, pd.MultiIndex):
+            if 'Close' in data.columns.levels[0]: close_col = 'Close'
+        elif 'Close' in data.columns:
+            close_col = 'Close'
+            
+        if close_col is None:
+            return {"trend": "Neutral", "volatility": "Low", "change_pct": 0, "last_price": 0}
+        
+        close_prices = data['Close']
+        if len(close_prices) < 2:
+            return {"trend": "Neutral", "volatility": "Low", "change_pct": 0, "last_price": 0}
 
-        last_close = hist['Close'].iloc[-1]
-        prev_close = hist['Close'].iloc[-2]
+        last_close = float(close_prices.iloc[-1])
+        prev_close = float(close_prices.iloc[-2])
         change_pct = ((last_close - prev_close) / prev_close) * 100
-
-        # Simple trend logic
+        
         trend = "Bullish" if change_pct > 0.5 else "Bearish" if change_pct < -0.5 else "Neutral"
         
-        # Volatility assessment (standard deviation of daily returns)
-        returns = hist['Close'].pct_change().dropna()
+        # Volatility check
+        returns = close_prices.pct_change().dropna()
         vol = "High" if returns.std() > 0.015 else "Moderate" if returns.std() > 0.008 else "Low"
 
         return {
@@ -32,7 +43,7 @@ def get_market_context() -> Dict[str, Any]:
             "last_price": round(float(last_close), 2)
         }
     except Exception as e:
-        print(f"[Market] Context error: {e}")
+        print(f"[Market] Context fetch failed or timed out: {e}")
         return {"trend": "Neutral", "volatility": "Moderate", "change_pct": 0, "last_price": 0}
 
 def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
@@ -40,14 +51,13 @@ def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
     Fetches Top 10 Gainers and Losers from NSE.
     Uses a predefined pool of tickers for accuracy and speed.
     """
-    # Use a smaller pool for speed and reliability, especially on restricted networks
     pool = [item["symbol"] for item in TICKER_DB[:25]] 
     yf_symbols = [f"{s}.NS" for s in pool]
     
     movers = []
     try:
-        # Fetch data with a shorter period
-        data = yf.download(yf_symbols, period="2d", interval="1d", progress=False, timeout=10)
+        # Fetch data with shorter period and strict timeout
+        data = yf.download(yf_symbols, period="2d", interval="1d", progress=False, timeout=8)
         if not data.empty and 'Close' in data:
             close_prices = data['Close']
             if len(close_prices) >= 2:
@@ -67,13 +77,12 @@ def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
                             "symbol": symbol,
                             "price": round(float(price), 2),
                             "change_pct": round(float(change), 2),
-                            "volume": 0, # Simplified for speed
+                            "volume": 0, 
                             "momentum_score": round(float(abs(change)), 2)
                         })
     except Exception as e:
-        print(f"[Market] Core fetch error: {e}")
+        print(f"[Market] Top Movers Core fetch error: {e}")
         
-    # ── Fallback: Simulated Movers if real data fails ──
     if not movers:
         print("[Market] Data fetch failed or empty. Injecting simulated Top Movers.")
         return {
@@ -93,7 +102,6 @@ def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
             ]
         }
         
-    # Sort and pick top 10
     gainers = sorted([m for m in movers if m["change_pct"] > 0], key=lambda x: x["change_pct"], reverse=True)[:10]
     losers = sorted([m for m in movers if m["change_pct"] < 0], key=lambda x: x["change_pct"])[:10]
     
@@ -101,9 +109,10 @@ def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
         "gainers": gainers,
         "losers": losers
     }
+
 def get_market_indices() -> Dict[str, Any]:
     """
-    Fetches real-time values for major Indian indices.
+    Fetches major Indian indices with timeout.
     """
     symbols = {
         "nifty": "^NSEI",
@@ -113,7 +122,7 @@ def get_market_indices() -> Dict[str, Any]:
     
     results = {}
     try:
-        data = yf.download(list(symbols.values()), period="5d", interval="1d", progress=False)
+        data = yf.download(list(symbols.values()), period="5d", interval="1d", progress=False, timeout=8)
         if not data.empty and 'Close' in data:
             close_data = data['Close']
             for name, sym in symbols.items():
@@ -132,16 +141,10 @@ def get_market_indices() -> Dict[str, Any]:
                             "change_pct": round(float(change_pct), 2),
                             "is_up": bool(change >= 0)
                         }
-        
-        # Sensex fix if needed (sometimes BSESN is tricky in yf)
-        if "sensex" not in results:
-             # Fallback or manual fetch
-             pass
-
     except Exception as e:
-        print(f"[Market] Indices fetch error: {e}")
+        print(f"[Market] Indices fetch error or timeout: {e}")
 
-    # ── Fallbacks ──
+    # Fallbacks that allow the UI to load instantly
     if "nifty" not in results:
         results["nifty"] = {"name": "NIFTY 50", "value": 24231.30, "change": 389.2, "change_pct": 1.63, "is_up": True}
     if "banknifty" not in results:
@@ -153,18 +156,14 @@ def get_market_indices() -> Dict[str, Any]:
 
 def get_ticker_data() -> List[Dict[str, Any]]:
     """
-    Returns a sequence of trending stocks for the marquee ticker.
+    Returns marquee ticker sequence.
     """
     movers = get_top_movers()
     gainers = movers.get("gainers", [])
     losers = movers.get("losers", [])
     
     ticker_list = []
-    # Combine gainers and losers for a balanced ticker
     for i in range(max(len(gainers), len(losers))):
-        if i < len(gainers):
-            ticker_list.append({**gainers[i], "type": "gainer"})
-        if i < len(losers):
-            ticker_list.append({**losers[i], "type": "loser"})
-            
+        if i < len(gainers): ticker_list.append({**gainers[i], "type": "gainer"})
+        if i < len(losers): ticker_list.append({**losers[i], "type": "loser"})
     return ticker_list

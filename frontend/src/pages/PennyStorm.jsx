@@ -212,7 +212,12 @@ const StormCard = ({ stock, onAnalyze }) => {
                      const userStr = localStorage.getItem('user');
                      if (!userStr) { toast.error('Please login first.'); return; }
                      const user = JSON.parse(userStr);
-                     const res = await addToWatchlist(user.id, { symbol: stock.ticker, added_price: stock.price, source: 'PennyStorm' });
+                     const res = await addToWatchlist({ 
+                       symbol: stock.ticker, 
+                       added_price: stock.price, 
+                       source_module: 'PennyStorm', 
+                       category: 'Penny' 
+                     });
                      if (res?.success) toast.success(`${stock.ticker} added!`);
                    }}
                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '0.4rem' }}

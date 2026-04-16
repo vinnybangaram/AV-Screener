@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.utils.auth import get_current_user
 from app.models.user import User
-from app.services import dashboard_service
+from app.services import dashboard_service, snapshot_service
 
 router = APIRouter()
 
 @router.get("/")
 @router.get("")
 def get_dashboard(
+    category: str = Query("All"),
+    timeframe: str = Query("This Month"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
@@ -17,38 +19,32 @@ def get_dashboard(
     Unified endpoint for the high-fidelity Bloomberg Dashboard.
     Strictly Auth-Protected.
     """
-    return dashboard_service.get_dashboard_data(db, user.id)
+    return dashboard_service.get_dashboard_data(db, user.id, category, timeframe)
+
+@router.post("/snapshots/run")
+def run_snapshots(
+    interval: str = Query("hourly"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """
+    Manually trigger a snapshot run. Restricted to Admin in production.
+    """
+    if user.role != "admin":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    snapshot_service.run_snapshot_job(interval)
+    return {"message": "Snapshot job triggered successfully"}
 
 @router.get("/metrics")
 def get_dashboard_metrics(
     user_id: int, 
+    category: str = Query("All"),
     db: Session = Depends(get_db),
-    # Temporarily allow manual user_id for legacy support, but we recommend migrating to get_dashboard
 ):
     """
-    Legacy Metrics Endpoint.
-    Still useful for some targeted UI updates.
+    Legacy Metrics Endpoint - updated for new schema.
     """
-    from app.services import watchlist_service
-    watchlist = watchlist_service.get_watchlist(db, user_id)
-    if not watchlist:
-        return {
-            "total_value": 0, "total_pl_abs": 0, "total_pl_pct": 0,
-            "best_performer": None, "worst_performer": None
-        }
-    
-    total_value = sum(item["current_price"] for item in watchlist)
-    total_pl_abs = sum(item["profit_loss_abs"] for item in watchlist)
-    avg_entry = sum(item["added_price"] for item in watchlist)
-    total_pl_pct = (total_pl_abs / avg_entry) * 100 if avg_entry > 0 else 0
-    
-    best = max(watchlist, key=lambda x: x["profit_loss_pct"])
-    worst = min(watchlist, key=lambda x: x["profit_loss_pct"])
-    
-    return {
-        "total_value": round(total_value, 2),
-        "total_pl_abs": round(total_pl_abs, 2),
-        "total_pl_pct": round(total_pl_pct, 2),
-        "best_performer": {"symbol": best["symbol"], "pl_pct": round(best["profit_loss_pct"], 2)},
-        "worst_performer": {"symbol": worst["symbol"], "pl_pct": round(worst["profit_loss_pct"], 2)}
-    }
+    data = dashboard_service.get_dashboard_data(db, user_id, category)
+    return data["user"]["metrics"]

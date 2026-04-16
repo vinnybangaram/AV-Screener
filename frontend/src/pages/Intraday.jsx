@@ -194,7 +194,12 @@ const IntradayCard = ({ stock }) => {
                      const userStr = localStorage.getItem('user');
                      if (!userStr) { toast.error('Please login first.'); return; }
                      const user = JSON.parse(userStr);
-                     const res = await addToWatchlist(user.id, { symbol: stock.ticker, added_price: stock.price, source: 'Intraday' });
+                     const res = await addToWatchlist({ 
+                       symbol: stock.ticker, 
+                       added_price: stock.price, 
+                       source_module: 'Intraday',
+                       category: 'Intraday'
+                     });
                      if (res?.success) toast.success(`${stock.ticker} added!`);
                    }}
                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '0.4rem' }}

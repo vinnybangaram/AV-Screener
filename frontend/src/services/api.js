@@ -42,9 +42,10 @@ api.interceptors.response.use(
 /**
  * Institutional Dashboard API
  */
-export const fetchDashboard = async () => {
+export const fetchDashboard = async (category = 'All', timeframe = 'This Month') => {
     try {
-        return await api.get('/dashboard/');
+        const url = `/dashboard?category=${category}&timeframe=${timeframe}`;
+        return await api.get(url);
     } catch (error) {
         console.error("fetchDashboard error:", error);
         throw error;
@@ -137,28 +138,28 @@ export const fetchIntraday = async (refresh = false) => {
 /**
  * Watchlist API
  */
-export const fetchWatchlist = async (userId) => {
-    return await api.get(`/watchlist?user_id=${userId}`);
+export const fetchWatchlist = async () => {
+    return await api.get('/watchlist');
 };
 
-export const addToWatchlist = async (userId, data) => {
-    return await api.post(`/watchlist/add?user_id=${userId}`, data);
+export const addToWatchlist = async (data) => {
+    return await api.post('/watchlist/add', data);
 };
 
-export const updateWatchlist = async (userId, watchlistId, data) => {
-    return await api.put(`/watchlist/update?user_id=${userId}&watchlist_id=${watchlistId}`, data);
+export const updateWatchlist = async (watchlistId, data) => {
+    return await api.put(`/watchlist/update?watchlist_id=${watchlistId}`, data);
 };
 
-export const removeFromWatchlist = async (userId, watchlistId) => {
-    return await api.delete(`/watchlist/remove?user_id=${userId}&watchlist_id=${watchlistId}`);
+export const removeFromWatchlist = async (watchlistId) => {
+    return await api.post(`/watchlist/remove?watchlist_id=${watchlistId}`);
 };
 
 export const fetchTopMovers = async () => {
     return await api.get('/market/top-movers');
 };
 
-export const fetchDashboardMetrics = async (userId) => {
-    return await api.get(`/dashboard/metrics?user_id=${userId}`);
+export const fetchDashboardMetrics = async (category = 'All') => {
+    return await api.get(`/dashboard/metrics?category=${category}`);
 };
 
 export const fetchMarketContext = async () => {
