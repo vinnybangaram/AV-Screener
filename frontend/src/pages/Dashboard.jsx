@@ -15,6 +15,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Loader from '../components/Common/Loader';
+import PortfolioPerformanceChart from '../components/PortfolioPerformanceChart';
+import AssetAllocationChart from '../components/AssetAllocationChart';
+import PerformanceRankingChart from '../components/PerformanceRankingChart';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -356,50 +359,9 @@ const Dashboard = () => {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 0.5 }}
-                                style={{ height: '300px' }}
+                                style={{ minHeight: '380px' }}
                             >
-                                {filteredData.performance.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={filteredData.performance}>
-                                            <defs>
-                                                <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor={chartMode === 'pnl' ? "#6366f1" : "#22c55e"} stopOpacity={0.4}/>
-                                                    <stop offset="95%" stopColor={chartMode === 'pnl' ? "#6366f1" : "#22c55e"} stopOpacity={0}/>
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                                            <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={10} axisLine={false} tickLine={false} minTickGap={30} />
-                                            <YAxis 
-                                                stroke="var(--text-muted)" 
-                                                fontSize={10} 
-                                                axisLine={false} 
-                                                tickLine={false} 
-                                                tickFormatter={(v) => chartMode === 'pnl' ? `₹${(v/1000).toFixed(0)}k` : `${v}%`} 
-                                            />
-                                            <Tooltip 
-                                                contentStyle={{ background: 'rgba(30, 41, 59, 0.9)', backdropFilter: 'blur(10px)', border: '1px solid #334155', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}
-                                                itemStyle={{ color: '#fff', fontSize: '13px', fontWeight: '700' }}
-                                                formatter={(val) => chartMode === 'pnl' ? formatCurrency(val) : `${val}%`}
-                                                cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1 }}
-                                            />
-                                            <Area 
-                                                type="monotone" 
-                                                dataKey="value" 
-                                                stroke={chartMode === 'pnl' ? "#6366f1" : "#22c55e"} 
-                                                strokeWidth={4} 
-                                                fillOpacity={1} 
-                                                fill="url(#colorVal)" 
-                                                animationDuration={1500}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className="empty-chart-state flex-col-center" style={{ height: '100%', color: 'var(--text-muted)', fontSize: '0.9rem', gap: '1rem' }}>
-                                        <div className="pulse-icon"><Activity size={48} opacity={0.3} /></div>
-                                        <p>No Performance Data Available for {timeframe}</p>
-                                        <span style={{ fontSize: '0.75rem' }}>Tracking starts automatically when items are added to your watchlist.</span>
-                                    </div>
-                                )}
+                                <PortfolioPerformanceChart timeframe={timeframe} category={sectorFilter} mode={chartMode} />
                             </motion.div>
                         </AnimatePresence>
                     </div>
@@ -409,27 +371,8 @@ const Dashboard = () => {
                     <div className="card-header">
                         <h3><PieChart size={18} /> Asset Allocation</h3>
                     </div>
-                    <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={250}>
-                            <RePieChart>
-                                <Pie
-                                    data={filteredData.distribution}
-                                    innerRadius={65}
-                                    outerRadius={85}
-                                    paddingAngle={8}
-                                    dataKey="value"
-                                    animationDuration={1500}
-                                >
-                                    {filteredData.distribution.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0.2)" strokeWidth={2} />
-                                    ))}
-                                </Pie>
-                                <Tooltip 
-                                    contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    formatter={(value) => formatCurrency(value)}
-                                />
-                            </RePieChart>
-                        </ResponsiveContainer>
+                    <div className="chart-container" style={{ padding: '0 1rem' }}>
+                        <AssetAllocationChart watchlist={filteredData.watchlist} />
                     </div>
                 </div>
             </div>
@@ -441,19 +384,7 @@ const Dashboard = () => {
                         <h3><TrendingUp size={18} /> Performance Ranking</h3>
                     </div>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={filteredData.performanceBars} layout="vertical" margin={{ left: 20 }}>
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={11} axisLine={false} tickLine={false} fontWeight="700" />
-                                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                                <ReferenceLine x={0} stroke="rgba(255,255,255,0.1)" />
-                                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={12}>
-                                    {filteredData.performanceBars.map((item, index) => (
-                                        <Cell key={index} fill={item.value >= 0 ? '#22c55e' : '#ef4444'} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <PerformanceRankingChart data={filteredData.performanceBars} />
                     </div>
                 </div>
 
@@ -521,52 +452,52 @@ const Dashboard = () => {
                 </div>
 
                 <div className="positions-table-wrapper" style={{ overflowX: 'auto' }}>
-                    <table className="positions-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+                    <table className="positions-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 4px' }}>
                         <thead>
-                            <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '900' }}>
+                            <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: '900' }}>
                                 <th style={{ padding: '0.5rem 1rem' }}>Asset</th>
                                 <th style={{ padding: '0.5rem' }}>Strategy</th>
-                                <th style={{ padding: '0.5rem' }}>Entry Date</th>
+                                <th style={{ padding: '0.5rem' }}>Date</th>
                                 <th style={{ padding: '0.5rem' }}>Entry</th>
                                 <th style={{ padding: '0.5rem' }}>Current</th>
-                                <th style={{ padding: '0.5rem' }}>Stop Loss</th>
+                                <th style={{ padding: '0.5rem' }}>SL</th>
                                 <th style={{ padding: '0.5rem' }}>Target</th>
-                                <th style={{ padding: '0.5rem' }}>Exit Date</th>
-                                <th style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>P/L %</th>
+                                <th style={{ padding: '0.5rem' }}>Exit</th>
+                                <th style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>Alpha</th>
                             </tr>
                         </thead>
                         <tbody>
                             {displayPositions.map(item => (
-                                <tr key={item.id} className="table-row-hover shadow-sm" style={{ background: 'rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-                                    <td style={{ padding: '1.25rem 1rem', borderRadius: '12px 0 0 12px' }}>
-                                        <div onClick={() => navigate(`/analyse-stock?symbol=${item.symbol}`)} style={{ fontWeight: '850', color: 'var(--text-primary)', fontSize: '1rem' }}>
+                                <tr key={item.id} className="table-row-hover shadow-sm" style={{ background: 'rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'all 0.3s' }}>
+                                    <td style={{ padding: '0.75rem 1rem', borderRadius: '8px 0 0 8px' }}>
+                                        <div onClick={() => navigate(`/analyse-stock?symbol=${item.symbol}`)} style={{ fontWeight: '900', color: 'var(--text-primary)', fontSize: '0.85rem', letterSpacing: '0.5px' }}>
                                             {item.symbol}
                                         </div>
                                     </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span className="category-pill" style={{ opacity: 0.8 }}>{item.category?.toUpperCase() || 'CORE'}</span>
+                                    <td style={{ padding: '0.5rem' }}>
+                                        <span className="category-pill" style={{ opacity: 0.8, fontSize: '0.55rem', padding: '2px 6px' }}>{item.category?.toUpperCase() || 'CORE'}</span>
                                     </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                                    <td style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>
                                         {item.added_at ? new Date(item.added_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '---'}
                                     </td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', fontSize: '1rem' }}>
+                                    <td style={{ padding: '0.5rem', fontWeight: '800', fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', letterSpacing: '0.2px' }}>
                                         ₹{formatNumber(item.entry_price)}
                                     </td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', fontSize: '1rem' }}>
+                                    <td style={{ padding: '0.5rem', fontWeight: '800', fontSize: '0.85rem', color: '#fff', letterSpacing: '0.2px' }}>
                                         ₹{formatNumber(item.latest_price)}
                                     </td>
-                                    <td style={{ padding: '1rem', color: '#ef4444', fontWeight: '900', fontSize: '1rem' }}>
+                                    <td style={{ padding: '0.5rem', color: '#f87171', fontWeight: '800', fontSize: '0.8rem' }}>
                                         ₹{formatNumber(item.stop_loss)}
                                     </td>
-                                    <td style={{ padding: '1rem', color: '#22c55e', fontWeight: '900', fontSize: '1rem' }}>
+                                    <td style={{ padding: '0.5rem', color: '#34d399', fontWeight: '800', fontSize: '0.8rem' }}>
                                         ₹{formatNumber(item.target_price)}
                                     </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-muted)' }}>
+                                    <td style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>
                                         {item.exit_date ? new Date(item.exit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '---'}
                                     </td>
-                                    <td style={{ textAlign: 'right', padding: '1rem', borderRadius: '0 12px 12px 0' }}>
-                                        <div style={{ fontWeight: '900', color: item.latest_pnl_percent >= 0 ? '#22c55e' : '#ef4444', fontSize: '1.05rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem' }}>
-                                            {item.latest_pnl_percent >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                    <td style={{ textAlign: 'right', padding: '0.75rem 1rem', borderRadius: '0 8px 8px 0' }}>
+                                        <div style={{ fontWeight: '950', color: item.latest_pnl_percent >= 0 ? '#10b981' : '#f43f5e', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem' }}>
+                                            {item.latest_pnl_percent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                                             {formatNumber(Math.abs(item.latest_pnl_percent))}%
                                         </div>
                                     </td>

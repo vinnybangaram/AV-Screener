@@ -39,7 +39,7 @@ const TickerItem = ({ item }) => {
                 {isUp ? '+' : ''}{item.change_pct}%
             </span>
             
-            <style jsx>{`
+            <style>{`
                 .ticker-item:hover {
                     background: rgba(255,255,255,0.03);
                 }

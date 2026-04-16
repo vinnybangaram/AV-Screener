@@ -37,8 +37,10 @@ const LiveTickerRibbon = () => {
             display: 'flex',
             alignItems: 'center',
             overflow: 'hidden',
-            position: 'relative',
-            zIndex: 10
+            position: 'sticky',
+            top: '64px',
+            zIndex: 999,
+            backdropFilter: 'blur(10px)'
         }}>
             {/* Market Status Label */}
             <div style={{

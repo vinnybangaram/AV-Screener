@@ -128,7 +128,7 @@ const Watchlist = () => {
                     </p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '2rem' }}>
+                <div className="watchlist-grid">
                     <AnimatePresence>
                         {filteredWatchlist.map((item, i) => (
                             <WatchlistCard 
@@ -143,6 +143,20 @@ const Watchlist = () => {
             )}
 
             <style>{`
+                .watchlist-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 1.5rem;
+                }
+                @media (max-width: 1400px) {
+                    .watchlist-grid { grid-template-columns: repeat(3, 1fr); }
+                }
+                @media (max-width: 1100px) {
+                    .watchlist-grid { grid-template-columns: repeat(2, 1fr); }
+                }
+                @media (max-width: 768px) {
+                    .watchlist-grid { grid-template-columns: 1fr; }
+                }
                 .glass-card {
                     background: rgba(15, 23, 42, 0.4);
                     backdrop-filter: blur(20px);

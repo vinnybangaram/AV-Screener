@@ -1,111 +1,93 @@
 """
-Startup migration: safely add missing columns to existing tables.
-Uses IF NOT EXISTS (PostgreSQL) / PRAGMA (SQLite) for idempotent execution.
-Runs automatically on every app startup — safe to run repeatedly.
+app/startup_migrations.py
+
+Idempotent column / table migrations that run at startup BEFORE
+Base.metadata.create_all().  Add new entries here whenever a model
+gains a new column that needs to exist on already-deployed databases.
 """
-import os
-from sqlalchemy import text
+
 from app.database import engine
+from sqlalchemy import text, inspect
+import traceback
 
 
-def _is_postgres() -> bool:
-    try:
-        db_url = str(engine.url)
-        return "postgresql" in db_url or "postgres" in db_url
-    except:
-        return False
+def _column_exists(conn, table: str, column: str) -> bool:
+    insp = inspect(conn)
+    cols = [c["name"] for c in insp.get_columns(table)]
+    return column in cols
+
+
+def _table_exists(conn, table: str) -> bool:
+    insp = inspect(conn)
+    return table in insp.get_table_names()
 
 
 def run_migrations():
-    """
-    Idempotent column migrations.
-    PostgreSQL: uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
-    SQLite: checks PRAGMA table_info before adding
-    """
-    is_pg = _is_postgres()
-    print(f"[Migration] Running startup migrations (DB: {'PostgreSQL' if is_pg else 'SQLite'})...")
+    print("[Migrations] Running startup migrations…")
 
     with engine.connect() as conn:
-
-        # ── Users table ──
-        if is_pg:
-            # PostgreSQL: IF NOT EXISTS is supported
-            migrations = [
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count INTEGER DEFAULT 1;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free';",
-            ]
-            for sql in migrations:
-                try:
-                    conn.execute(text(sql))
-                    print(f"  [Migration] OK: {sql.strip()}")
-                except Exception as e:
-                    print(f"  [Migration] Skipped (may already exist): {e}")
-
-        else:
-            # SQLite: check PRAGMA table_info
-            result = conn.execute(text("PRAGMA table_info(users)"))
-            existing_cols = {row[1] for row in result.fetchall()}
-
-            sqlite_migrations = []
-            if 'avatar_url' not in existing_cols:
-                sqlite_migrations.append("ALTER TABLE users ADD COLUMN avatar_url TEXT;")
-            if 'login_count' not in existing_cols:
-                sqlite_migrations.append("ALTER TABLE users ADD COLUMN login_count INTEGER DEFAULT 1;")
-            if 'is_active' not in existing_cols:
-                sqlite_migrations.append("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1;")
-            if 'last_login_at' not in existing_cols:
-                sqlite_migrations.append("ALTER TABLE users ADD COLUMN last_login_at DATETIME;")
-            if 'google_id' not in existing_cols:
-                sqlite_migrations.append("ALTER TABLE users ADD COLUMN google_id TEXT;")
-            if 'role' not in existing_cols:
-                sqlite_migrations.append("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user';")
-            if 'plan' not in existing_cols:
-                sqlite_migrations.append("ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'free';")
-
-            for sql in sqlite_migrations:
-                try:
-                    conn.execute(text(sql))
-                    print(f"  [Migration] OK: {sql.strip()}")
-                except Exception as e:
-                    print(f"  [Migration] Skipped: {e}")
-
-        # ── Watchlist Migration Logic ──
-        # Check if legacy table exists
         try:
-            if is_pg:
-                res = conn.execute(text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'watchlist_positions');"))
-                has_legacy = res.scalar()
-            else:
-                res = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='watchlist_positions';"))
-                has_legacy = res.fetchone() is not None
+            # ── watchlist_positions ──────────────────────────────────────────
+            if _table_exists(conn, "watchlist_positions"):
 
-            if has_legacy:
-                # Check if we need to migrate (new table is empty but old has data)
-                new_count = conn.execute(text("SELECT count(*) FROM watchlists;")).scalar()
-                old_count = conn.execute(text("SELECT count(*) FROM watchlist_positions;")).scalar()
-                
-                if new_count == 0 and old_count > 0:
-                    print(f"[Migration] Found {old_count} legacy positions. Migrating to new 'watchlists' table...")
-                    
-                    # Migration query mapping columns
-                    # old: [id, user_id, symbol, company_name, category, source_module, added_at, entry_price, ...]
-                    # new: [id, user_id, symbol, added_price, added_date, source, status, stop_loss, target_price, updated_at]
-                    
-                    migrate_sql = """
-                    INSERT INTO watchlists (user_id, symbol, added_price, added_date, source, status, stop_loss, target_price, updated_at)
-                    SELECT user_id, symbol, entry_price, added_at, category, status, stop_loss, target_price, updated_at
-                    FROM watchlist_positions;
-                    """
-                    conn.execute(text(migrate_sql))
-                    print(f"[Migration] Successfully migrated {old_count} items.")
+                additions = [
+                    ("company_name",        "VARCHAR"),
+                    ("latest_price",        "FLOAT"),
+                    ("latest_pnl",          "FLOAT"),
+                    ("latest_pnl_percent",  "FLOAT"),
+                    ("highest_price_seen",  "FLOAT"),
+                    ("lowest_price_seen",   "FLOAT"),
+                    ("status",              "VARCHAR DEFAULT 'ACTIVE'"),
+                    ("stop_loss",           "FLOAT"),
+                    ("target_price",        "FLOAT"),
+                    ("updated_at",          "DATETIME"),
+                    ("removed_at",          "DATETIME"),
+                ]
+                for col, coltype in additions:
+                    if not _column_exists(conn, "watchlist_positions", col):
+                        conn.execute(text(
+                            f"ALTER TABLE watchlist_positions ADD COLUMN {col} {coltype}"
+                        ))
+                        print(f"[Migrations]  + watchlist_positions.{col}")
+
+            # ── position_snapshots ───────────────────────────────────────────
+            if _table_exists(conn, "position_snapshots"):
+                if not _column_exists(conn, "position_snapshots", "interval_type"):
+                    conn.execute(text(
+                        "ALTER TABLE position_snapshots ADD COLUMN interval_type VARCHAR DEFAULT 'hourly'"
+                    ))
+                    print("[Migrations]  + position_snapshots.interval_type")
+
+            # ── stock_daily_prices (CREATE if missing) ───────────────────────
+            # SQLAlchemy's create_all handles this if the model is imported,
+            # but we ensure it here as a safety net for existing deployments.
+            if not _table_exists(conn, "stock_daily_prices"):
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS stock_daily_prices (
+                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        symbol      VARCHAR NOT NULL,
+                        date        DATE    NOT NULL,
+                        open        FLOAT,
+                        high        FLOAT,
+                        low         FLOAT,
+                        close       FLOAT,
+                        volume      FLOAT,
+                        change_pct  FLOAT,
+                        captured_at DATETIME,
+                        UNIQUE(symbol, date)
+                    )
+                """))
+                conn.execute(text(
+                    "CREATE INDEX IF NOT EXISTS ix_sdp_symbol ON stock_daily_prices (symbol)"
+                ))
+                conn.execute(text(
+                    "CREATE INDEX IF NOT EXISTS ix_sdp_date ON stock_daily_prices (date)"
+                ))
+                print("[Migrations]  + stock_daily_prices table created")
+
+            conn.commit()
+            print("[Migrations] All migrations complete.")
+
         except Exception as e:
-            print(f"[Migration] Watchlist data migration skipped: {e}")
-
-        conn.commit()
-
-    print("[Migration] Startup migrations complete.")
+            print(f"[Migrations] Error: {e}")
+            traceback.print_exc()
