@@ -103,6 +103,7 @@ const applyCustomAnimation = (H) => {
 };
 
 const PortfolioPerformanceChart = ({ timeframe = 'This Month', category = 'All', mode = 'return' }) => {
+    const [rawData, setRawData] = useState(null);
     const [options, setOptions] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -122,89 +123,10 @@ const PortfolioPerformanceChart = ({ timeframe = 'This Month', category = 'All',
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
 
-                const rawData = response.data;
-                const symbols = Object.keys(rawData);
-                
-                if (symbols.length === 0) {
-                    setOptions('EMPTY');
-                    setLoading(false);
-                    return;
-                }
-
-                const series = symbols.map((symbol, idx) => ({
-                    name: symbol,
-                    data: rawData[symbol].map(d => [
-                        new Date(d.date).getTime(), 
-                        mode === 'return' ? d.indexed : d.close // Simplified P/L representation
-                    ]),
-                    animation: {
-                        duration: 1000,
-                        defer: idx * 200 // Staggered entrance
-                    }
-                }));
-
-                setOptions({
-                    chart: {
-                        type: 'spline',
-                        backgroundColor: 'transparent',
-                        height: 380,
-                        style: { fontFamily: 'inherit' },
-                        spacingTop: 30,
-                    },
-                    title: { text: null },
-                    xAxis: {
-                        type: 'datetime',
-                        gridLineWidth: 1,
-                        gridLineColor: 'rgba(255,255,255,0.03)',
-                        lineColor: 'rgba(255,255,255,0.1)',
-                        labels: { style: { color: 'var(--text-muted)', fontWeight: '700' } }
-                    },
-                    yAxis: {
-                        title: { 
-                            text: mode === 'return' ? 'Alpha Performance (%)' : 'Market Value (₹)', 
-                            style: { color: 'var(--text-muted)', fontWeight: '800' } 
-                        },
-                        gridLineColor: 'rgba(255,255,255,0.03)',
-                        labels: { 
-                            style: { color: 'var(--text-muted)' },
-                            formatter: function() {
-                                return mode === 'return' ? this.value + '%' : '₹' + (this.value >= 1000 ? (this.value/1000).toFixed(1) + 'k' : this.value);
-                            }
-                        },
-                        plotLines: mode === 'return' ? [{
-                            color: 'rgba(255,255,255,0.2)',
-                            width: 1,
-                            value: 0,
-                            dashStyle: 'Dash',
-                            label: { text: 'Baseline', style: { color: 'var(--text-muted)', fontSize: '10px' } }
-                        }] : []
-                    },
-                    legend: {
-                        itemStyle: { color: 'var(--text-muted)', fontWeight: '700' },
-                        itemHoverStyle: { color: '#fff' }
-                    },
-                    tooltip: {
-                        backgroundColor: '#1e293b',
-                        borderColor: '#334155',
-                        borderRadius: 12,
-                        style: { color: '#fff' },
-                        shared: true,
-                        valueDecimals: 2,
-                        valuePrefix: mode === 'return' ? '' : '₹',
-                        valueSuffix: mode === 'return' ? '%' : ''
-                    },
-                    plotOptions: {
-                        series: {
-                            lineWidth: 3,
-                            marker: { enabled: false },
-                            states: { hover: { lineWidth: 4 } }
-                        }
-                    },
-                    series: series,
-                    credits: { enabled: false }
-                });
+                setRawData(response.data);
             } catch (error) {
                 console.error("Performance Chart Error:", error);
+                setRawData(null);
             } finally {
                 setLoading(false);
             }
@@ -212,6 +134,87 @@ const PortfolioPerformanceChart = ({ timeframe = 'This Month', category = 'All',
 
         fetchPortfolioTrend();
     }, [timeframe, category]);
+
+    useEffect(() => {
+        if (!rawData || Object.keys(rawData).length === 0) {
+            if (!loading) setOptions('EMPTY');
+            return;
+        }
+
+        const symbols = Object.keys(rawData);
+        const series = symbols.map((symbol, idx) => ({
+            name: symbol,
+            data: rawData[symbol].map(d => [
+                new Date(d.date).getTime(), 
+                mode === 'return' ? d.indexed : d.close 
+            ]),
+            animation: {
+                duration: 1000,
+                defer: idx * 100 // Staggered entrance
+            }
+        }));
+
+        setOptions({
+            chart: {
+                type: 'spline',
+                backgroundColor: 'transparent',
+                height: 380,
+                style: { fontFamily: 'inherit' },
+                spacingTop: 30,
+            },
+            title: { text: null },
+            xAxis: {
+                type: 'datetime',
+                gridLineWidth: 1,
+                gridLineColor: 'rgba(255,255,255,0.03)',
+                lineColor: 'rgba(255,255,255,0.1)',
+                labels: { style: { color: 'var(--text-muted)', fontWeight: '700' } }
+            },
+            yAxis: {
+                title: { 
+                    text: mode === 'return' ? 'Alpha Performance (%)' : 'Market Value (₹)', 
+                    style: { color: 'var(--text-muted)', fontWeight: '800' } 
+                },
+                gridLineColor: 'rgba(255,255,255,0.03)',
+                labels: { 
+                    style: { color: 'var(--text-muted)' },
+                    formatter: function() {
+                        return mode === 'return' ? this.value + '%' : '₹' + (this.value >= 1000 ? (this.value/1000).toFixed(1) + 'k' : this.value);
+                    }
+                },
+                plotLines: mode === 'return' ? [{
+                    color: 'rgba(255,255,255,0.2)',
+                    width: 1,
+                    value: 0,
+                    dashStyle: 'Dash',
+                    label: { text: 'Baseline', style: { color: 'var(--text-muted)', fontSize: '10px' } }
+                }] : []
+            },
+            legend: {
+                itemStyle: { color: 'var(--text-muted)', fontWeight: '700' },
+                itemHoverStyle: { color: '#fff' }
+            },
+            tooltip: {
+                backgroundColor: '#1e293b',
+                borderColor: '#334155',
+                borderRadius: 12,
+                style: { color: '#fff' },
+                shared: true,
+                valueDecimals: 2,
+                valuePrefix: mode === 'return' ? '' : '₹',
+                valueSuffix: mode === 'return' ? '%' : ''
+            },
+            plotOptions: {
+                series: {
+                    lineWidth: 3,
+                    marker: { enabled: false },
+                    states: { hover: { lineWidth: 4 } }
+                }
+            },
+            series: series,
+            credits: { enabled: false }
+        });
+    }, [rawData, mode, loading]);
 
     if (loading) return <div style={{ height: '380px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader message="Rendering Alpha Performance..." /></div>;
     

@@ -308,6 +308,21 @@ def get_multi_stock_trend(symbols: List[str], days: int = 30) -> Dict:
                   .order_by(StockDailyPrice.date.asc())
                   .all()
             )
+
+            # If no data in DB for this multi-stock entry, backfill on-the-fly
+            if not rows:
+                print(f"[DailyData] No data for {symbol} in MultiTrend — triggering backfill")
+                backfill_symbol(symbol, days=max(days, 365))
+                rows = (
+                    db.query(StockDailyPrice.date, StockDailyPrice.close)
+                      .filter(
+                          StockDailyPrice.symbol == symbol.upper(),
+                          StockDailyPrice.date   >= cutoff
+                      )
+                      .order_by(StockDailyPrice.date.asc())
+                      .all()
+                )
+
             if not rows:
                 continue
 
