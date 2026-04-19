@@ -29,9 +29,12 @@ def run_migrations():
         try:
             # ── watchlist_positions ──────────────────────────────────────────
             if _table_exists(conn, "watchlist_positions"):
-
                 additions = [
                     ("company_name",        "VARCHAR"),
+                    ("category",            "VARCHAR"),
+                    ("side",                "VARCHAR DEFAULT 'LONG'"),
+                    ("source_module",       "VARCHAR"),
+                    ("is_active",           "BOOLEAN DEFAULT TRUE"),
                     ("latest_price",        "FLOAT"),
                     ("latest_pnl",          "FLOAT"),
                     ("latest_pnl_percent",  "FLOAT"),
@@ -45,18 +48,25 @@ def run_migrations():
                 ]
                 for col, coltype in additions:
                     if not _column_exists(conn, "watchlist_positions", col):
-                        conn.execute(text(
-                            f"ALTER TABLE watchlist_positions ADD COLUMN {col} {coltype}"
-                        ))
-                        print(f"[Migrations]  + watchlist_positions.{col}")
+                        try:
+                            conn.execute(text(f"ALTER TABLE watchlist_positions ADD COLUMN {col} {coltype}"))
+                            print(f"[Migrations]  + watchlist_positions.{col}")
+                        except Exception as e:
+                            print(f"[Migrations]  ! Failed to add watchlist_positions.{col}: {e}")
 
             # ── position_snapshots ───────────────────────────────────────────
             if _table_exists(conn, "position_snapshots"):
-                if not _column_exists(conn, "position_snapshots", "interval_type"):
-                    conn.execute(text(
-                        "ALTER TABLE position_snapshots ADD COLUMN interval_type VARCHAR DEFAULT 'hourly'"
-                    ))
-                    print("[Migrations]  + position_snapshots.interval_type")
+                snap_additions = [
+                    ("interval_type", "VARCHAR DEFAULT 'hourly'"),
+                    ("side",          "VARCHAR DEFAULT 'LONG'"),
+                ]
+                for col, coltype in snap_additions:
+                    if not _column_exists(conn, "position_snapshots", col):
+                        try:
+                            conn.execute(text(f"ALTER TABLE position_snapshots ADD COLUMN {col} {coltype}"))
+                            print(f"[Migrations]  + position_snapshots.{col}")
+                        except Exception as e:
+                            print(f"[Migrations]  ! Failed to add position_snapshots.{col}: {e}")
 
             # ── stock_daily_prices (CREATE if missing) ───────────────────────
             if not _table_exists(conn, "stock_daily_prices"):
