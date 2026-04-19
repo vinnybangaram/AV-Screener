@@ -4,7 +4,7 @@ from app.api import (
     intraday, watchlist, market, notifications, news,
     dashboard, analysis, screener, penny_storm, chat,
     admin, forecast, confluence, trade_setup, price_target,
-    alerts, community, activity,
+    alerts, community, activity, auth,
     stock_chart,                       # ← NEW
 )
 from app.database import engine, Base
@@ -63,149 +63,14 @@ def root():
 def ai_status():
     return {"status": "OK"}
 
-# ── GOOGLE AUTH ───────────────────────────────────────────────────────────────
-@app.post("/api/auth/google")
-async def google_auth(request: Request, db: Session = Depends(get_db)):
-    try:
-        body       = await request.json()
-        credential = body.get("credential") or body.get("token")
-
-        if not credential:
-            raise HTTPException(status_code=400, detail="No credential provided")
-
-        GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip().replace('"', '').replace("'", "")
-        if not GOOGLE_CLIENT_ID:
-            raise HTTPException(status_code=500, detail="Google Auth misconfigured on server")
-
-        try:
-            idinfo = id_token.verify_oauth2_token(
-                credential,
-                google_requests.Request(),
-                GOOGLE_CLIENT_ID,
-                clock_skew_in_seconds=30,
-            )
-        except Exception as ve:
-            raise HTTPException(status_code=401, detail=f"Google token verification failed: {ve}")
-
-        email     = idinfo.get("email")
-        name      = idinfo.get("name", "Trader")
-        google_id = idinfo.get("sub")
-
-        try:
-            db_user = db.query(user.User).filter(user.User.email == email).first()
-            if not db_user:
-                db_user = user.User(
-                    email         = email,
-                    name          = name,
-                    avatar_url    = idinfo.get("picture", ""),
-                    google_id     = google_id,
-                    last_login_at = datetime.utcnow(),
-                    login_count   = 1,
-                )
-                if email == "vinny009@gmail.com":
-                    db_user.role = "admin"
-                db.add(db_user)
-            else:
-                db_user.last_login_at = datetime.utcnow()
-                db_user.login_count  += 1
-                db_user.name          = name
-                db_user.avatar_url    = idinfo.get("picture", "")
-                if not db_user.google_id:
-                    db_user.google_id = google_id
-
-            db.commit()
-            db.refresh(db_user)
-
-            db.add(user.ActivityEvent(user_id=db_user.id, event_type="login"))
-            db.commit()
-
-        except Exception as de:
-            db.rollback()
-            raise HTTPException(status_code=500, detail=f"Database sync failed: {de}")
-
-        from app.utils.auth import create_access_token
-        access_token = create_access_token(data={
-            "user_id": str(db_user.id),
-            "email":   db_user.email,
-            "role":    db_user.role,
-        })
-
-        return {
-            "success": True,
-            "token":   access_token,
-            "user": {
-                "id":     db_user.id,
-                "name":   db_user.name,
-                "email":  db_user.email,
-                "role":   db_user.role,
-                "plan":   db_user.plan,
-                "avatar": db_user.avatar_url,
-            },
-        }
-    except HTTPException:
-        raise
-    except Exception as ge:
-        print(f"❌ [Global Auth Error] {ge}")
-        raise HTTPException(status_code=401, detail="Authentication encountered a critical error")
+# Auth logic moved to app.api.auth
 
 
-# ── MANUAL AUTH (DEV) ─────────────────────────────────────────────────────────
-@app.post("/api/auth/manual")
-async def manual_auth(request: Request, db: Session = Depends(get_db)):
-    try:
-        body  = await request.json()
-        email = body.get("email")
-        name  = body.get("name") or body.get("username")
-
-        if not email or not name:
-            raise HTTPException(status_code=400, detail="Missing email or username")
-
-        db_user = db.query(user.User).filter(user.User.email == email).first()
-        if not db_user:
-            db_user = user.User(
-                email         = email,
-                name          = name,
-                last_login_at = datetime.utcnow(),
-                login_count   = 1,
-            )
-            if email == "vinny009@gmail.com":
-                db_user.role = "admin"
-            db.add(db_user)
-        else:
-            db_user.last_login_at = datetime.utcnow()
-            db_user.login_count  += 1
-            db_user.name          = name
-
-        db.commit()
-        db.refresh(db_user)
-
-        db.add(user.ActivityEvent(user_id=db_user.id, event_type="login_manual"))
-        db.commit()
-
-        from app.utils.auth import create_access_token
-        access_token = create_access_token(data={
-            "user_id": str(db_user.id),
-            "email":   db_user.email,
-            "role":    db_user.role,
-        })
-
-        return {
-            "success": True,
-            "token":   access_token,
-            "user": {
-                "id":     db_user.id,
-                "name":   db_user.name,
-                "email":  db_user.email,
-                "role":   db_user.role,
-                "plan":   db_user.plan,
-                "avatar": "",
-            },
-        }
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Manual Auth failed: {e}")
+# Manual auth moved to app.api.auth
 
 
 # ── ROUTERS ───────────────────────────────────────────────────────────────────
+app.include_router(auth.router,          prefix="/api/auth",           tags=["Auth"])
 app.include_router(analysis.router,      prefix="/api/analyse-stock",  tags=["Analysis"])
 app.include_router(screener.router,      prefix="/api/multibagger",    tags=["Multibagger"])
 app.include_router(penny_storm.router,                                  tags=["Penny Storm"])

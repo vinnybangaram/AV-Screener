@@ -94,15 +94,21 @@ def get_watchlist(db: Session, user_id: int, include_inactive: bool = False):
         entry_price = float(item.entry_price or 0)
         curr_price  = float(item.latest_price or entry_price)
 
-        p_l_abs = curr_price - entry_price
+        p_l_abs = curr_price - entry_price if item.side != "SHORT" else entry_price - curr_price
         p_l_pct = (p_l_abs / entry_price * 100) if entry_price > 0 else 0.0
 
-        # Safety fallback for SL/target — authoritative check is in the alert scan job
+        # Safety fallback for SL/target
         if item.status == "ACTIVE":
-            if item.stop_loss and curr_price <= item.stop_loss:
-                item.status = "SL_HIT"
-            elif item.target_price and curr_price >= item.target_price:
-                item.status = "TARGET_HIT"
+            if item.side == "SHORT":
+                if item.stop_loss and curr_price >= item.stop_loss:
+                    item.status = "SL_HIT"
+                elif item.target_price and curr_price <= item.target_price:
+                    item.status = "TARGET_HIT"
+            else:
+                if item.stop_loss and curr_price <= item.stop_loss:
+                    item.status = "SL_HIT"
+                elif item.target_price and curr_price >= item.target_price:
+                    item.status = "TARGET_HIT"
 
         result.append({
             "id":                item.id,
@@ -121,6 +127,7 @@ def get_watchlist(db: Session, user_id: int, include_inactive: bool = False):
             "latest_price":      round(curr_price, 2),
             "latest_pnl":        round(p_l_abs, 2),
             "latest_pnl_percent": round(p_l_pct, 2),
+            "side":              item.side or "LONG",
             "updated_at":        item.updated_at,
         })
 
@@ -173,6 +180,7 @@ def add_to_watchlist(db: Session, user_id: int, watchlist_in: WatchlistAdd):
         company_name = company_name,
         entry_price  = entry_price,
         category     = final_category,
+        side         = watchlist_in.side.upper() if watchlist_in.side else "LONG",
         source_module= watchlist_in.source_module or "Manual",
         status       = "ACTIVE",
         is_active    = True,
@@ -195,6 +203,7 @@ def add_to_watchlist(db: Session, user_id: int, watchlist_in: WatchlistAdd):
         pnl          = 0.0,
         pnl_percent  = 0.0,
         interval_type= "hourly",
+        side         = db_item.side
     ))
     db.commit()
 
@@ -305,6 +314,7 @@ def auto_sync_intraday_radar(db: Session):
                     symbol       = setup["ticker"],
                     entry_price  = setup["price"],
                     category     = "Intraday",
+                    side         = setup.get("direction", "LONG").upper(),
                     source_module= "Intraday Radar",
                     stop_loss    = setup["stoploss"],
                     target_price = setup["target"],

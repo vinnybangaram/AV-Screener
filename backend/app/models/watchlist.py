@@ -11,6 +11,7 @@ class WatchlistPosition(Base):
     symbol = Column(String, index=True)
     company_name = Column(String, nullable=True)
     category = Column(String) # multibagger / intraday / penny / manual
+    side = Column(String, default="LONG") # LONG / SHORT
     source_module = Column(String, nullable=True) # Multibagger Screener, Intraday Radar, etc.
     
     added_at = Column(DateTime, default=datetime.utcnow)
@@ -51,6 +52,7 @@ class PositionSnapshot(Base):
     
     captured_at = Column(DateTime, default=datetime.utcnow, index=True)
     interval_type = Column(String) # hourly / eod
+    side = Column(String, default="LONG") # Keep track of position side in snapshot
 
     # Relationships
     position = relationship("WatchlistPosition", back_populates="snapshots")

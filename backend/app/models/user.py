@@ -11,6 +11,9 @@ class User(Base):
     name = Column(String)
     avatar_url = Column(String, nullable=True)
     google_id = Column(String, unique=True, nullable=True)
+    hashed_password = Column(String, nullable=True)
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
     role = Column(String, default="user") # 'user', 'admin'
     plan = Column(String, default="free") # 'free', 'pro', 'institutional'
     login_count = Column(Integer, default=1)

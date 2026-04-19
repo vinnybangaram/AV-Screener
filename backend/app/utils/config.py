@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     CACHE_TIMEOUT: int = 3600 # seconds for cache validity (1 hour)
     GEMINI_API_KEY: str = ""
     FINNHUB_API_KEY: str = ""
-    SENDGRID_API_KEY: str = ""
-    SENDGRID_FROM_EMAIL: str = "alerts@av-screener.com"
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
     GOOGLE_CLIENT_ID: str = ""
     BASE_URL: str = "http://localhost:5000"
     FRONTEND_URL: str = "http://localhost:5173"

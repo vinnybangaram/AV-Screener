@@ -1,29 +1,36 @@
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import resend
+import logging
 from app.utils.config import settings
 from sqlalchemy.orm import Session
 from app.models.notification import Notification
 from app.models.user import User
 from typing import List
 
+# Set up logging
+logger = logging.getLogger("uvicorn.error")
+
 def send_email_notification(to_email: str, subject: str, content: str):
-    """Sends email alert via SendGrid."""
-    if not settings.SENDGRID_API_KEY:
-        print("SENDGRID_API_KEY missing - skipping email")
+    """Sends email alert via Resend."""
+    if not settings.RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY missing - skipping email")
         return
         
-    message = Mail(
-        from_email=settings.SENDGRID_FROM_EMAIL,
-        to_emails=to_email,
-        subject=subject,
-        html_content=content
-    )
+    logger.info(f"📧 [Email] Attempting to send email to {to_email} via Resend...")
     try:
-        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
-        response = sg.send(message)
-        print(f"Email sent! Status: {response.status_code}")
+        resend.api_key = settings.RESEND_API_KEY
+        r = resend.Emails.send({
+            "from": settings.RESEND_FROM_EMAIL,
+            "to": to_email,
+            "subject": subject,
+            "html": content
+        })
+        email_id = r.get('id') if r else 'Unknown'
+        logger.info(f"✅ [Email] Success! ID: {email_id}")
+        return r
     except Exception as e:
-        print(f"SendGrid Error: {e}")
+        logger.error(f"❌ [Email] Resend Error: {str(e)}")
+        # Print for terminal visibility too
+        print(f"RESEND ERROR: {e}")
 
 def trigger_notification(db: Session, user_id: int, symbol: str, message: str, type: str, priority: str = "LOW"):
     """Creates in-app notification and sends email."""

@@ -27,7 +27,8 @@ const Dashboard = () => {
     const [error, setError] = useState(null);
 
     // --- FILTERS STATE ---
-    const [sectorFilter, setSectorFilter] = useState('All');
+    const [mainTab, setMainTab] = useState('Investment');
+    const [subTab, setSubTab] = useState('All');
     const [timeframe, setTimeframe] = useState('This Month');
     const [chartMode, setChartMode] = useState('pnl'); // 'pnl' or 'return'
     const [posTab, setPosTab] = useState('ACTIVE');
@@ -60,7 +61,17 @@ const Dashboard = () => {
         setError(null);
 
         try {
-            const dashboardData = await fetchDashboard(sectorFilter, timeframe);
+            // Mapping for backend category filter
+            let backendCategory = "All";
+            if (mainTab === 'Investment') {
+                if (subTab === 'Multibaggers') backendCategory = 'Multibaggers';
+                else if (subTab === 'Penny Stocks') backendCategory = 'Penny Stocks';
+                else backendCategory = 'Investment'; // Custom category for backend if needed
+            } else {
+                backendCategory = 'Intraday Radar';
+            }
+
+            const dashboardData = await fetchDashboard(backendCategory, timeframe);
             if (!dashboardData || !dashboardData.global) {
                 throw new Error("Invalid terminal data structure received.");
             }
@@ -78,7 +89,7 @@ const Dashboard = () => {
         loadData();
         const interval = setInterval(() => loadData(true), 300000); // 5 mins auto-refresh
         return () => clearInterval(interval);
-    }, [sectorFilter, timeframe]);
+    }, [mainTab, subTab, timeframe]);
 
     // --- DYNAMIC FILTERING & TRENDING ---
     const filteredData = useMemo(() => {
@@ -135,12 +146,19 @@ const Dashboard = () => {
 
     const displayPositions = useMemo(() => {
         if (!filteredData.watchlist) return [];
-        const w = filteredData.watchlist;
+        let w = filteredData.watchlist;
+
+        // Apply Sub-tab filtering for Intraday side
+        if (mainTab === 'Intraday') {
+            if (subTab === 'Shorts') w = w.filter(i => i.side === 'SHORT');
+            else if (subTab === 'Longs') w = w.filter(i => i.side !== 'SHORT');
+        }
+
         if (posTab === 'ACTIVE') return w;
-        if (posTab === 'TARGET_HIT') return w.filter(i => i.latest_price >= i.target_price && i.target_price > 0);
-        if (posTab === 'SL_HIT') return w.filter(i => i.latest_price <= i.stop_loss && i.stop_loss > 0);
+        if (posTab === 'TARGET_HIT') return w.filter(i => (i.side !== 'SHORT' ? i.latest_price >= i.target_price : i.latest_price <= i.target_price) && i.target_price > 0);
+        if (posTab === 'SL_HIT') return w.filter(i => (i.side !== 'SHORT' ? i.latest_price <= i.stop_loss : i.latest_price >= i.stop_loss) && i.stop_loss > 0);
         return w;
-    }, [filteredData.watchlist, posTab]);
+    }, [filteredData.watchlist, posTab, mainTab, subTab]);
 
     // --- EXPORT FUNCTION ---
     const handleExport = () => {
@@ -165,7 +183,7 @@ const Dashboard = () => {
         const a = document.createElement('a');
         a.setAttribute('hidden', '');
         a.setAttribute('href', url);
-        a.setAttribute('download', `Terminal_Intel_Export_${sectorFilter}_${new Date().toLocaleDateString()}.csv`);
+        a.setAttribute('download', `Terminal_Intel_Export_${mainTab}_${subTab}_${new Date().toLocaleDateString()}.csv`);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -225,31 +243,61 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* 🔷 FILTER BAR */}
-            <div className="global-filter-bar shadow-glow">
-                <div className="filter-group">
-                    <Filter size={16} className="filter-icon" />
-                    {['All', 'Multibaggers', 'Penny Stocks', 'Intraday'].map(s => (
-                        <button 
-                            key={s} 
-                            className={`filter-chip ${sectorFilter === s ? 'active' : ''}`}
-                            onClick={() => setSectorFilter(s)}
-                        >
-                            {s}
-                        </button>
-                    ))}
+            {/* 🔷 DUAL-LAYER FILTER BAR */}
+            <div className="filter-system-container" style={{ marginBottom: '2.5rem' }}>
+                <div className="main-filter-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '2rem' }}>
+                    <div className="main-tabs" style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+                        {['Investment', 'Intraday'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => { setMainTab(tab); setSubTab('All'); }}
+                                style={{
+                                    padding: '0.8rem 2.5rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: '850', border: 'none', cursor: 'pointer',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    background: mainTab === tab ? 'var(--accent-primary)' : 'transparent',
+                                    color: mainTab === tab ? '#fff' : 'var(--text-secondary)',
+                                    boxShadow: mainTab === tab ? '0 8px 16px -4px rgba(99, 102, 241, 0.4)' : 'none'
+                                }}
+                            >
+                                {tab.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="timeframe-global" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ padding: '0 0.5rem', color: 'var(--text-muted)' }}><Calendar size={16} /></div>
+                        {['Today', 'This Week', 'This Month', 'This Year'].map(t => (
+                            <button 
+                                key={t} 
+                                onClick={() => setTimeframe(t)}
+                                style={{
+                                    padding: '0.6rem 1.25rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800', border: 'none', cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    background: timeframe === t ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                                    color: timeframe === t ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                    border: timeframe === t ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent'
+                                }}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div className="filter-divider" />
-                <div className="filter-group">
-                    <Calendar size={16} className="filter-icon" />
-                    {['Today', 'This Week', 'This Month', 'This Year'].map(t => (
-                        <button 
-                            key={t} 
-                            className={`filter-chip ${timeframe === t ? 'active' : ''}`}
-                            onClick={() => setTimeframe(t)}
-                            disabled={sectorFilter === 'Intraday' && t !== 'Today'}
+
+                <div className="sub-tabs-row" style={{ display: 'flex', gap: '0.75rem', paddingLeft: '0.5rem' }}>
+                    {(mainTab === 'Investment' ? ['All', 'Multibaggers', 'Penny Stocks'] : ['All', 'Longs', 'Shorts']).map(sub => (
+                        <button
+                            key={sub}
+                            onClick={() => setSubTab(sub)}
+                            style={{
+                                padding: '0.5rem 1.25rem', borderRadius: '100px', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer',
+                                transition: 'all 0.3s',
+                                background: subTab === sub ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                color: subTab === sub ? '#fff' : 'var(--text-muted)',
+                                border: `1px solid ${subTab === sub ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'}`
+                            }}
                         >
-                            {t}
+                            {sub}
                         </button>
                     ))}
                 </div>
@@ -274,49 +322,104 @@ const Dashboard = () => {
             </div>
 
             {/* Metric Cards */}
-            <div className="metrics-grid">
-                <MetricCard 
-                    title="Active Value" 
-                    value={formatCurrency(filteredData.metrics.total_value)} 
-                    sub={`${filteredData.metrics.total_pl_pct >= 0 ? '+' : ''}${formatNumber(filteredData.metrics.total_pl_pct)}%`}
-                    trend={filteredData.metrics.total_pl_pct}
-                    icon={<Briefcase size={20} />}
-                />
-                <MetricCard 
-                    title="Realized & Unrealized P/L" 
-                    value={formatCurrency(filteredData.metrics.total_pl_abs)} 
-                    sub={`${filteredData.metrics.total_pl_pct >= 0 ? '+' : ''}${formatNumber(filteredData.metrics.total_pl_pct)}%`}
-                    trend={filteredData.metrics.total_pl_pct}
-                    icon={<Activity size={20} />}
-                />
-                <MetricCard 
-                    title="Alpha Performer" 
-                    value={
-                        <span 
-                            onClick={() => filteredData.metrics.best_performer && (navigate(`/analyse-stock?symbol=${filteredData.metrics.best_performer.symbol}`))}
-                            style={{ cursor: filteredData.metrics.best_performer ? 'pointer' : 'default' }}
-                        >
-                            {filteredData.metrics.best_performer?.symbol || "---"}
-                        </span>
-                    } 
-                    sub={filteredData.metrics.best_performer ? `${formatNumber(filteredData.metrics.best_performer.pl_pct)}%` : 'No snapshots'}
-                    trend={1}
-                    icon={<ArrowUpRight size={20} />}
-                />
-                <MetricCard 
-                    title="Risk Caution" 
-                    value={
-                        <span 
-                            onClick={() => filteredData.metrics.worst_performer && (navigate(`/analyse-stock?symbol=${filteredData.metrics.worst_performer.symbol}`))}
-                            style={{ cursor: filteredData.metrics.worst_performer ? 'pointer' : 'default' }}
-                        >
-                            {filteredData.metrics.worst_performer?.symbol || "---"}
-                        </span>
-                    } 
-                    sub={filteredData.metrics.worst_performer ? `${formatNumber(filteredData.metrics.worst_performer.pl_pct)}%` : 'No snapshots'}
-                    trend={-1}
-                    icon={<ArrowDownRight size={20} />}
-                />
+            <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                {mainTab === 'Intraday' ? (
+                    <>
+                        <MetricCard 
+                            title="Total Intraday Stocks" 
+                            value={filteredData.metrics.intraday?.count || 0} 
+                            sub="Positions active today"
+                            trend={1}
+                            icon={<Briefcase size={20} />}
+                        />
+                        <MetricCard 
+                            title="Intraday Long P/L" 
+                            value={formatCurrency(timeframe === 'Today' ? filteredData.metrics.intraday?.today_long_pl_abs : filteredData.metrics.intraday?.long_pl_abs)} 
+                            sub={
+                                <span style={{ opacity: 0.8 }}>
+                                    Yield from bullish setups {timeframe === 'Today' ? '(Today)' : ''}
+                                </span>
+                            }
+                            trend={timeframe === 'Today' ? filteredData.metrics.intraday?.today_long_pl_abs : filteredData.metrics.intraday?.long_pl_abs}
+                            icon={<TrendingUp size={20} style={{ color: '#10b981' }} />}
+                        />
+                        <MetricCard 
+                            title="Intraday Short P/L" 
+                            value={formatCurrency(timeframe === 'Today' ? filteredData.metrics.intraday?.today_short_pl_abs : filteredData.metrics.intraday?.short_pl_abs)} 
+                            sub={
+                                <span style={{ opacity: 0.8 }}>
+                                    Yield from bearish setups {timeframe === 'Today' ? '(Today)' : ''}
+                                </span>
+                            }
+                            trend={timeframe === 'Today' ? filteredData.metrics.intraday?.today_short_pl_abs : filteredData.metrics.intraday?.short_pl_abs}
+                            icon={<TrendingDown size={20} style={{ color: '#f43f5e' }} />}
+                        />
+                        <MetricCard 
+                            title="Intraday Overall P/L" 
+                            value={formatCurrency(timeframe === 'Today' ? filteredData.metrics.intraday?.today_pl_abs : filteredData.metrics.intraday?.total_pl_abs)} 
+                            sub={
+                                <>
+                                    {timeframe === 'Today' ? 'Active session performance' : `Cumulative period: ${timeframe}`}
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.8, marginLeft: '4px' }}>
+                                        ({filteredData.metrics.intraday?.today_pl_pct >= 0 ? '+' : ''}{formatNumber(filteredData.metrics.intraday?.today_pl_pct || 0)}%)
+                                    </span>
+                                </>
+                            }
+                            trend={timeframe === 'Today' ? filteredData.metrics.intraday?.today_pl_abs : filteredData.metrics.intraday?.total_pl_abs}
+                            icon={<Activity size={20} style={{ color: '#ec4899' }} />}
+                        />
+                    </>
+                ) : (
+                    <>
+                        <MetricCard 
+                            title="Portfolio Value" 
+                            value={formatCurrency(filteredData.metrics.total_value)} 
+                            sub={`${filteredData.metrics.total_pl_pct >= 0 ? '+' : ''}${formatNumber(filteredData.metrics.total_pl_pct)}%`}
+                            trend={filteredData.metrics.total_pl_pct}
+                            icon={<Briefcase size={20} />}
+                        />
+                        <MetricCard 
+                            title="Investment P/L" 
+                            value={formatCurrency(timeframe === 'Today' ? filteredData.metrics.today_pl_abs : filteredData.metrics.total_pl_abs)} 
+                            sub={
+                                <>
+                                    Today: {filteredData.metrics.today_pl_abs >= 0 ? '+' : ''}{formatCurrency(filteredData.metrics.today_pl_abs)}
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.8, marginLeft: '4px' }}>
+                                        ({filteredData.metrics.today_pl_pct >= 0 ? '+' : ''}{formatNumber(filteredData.metrics.today_pl_pct)}%)
+                                    </span>
+                                </>
+                            }
+                            trend={filteredData.metrics.today_pl_abs}
+                            icon={<Activity size={20} />}
+                        />
+                        <MetricCard 
+                            title="Last 30 Days P/L" 
+                            value={formatCurrency(filteredData.metrics.last_30d_pnl?.total || 0)} 
+                            sub={
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <span style={{ color: '#10b981' }}>L: {formatCurrency(filteredData.metrics.last_30d_pnl?.long || 0)}</span>
+                                    <span style={{ color: '#f43f5e' }}>S: {formatCurrency(filteredData.metrics.last_30d_pnl?.short || 0)}</span>
+                                </div>
+                            }
+                            trend={filteredData.metrics.last_30d_pnl?.total || 0}
+                            icon={<Calendar size={20} />}
+                        />
+                        <MetricCard 
+                            title="Alpha Performer" 
+                            value={
+                                <span 
+                                    onClick={() => filteredData.metrics.best_performer && (navigate(`/analyse-stock?symbol=${filteredData.metrics.best_performer.symbol}`))}
+                                    style={{ cursor: filteredData.metrics.best_performer ? 'pointer' : 'default' }}
+                                >
+                                    {filteredData.metrics.best_performer?.symbol || "---"}
+                                </span>
+                            } 
+                            sub={filteredData.metrics.best_performer ? `${formatNumber(filteredData.metrics.best_performer.pl_pct)}%` : 'No snapshots'}
+                            trend={1}
+                            icon={<ArrowUpRight size={20} />}
+                        />
+                    </>
+                )}
             </div>
 
             {/* Performance Row */}
@@ -354,14 +457,18 @@ const Dashboard = () => {
                     <div className="chart-container" style={{ position: 'relative' }}>
                         <AnimatePresence mode="wait">
                             <motion.div
-                                key={chartMode + timeframe + sectorFilter}
+                                key={chartMode + timeframe + mainTab + subTab}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 0.5 }}
                                 style={{ minHeight: '380px' }}
                             >
-                                <PortfolioPerformanceChart timeframe={timeframe} category={sectorFilter} mode={chartMode} />
+                                <PortfolioPerformanceChart 
+                                    timeframe={timeframe} 
+                                    category={mainTab === 'Investment' ? (subTab === 'All' ? 'Investment' : subTab) : 'Intraday'} 
+                                    mode={chartMode} 
+                                />
                             </motion.div>
                         </AnimatePresence>
                     </div>
@@ -460,9 +567,11 @@ const Dashboard = () => {
                                 <th style={{ padding: '0.5rem' }}>Date</th>
                                 <th style={{ padding: '0.5rem' }}>Entry</th>
                                 <th style={{ padding: '0.5rem' }}>Current</th>
+                                <th style={{ padding: '0.5rem' }}>Side</th>
                                 <th style={{ padding: '0.5rem' }}>SL</th>
                                 <th style={{ padding: '0.5rem' }}>Target</th>
                                 <th style={{ padding: '0.5rem' }}>Exit</th>
+                                <th style={{ textAlign: 'right', padding: '0.5rem' }}>Overall PnL</th>
                                 <th style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>Alpha</th>
                             </tr>
                         </thead>
@@ -486,6 +595,16 @@ const Dashboard = () => {
                                     <td style={{ padding: '0.5rem', fontWeight: '800', fontSize: '0.85rem', color: '#fff', letterSpacing: '0.2px' }}>
                                         ₹{formatNumber(item.latest_price)}
                                     </td>
+                                    <td style={{ padding: '0.5rem' }}>
+                                        <span style={{ 
+                                            fontSize: '0.65rem', fontWeight: '900', padding: '4px 8px', borderRadius: '4px',
+                                            background: item.side === 'SHORT' ? 'rgba(244, 63, 94, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                            color: item.side === 'SHORT' ? '#f43f5e' : '#10b981',
+                                            border: `1px solid ${item.side === 'SHORT' ? 'rgba(244, 63, 94, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
+                                        }}>
+                                            {item.side || 'LONG'}
+                                        </span>
+                                    </td>
                                     <td style={{ padding: '0.5rem', color: '#f87171', fontWeight: '800', fontSize: '0.8rem' }}>
                                         ₹{formatNumber(item.stop_loss)}
                                     </td>
@@ -494,6 +613,9 @@ const Dashboard = () => {
                                     </td>
                                     <td style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>
                                         {item.exit_date ? new Date(item.exit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '---'}
+                                    </td>
+                                    <td style={{ textAlign: 'right', padding: '0.5rem', fontWeight: '800', fontSize: '0.85rem', color: item.latest_pnl >= 0 ? '#10b981' : '#f43f5e' }}>
+                                        {formatCurrency(item.latest_pnl * item.quantity)}
                                     </td>
                                     <td style={{ textAlign: 'right', padding: '0.75rem 1rem', borderRadius: '0 8px 8px 0' }}>
                                         <div style={{ fontWeight: '950', color: item.latest_pnl_percent >= 0 ? '#10b981' : '#f43f5e', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem' }}>
@@ -597,9 +719,9 @@ const MetricCard = ({ title, value, sub, trend, icon }) => (
             <span className="icon" style={{ background: trend >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: trend >= 0 ? '#22c55e' : '#ef4444' }}>{icon}</span>
         </div>
         <div className="value" style={{ fontSize: '1.5rem' }}>{value}</div>
-        <div className={`sub ${trend >= 0 ? 'pos' : 'neg'}`} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div className={`sub ${trend >= 0 ? 'pos' : 'neg'}`} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
             {trend >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-            {sub}
+            <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>{sub}</span>
         </div>
     </div>
 );

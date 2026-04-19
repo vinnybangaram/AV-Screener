@@ -25,7 +25,7 @@ def run_snapshot_job(interval_type: str = "hourly"):
             live_price = fetch_live_price(pos.symbol)
             if live_price is not None:
                 entry_price = pos.entry_price or 0.0
-                pnl = live_price - entry_price
+                pnl = live_price - entry_price if pos.side != "SHORT" else entry_price - live_price
                 pnl_pct = (pnl / entry_price * 100) if entry_price > 0 else 0.0
                 
                 # Update position state
@@ -47,7 +47,8 @@ def run_snapshot_job(interval_type: str = "hourly"):
                     pnl=pnl,
                     pnl_percent=pnl_pct,
                     interval_type=interval_type,
-                    captured_at=datetime.utcnow()
+                    captured_at=datetime.utcnow(),
+                    side=pos.side
                 )
                 db.add(snapshot)
         
@@ -71,7 +72,8 @@ def get_performance_trend(db: Session, user_id: int, category: str = "All", time
     if category != "All":
         cat_map = {
             "Penny Stocks": "Penny",
-            "Multibaggers": "Multibagger"
+            "Multibaggers": "Multibagger",
+            "Intraday Radar": "Intraday"
         }
         target_cat = cat_map.get(category, category)
         from sqlalchemy import or_

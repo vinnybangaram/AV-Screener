@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
+import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import AnalyseStock from './pages/AnalyseStock';
 import Multibagger from './pages/Multibagger';

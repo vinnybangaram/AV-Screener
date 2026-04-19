@@ -213,6 +213,13 @@ const WatchlistCard = ({ item, onUpdate, onRemove }) => {
                         <span style={{ fontSize: '0.6rem', fontWeight: '950', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
                             {item.category}
                         </span>
+                        <span style={{ 
+                            fontSize: '0.6rem', fontWeight: '950', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase',
+                            background: item.side === 'SHORT' ? 'rgba(244, 63, 94, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                            color: item.side === 'SHORT' ? '#f43f5e' : '#10b981'
+                        }}>
+                            {item.side || 'LONG'}
+                        </span>
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                             <Clock size={10} /> {new Date(item.added_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </span>

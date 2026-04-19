@@ -23,12 +23,14 @@ class WatchlistBase(BaseModel):
     source_module: Optional[str] = None
     stop_loss: Optional[float] = None
     target_price: Optional[float] = None
+    side: str = "LONG"
     quantity: int = 1
 
 class WatchlistAdd(BaseModel):
     symbol: str
     entry_price: Optional[float] = None # If None, fetch live price
     category: str
+    side: str = "LONG"
     source_module: Optional[str] = "Manual Entry"
 
 class WatchlistUpdate(BaseModel):
@@ -45,6 +47,7 @@ class Watchlist(WatchlistBase):
     latest_price: Optional[float] = None
     latest_pnl: Optional[float] = None
     latest_pnl_percent: Optional[float] = None
+    side: str = "LONG"
     updated_at: datetime
 
     class Config:

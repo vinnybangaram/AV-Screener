@@ -110,6 +110,73 @@ def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
         "losers": losers
     }
 
+def get_daily_changes(symbols: List[str]) -> Dict[str, Dict[str, float]]:
+    """
+    Efficiently fetches the daily change (price and pct) for a list of symbols.
+    """
+    if not symbols:
+        return {}
+    
+    yf_symbols = [f"{s}.NS" if not (s.endswith(".NS") or s.endswith(".BO")) else s for s in symbols]
+    results = {}
+    
+    try:
+        # Fetch 2 days of daily data
+        data = yf.download(yf_symbols, period="5d", interval="1d", progress=False, timeout=10)
+        
+        if data.empty:
+            return {}
+
+        # Handle MultiIndex or SingleIndex for 'Close'
+        if isinstance(data.columns, pd.MultiIndex):
+            if 'Close' in data.columns.levels[0]:
+                close_prices = data['Close']
+            else:
+                return {}
+        else:
+            if 'Close' in data.columns:
+                close_prices = data['Close']
+            else:
+                return {}
+        
+        # Handle single symbol case (pandas Series vs DataFrame)
+        if len(yf_symbols) == 1:
+            sym_ns = yf_symbols[0]
+            valid_prices = close_prices.dropna()
+            if len(valid_prices) >= 2:
+                prev = float(valid_prices.iloc[-2])
+                curr = float(valid_prices.iloc[-1])
+                change_abs = curr - prev
+                change_pct = (change_abs / prev * 100) if prev > 0 else 0
+                results[symbols[0]] = {
+                    "latest_price": round(curr, 2),
+                    "prev_close": round(prev, 2),
+                    "today_change_abs": round(change_abs, 2),
+                    "today_change_pct": round(change_pct, 2)
+                }
+            return results
+
+        # Multi-symbol case
+        for i, sym_ns in enumerate(yf_symbols):
+            orig_sym = symbols[i]
+            if sym_ns in close_prices:
+                prices = close_prices[sym_ns].dropna()
+                if len(prices) >= 2:
+                    prev = float(prices.iloc[-2])
+                    curr = float(prices.iloc[-1])
+                    change_abs = curr - prev
+                    change_pct = (change_abs / prev * 100) if prev > 0 else 0
+                    results[orig_sym] = {
+                        "latest_price": round(curr, 2),
+                        "prev_close": round(prev, 2),
+                        "today_change_abs": round(change_abs, 2),
+                        "today_change_pct": round(change_pct, 2)
+                    }
+    except Exception as e:
+        print(f"[Market] Daily changes fetch error: {e}")
+    
+    return results
+
 def get_market_indices() -> Dict[str, Any]:
     """
     Fetches major Indian indices with timeout.

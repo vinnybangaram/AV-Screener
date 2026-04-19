@@ -2,6 +2,7 @@ import os
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional
+from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -11,6 +12,19 @@ from app.models import user as user_model
 SECRET_KEY = os.getenv("JWT_SECRET", "88282828282828282828282828282828") # High entropy default
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 12 # 12 Hours
+
+pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
+
+import hashlib
+
+def get_password_hash(password):
+    # Fixed 64-char input for the hasher
+    pw_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    return pwd_context.hash(pw_hash)
+
+def verify_password(plain_password, hashed_password):
+    pw_hash = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+    return pwd_context.verify(pw_hash, hashed_password)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/google", auto_error=False)
 
