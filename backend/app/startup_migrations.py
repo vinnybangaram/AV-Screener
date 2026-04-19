@@ -59,31 +59,51 @@ def run_migrations():
                     print("[Migrations]  + position_snapshots.interval_type")
 
             # ── stock_daily_prices (CREATE if missing) ───────────────────────
-            # SQLAlchemy's create_all handles this if the model is imported,
-            # but we ensure it here as a safety net for existing deployments.
             if not _table_exists(conn, "stock_daily_prices"):
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS stock_daily_prices (
-                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                        symbol      VARCHAR NOT NULL,
-                        date        DATE    NOT NULL,
-                        open        FLOAT,
-                        high        FLOAT,
-                        low         FLOAT,
-                        close       FLOAT,
-                        volume      FLOAT,
-                        change_pct  FLOAT,
-                        captured_at DATETIME,
-                        UNIQUE(symbol, date)
-                    )
-                """))
-                conn.execute(text(
-                    "CREATE INDEX IF NOT EXISTS ix_sdp_symbol ON stock_daily_prices (symbol)"
-                ))
-                conn.execute(text(
-                    "CREATE INDEX IF NOT EXISTS ix_sdp_date ON stock_daily_prices (date)"
-                ))
-                print("[Migrations]  + stock_daily_prices table created")
+                # Use a slightly more generic SQL for the safety net
+                try:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS stock_daily_prices (
+                            id          INTEGER PRIMARY KEY,
+                            symbol      VARCHAR NOT NULL,
+                            date        DATE    NOT NULL,
+                            open        FLOAT,
+                            high        FLOAT,
+                            low         FLOAT,
+                            close       FLOAT,
+                            volume      FLOAT,
+                            change_pct  FLOAT,
+                            captured_at DATETIME,
+                            UNIQUE(symbol, date)
+                        )
+                    """))
+                    print("[Migrations]  + stock_daily_prices table safety created")
+                except Exception:
+                    pass # Base.metadata.create_all will catch it anyway
+
+            # ── users ────────────────────────────────────────────────────────
+            if _table_exists(conn, "users"):
+                user_additions = [
+                    ("avatar_url",          "VARCHAR"),
+                    ("google_id",           "VARCHAR"),
+                    ("hashed_password",     "VARCHAR"),
+                    ("is_verified",         "BOOLEAN DEFAULT FALSE"),
+                    ("verification_token",  "VARCHAR"),
+                    ("role",                "VARCHAR DEFAULT 'user'"),
+                    ("plan",                "VARCHAR DEFAULT 'free'"),
+                    ("login_count",         "INTEGER DEFAULT 1"),
+                    ("created_at",          "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+                    ("last_login_at",       "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+                    ("is_active",           "BOOLEAN DEFAULT TRUE"),
+                ]
+                for col, coltype in user_additions:
+                    if not _column_exists(conn, "users", col):
+                        try:
+                            # Use text(...) for safe execution
+                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {coltype}"))
+                            print(f"[Migrations]  + users.{col}")
+                        except Exception as e:
+                            print(f"[Migrations]  ! Failed to add users.{col}: {e}")
 
             conn.commit()
             print("[Migrations] All migrations complete.")
