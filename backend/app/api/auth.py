@@ -64,16 +64,24 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
         if not credential:
             raise HTTPException(status_code=400, detail="No credential provided")
 
-        GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip().replace('"', '').replace("'", "")
-        if not GOOGLE_CLIENT_ID:
-            raise HTTPException(status_code=500, detail="Google Auth misconfigured on server")
+        # Clean the Client ID just in case it's wrapped in quotes from Render/env
+        client_id = settings.GOOGLE_CLIENT_ID.strip().replace('"', '').replace("'", "")
+        
+        if not client_id:
+            raise HTTPException(status_code=500, detail="Google Auth misconfigured on server: GOOGLE_CLIENT_ID is missing")
 
-        idinfo = id_token.verify_oauth2_token(
-            credential,
-            google_requests.Request(),
-            GOOGLE_CLIENT_ID,
-            clock_skew_in_seconds=30,
-        )
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                credential,
+                google_requests.Request(),
+                client_id,
+                clock_skew_in_seconds=30,
+            )
+        except ValueError as ve:
+            # specifically catch verification errors to provide detail
+            raise HTTPException(status_code=401, detail=f"Token verification failed: {str(ve)}")
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=f"Google Auth failed: {str(e)}")
 
         email     = idinfo.get("email")
         name      = idinfo.get("name", "Trader")
