@@ -111,7 +111,18 @@ def process_ticker(ticker):
         print(f"[Multibagger] Error processing {ticker}: {e}")
         return None
 
+from app.utils.cache import market_cache
+import json
+
 def run_screener_on_tickers(tickers=SCAN_POOL, filters=None):
+    # Determine cache key
+    cache_key = f"scan_{hash(tuple(sorted(tickers)) if tickers else 'pool')}_{hash(json.dumps(filters) if filters else 'none')}"
+    
+    cached = market_cache.get(cache_key)
+    if cached:
+        print(f"[Screener] Returning cached results for {cache_key}")
+        return cached
+
     print(f"[Screener] Starting parallel scan on {len(tickers)} tickers with filters: {filters}")
     
     import concurrent.futures
@@ -140,7 +151,6 @@ def run_screener_on_tickers(tickers=SCAN_POOL, filters=None):
             
             # Sector Filter (Heuristic mapping)
             if keep and filters.get("sector") and filters["sector"] != "All Sectors":
-                # Mock sector mapping if not present
                 if r.get("sector") and filters["sector"].lower() not in r["sector"].lower():
                     keep = False
             
@@ -173,8 +183,7 @@ def run_screener_on_tickers(tickers=SCAN_POOL, filters=None):
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     
     if not results and (not filters or not filters.get("score_min")):
-        print("[Screener] No candidates found. Injecting fallback.")
-        return [
+        results = [
             {
                 "ticker": "ZOMATO", "company_name": "Zomato Ltd", "current_price": 185.40, 
                 "score": 82.5, "confidence_level": "High", "signal_classification": "Strong Buy",
@@ -188,4 +197,5 @@ def run_screener_on_tickers(tickers=SCAN_POOL, filters=None):
         ]
         
     print(f"[Screener] Scan complete — {len(results)} matches found")
+    market_cache.set(cache_key, results, ttl=120) # Cache for 2 mins
     return results

@@ -96,13 +96,16 @@ class AdminService:
         return output.getvalue()
         
     def get_feedbacks(self, db: Session):
-        feedbacks = db.query(Feedback).order_by(Feedback.created_at.desc()).all()
+        # Optimized with single join to avoid N+1 queries
+        feedbacks = db.query(Feedback, User.name, User.email)\
+            .outerjoin(User, Feedback.user_id == User.id)\
+            .order_by(Feedback.created_at.desc()).all()
+            
         results = []
-        for f in feedbacks:
-            user = db.query(User).filter(User.id == f.user_id).first()
+        for f, user_name, user_email in feedbacks:
             results.append({
                 "id": f.id,
-                "user": {"name": user.name if user else "Trader", "email": user.email if user else ""},
+                "user": {"name": user_name or "Trader", "email": user_email or ""},
                 "category": f.category,
                 "rating": f.rating,
                 "message": f.message,

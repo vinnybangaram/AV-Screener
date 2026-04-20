@@ -31,7 +31,7 @@ class User(Base):
 class AdminSession(Base):
     __tablename__ = "sessions"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     token = Column(String, unique=True, index=True)
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
@@ -56,8 +56,8 @@ class AdminNotification(Base):
 class NotificationReceipt(Base):
     __tablename__ = "notification_receipts"
     id = Column(Integer, primary_key=True, index=True)
-    notification_id = Column(Integer, ForeignKey("admin_notifications.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    notification_id = Column(Integer, ForeignKey("admin_notifications.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     is_read = Column(Boolean, default=False)
     read_at = Column(DateTime, nullable=True)
     delivered_at = Column(DateTime, default=datetime.utcnow)
@@ -68,7 +68,7 @@ class NotificationReceipt(Base):
 class Subscription(Base):
     __tablename__ = "subscriptions"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     plan_name = Column(String)
     status = Column(String) # 'active', 'canceled', 'expired'
     start_date = Column(DateTime, default=datetime.utcnow)
@@ -81,10 +81,10 @@ class Subscription(Base):
 class ActivityEvent(Base):
     __tablename__ = "activity_events"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    event_type = Column(String) # 'login', 'search', 'chart_view', 'screener_usage'
-    symbol = Column(String, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    event_type = Column(String, index=True) # 'login', 'search', 'chart_view', 'screener_usage'
+    symbol = Column(String, nullable=True, index=True)
     metadata_json = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="events")

@@ -738,7 +738,11 @@ function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }
   );
 }
 
-function ProbabilityForecastCard({ symbol, currentPrice, forecastData }: { symbol: string; currentPrice: number; forecastData: any }) {
+import { memo } from "react";
+
+// ... existing code ...
+
+const ProbabilityForecastCard = memo(({ symbol, currentPrice, forecastData }: { symbol: string; currentPrice: number; forecastData: any }) => {
   const [tf, setTf] = useState("30D");
   
   const activeForecast = forecastData ? forecastData[tf] : null;
@@ -791,7 +795,7 @@ function ProbabilityForecastCard({ symbol, currentPrice, forecastData }: { symbo
 
       <div className="mt-5 rounded-lg border bg-muted/30 p-3">
         <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Quant Reasoning</div>
-        <ul className="space-y-1 text-xs text-foreground/80">
+        <ul className="space-y-1 text-xs text-foreground/85">
           {(activeForecast.reasoning || []).map((r: string, i: number) => (
               <li key={i} className="flex gap-2"><span className="text-accent">•</span> {r}</li>
           ))}
@@ -800,25 +804,9 @@ function ProbabilityForecastCard({ symbol, currentPrice, forecastData }: { symbo
       <p className="mt-3 text-[10px] text-muted-foreground italic">Forecasts are probability estimates based on market data, not financial advice.</p>
     </div>
   );
-}
+});
 
-function ForecastBar({ label, range, prob, color, labelColor }: { label: string; range: [number, number]; prob: number; color: string; labelColor: string }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className={cn("text-[11px] font-bold uppercase tracking-wider", labelColor)}>
-          {label} <span className="font-mono text-foreground/70 ml-1">{range[0]?.toFixed(2)} - {range[1]?.toFixed(2)}</span>
-        </span>
-        <span className="text-xs font-mono font-bold tabular-nums">{prob}%</span>
-      </div>
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
-        <div className={cn("h-full rounded-full", color)} style={{ width: `${prob}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function ConfluenceAlignmentCard({ scores }: { scores: any }) {
+const ConfluenceAlignmentCard = memo(({ scores }: { scores: any }) => {
   const score = scores.overall_score || 0;
   return (
     <div className="premium-card p-5 flex flex-col">
@@ -869,9 +857,9 @@ function ConfluenceAlignmentCard({ scores }: { scores: any }) {
       </div>
     </div>
   );
-}
+});
 
-function TradeSetupCard({ analysis, scores, ai }: { analysis: any; scores: any; ai: any }) {
+const TradeSetupCard = memo(({ analysis, scores, ai }: { analysis: any; scores: any; ai: any }) => {
   return (
     <div className="premium-card p-5">
       <div className="flex items-center justify-between mb-4">
@@ -923,9 +911,9 @@ function TradeSetupCard({ analysis, scores, ai }: { analysis: any; scores: any; 
       </div>
     </div>
   );
-}
+});
 
-function HistoricalSessionsCard({ history = [] }: { history: any[] }) {
+const HistoricalSessionsCard = memo(({ history = [] }: { history: any[] }) => {
   return (
     <div className="premium-card overflow-hidden">
       <div className="flex items-center justify-between p-5 pb-3">
@@ -963,6 +951,6 @@ function HistoricalSessionsCard({ history = [] }: { history: any[] }) {
       </div>
     </div>
   );
-}
+});
 
 export default StockAnalysis;

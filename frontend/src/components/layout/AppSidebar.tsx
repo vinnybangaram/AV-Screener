@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import { navItems } from "@/lib/nav";
 import { useAuthUser, signOut } from "@/lib/auth-store";
+import { useIsAdmin } from "@/lib/admin-store";
 import { useNavigate } from "react-router-dom";
 
 export function AppSidebar() {
@@ -13,7 +14,9 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const user = useAuthUser();
   const navigate = useNavigate();
-  const isAdmin = user?.role === "admin";
+  const isUserAdmin = user?.role === "admin";
+  const mockAdmin = useIsAdmin();
+  const isAdmin = isUserAdmin || mockAdmin;
   const visibleItems = navItems.filter((i) => !i.adminOnly || isAdmin);
 
   const handleSignOut = () => {

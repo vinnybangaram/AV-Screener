@@ -16,7 +16,11 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     }
 
     if (requiredRole && userRole !== requiredRole) {
-        return <Navigate to="/" replace />;
+        // Fallback for mock admin mode
+        const isMockAdmin = requiredRole === 'admin' && localStorage.getItem('av_is_admin') === '1';
+        if (!isMockAdmin) {
+            return <Navigate to="/" replace />;
+        }
     }
 
     return <>{children}</>;

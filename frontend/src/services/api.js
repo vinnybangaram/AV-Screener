@@ -240,6 +240,17 @@ export const fetchDashboardMetrics = async (category = 'All') => {
     return await api.get(`/dashboard/metrics?category=${category}`);
 };
 
+/**
+ * Admin APIs
+ */
+export const fetchAdminAnalytics = async () => {
+    return await api.get('/admin/analytics');
+};
+
+export const sendBroadcast = async (title, message, group = 'all') => {
+    return await api.post(`/admin/notify?title=${title}&message=${message}&group=${group}`);
+};
+
 export const fetchMarketContext = async () => {
     return await api.get('/market/context');
 };

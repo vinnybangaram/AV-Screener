@@ -7,10 +7,10 @@ class WatchlistPosition(Base):
     __tablename__ = "watchlist_positions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     symbol = Column(String, index=True)
     company_name = Column(String, nullable=True)
-    category = Column(String) # multibagger / intraday / penny / manual
+    category = Column(String, index=True) # multibagger / intraday / penny / manual
     side = Column(String, default="LONG") # LONG / SHORT
     source_module = Column(String, nullable=True) # Multibagger Screener, Intraday Radar, etc.
     
@@ -18,7 +18,7 @@ class WatchlistPosition(Base):
     entry_price = Column(Float)
     quantity = Column(Integer, default=1)
     
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True, index=True)
     removed_at = Column(DateTime, nullable=True)
     
     # Real-time tracking fields
@@ -43,7 +43,7 @@ class PositionSnapshot(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     position_id = Column(Integer, ForeignKey("watchlist_positions.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     symbol = Column(String, index=True)
     
     price = Column(Float)

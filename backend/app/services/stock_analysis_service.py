@@ -1,8 +1,13 @@
 import pandas as pd
 import numpy as np
+import asyncio
+import httpx
 from typing import Dict, Any, Optional
 from app.data.yahoo_fetcher import fetch_stock_data, fetch_fundamentals
 from app.utils.format import format_symbol
+from app.data.alpha_vantage_fetcher import fetch_av_daily, ALPHA_VANTAGE_API_KEY, BASE_URL as AV_BASE_URL
+from app.data.finnhub_fetcher import FINNHUB_API_KEY, BASE_URL as FH_BASE_URL
+from app.utils.format import strip_symbol
 
 def calculate_rsi(df: pd.DataFrame, period: int = 14) -> float:
     if len(df) < period: return 50.0
@@ -90,15 +95,9 @@ def calculate_performance(df: pd.DataFrame) -> Dict[str, float]:
         return 0.0
 
     return {
-        "1w": get_ret(5),
-        "1m": get_ret(21),
-        "3m": get_ret(63),
-        "6m": get_ret(126),
-        "9m": get_ret(189),
-        "1y": get_ret(252),
-        "2y": get_ret(504),
-        "3y": get_ret(756),
-        "5y": get_ret(1260)
+        "1w": get_ret(5), "1m": get_ret(21), "3m": get_ret(63),
+        "6m": get_ret(126), "9m": get_ret(189), "1y": get_ret(252),
+        "2y": get_ret(504), "3y": get_ret(756), "5y": get_ret(1260)
     }
 
 def calculate_volume_analysis(df: pd.DataFrame) -> Dict[str, Any]:
@@ -113,44 +112,58 @@ def calculate_volume_analysis(df: pd.DataFrame) -> Dict[str, Any]:
     elif curr_vol < avg_20d * 0.5: status = "Low"
     
     return {
-        "status": status,
-        "current": float(curr_vol),
-        "avg_20d": float(avg_20d),
+        "status": status, "current": float(curr_vol), "avg_20d": float(avg_20d),
         "ratio": float(curr_vol / avg_20d) if avg_20d > 0 else 1.0
     }
 
-from app.data.alpha_vantage_fetcher import fetch_av_daily, fetch_av_quote
-from app.data.finnhub_fetcher import fetch_finnhub_quote
+async def fetch_async_quote_finnhub(client, ticker):
+    if not FINNHUB_API_KEY: return {}
+    try:
+        url = f"{FH_BASE_URL}/quote?symbol={ticker}&token={FINNHUB_API_KEY}"
+        resp = await client.get(url, timeout=2)
+        if resp.status_code == 200:
+            d = resp.json()
+            return {"price": d.get("c")}
+    except: pass
+    return {}
 
-def get_full_analysis(ticker: str, period: str = "1y") -> Optional[Dict[str, Any]]:
-    # Standardize symbol
+async def fetch_async_quote_av(client, ticker):
+    if not ALPHA_VANTAGE_API_KEY: return {}
+    try:
+        av_ticker = f"{strip_symbol(ticker)}.BSE"
+        params = {"function": "GLOBAL_QUOTE", "symbol": av_ticker, "apikey": ALPHA_VANTAGE_API_KEY}
+        resp = await client.get(AV_BASE_URL, params=params, timeout=2)
+        if resp.status_code == 200:
+            d = resp.json().get("Global Quote", {})
+            return {"price": float(d.get("05. price", 0))}
+    except: pass
+    return {}
+
+async def get_full_analysis(ticker: str, period: str = "1y") -> Optional[Dict[str, Any]]:
     ticker = format_symbol(ticker)
     
-    # 1. HYBRID FETCHING STRATEGY
-    # Primary: Yahoo
-    df = fetch_stock_data(ticker, period=period) 
+    # 1. Fetch historical data (Synchronous for now as yfinance is sync)
+    df = await asyncio.to_thread(fetch_stock_data, ticker, period=period)
     
-    # Secondary Fallback: Alpha Vantage
     if df is None or df.empty:
-        print(f"🔄 Switching to Alpha Vantage for {ticker}")
-        df = fetch_av_daily(ticker)
+        df = await asyncio.to_thread(fetch_av_daily, ticker)
         
     if df is None or df.empty:
         return None
-    
-    # 2. HYBRID QUOTE MELDING (For real-time accuracy)
-    # We try to get the very latest price from Finnhub or AV to augment the chart data
-    fh_quote = fetch_finnhub_quote(ticker)
-    av_quote = fetch_av_quote(ticker)
-    
-    curr_price = float(df['Close'].iloc[-1])
-    # If we have a more recent live price, use it
-    if fh_quote.get("price"):
-        curr_price = fh_quote["price"]
-    elif av_quote.get("price"):
-        curr_price = av_quote["price"]
 
-    # Technicals (using the melded data)
+    # 2. Parallel secondary quotes and fundamentals
+    async with httpx.AsyncClient() as client:
+        # We also fetch fundamentals in parallel thread if it was slow, but it's local db so no need
+        fh_task = fetch_async_quote_finnhub(client, ticker)
+        av_task = fetch_async_quote_av(client, ticker)
+        
+        fh_quote, av_quote = await asyncio.gather(fh_task, av_task)
+
+    curr_price = float(df['Close'].iloc[-1])
+    if fh_quote.get("price"): curr_price = fh_quote["price"]
+    elif av_quote.get("price"): curr_price = av_quote["price"]
+
+    # 3. Heavy calculation compute in threads if needed, but these are fast pandas ops
     rsi = calculate_rsi(df)
     mfi = calculate_mfi(df)
     macd = calculate_macd(df)
@@ -158,70 +171,33 @@ def get_full_analysis(ticker: str, period: str = "1y") -> Optional[Dict[str, Any
     pivots = calculate_pivot_points(df)
     performance = calculate_performance(df)
     volume = calculate_volume_analysis(df)
-    
-    # Fundamentals (Hybrid Fallback)
     fundamentals = fetch_fundamentals(ticker)
     
     prev_close = float(df['Close'].iloc[-2]) if len(df) > 1 else curr_price
-    
-    # Simple trend logic: Price vs 50DMA
     trend = "Uptrend" if curr_price > ma_stack["sma"]["50"] else "Downtrend"
 
-    # Format chart data (all 5y for Highcharts Stock)
-    chart_data = df.copy()
-    chart_data.reset_index(inplace=True)
-    chart_data = chart_data.rename(columns={'index': 'date'})
-    # Convert to timestamp for Highcharts
+    chart_data = df.copy().reset_index().rename(columns={'index': 'date'})
     chart_data['timestamp'] = chart_data['date'].apply(lambda x: int(x.timestamp() * 1000))
     chart_data['date_str'] = chart_data['date'].dt.strftime('%Y-%m-%d')
-    
-    # History analysis for summary card
+    chart_data = chart_data.rename(columns={'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'})
+
     def get_period_stats(days):
         sub_df = df.tail(days)
-        if sub_df.empty: return {"high": 0, "low": 0}
-        return {"high": float(sub_df['High'].max()), "low": float(sub_df['Low'].min())}
+        return {"high": float(sub_df['High'].max()) if not sub_df.empty else 0, "low": float(sub_df['Low'].min()) if not sub_df.empty else 0}
 
-    # Today's detailed metrics
-    last_row = df.iloc[-1]
     today_metrics = {
-        "open": float(last_row['Open']),
-        "high": float(last_row['High']),
-        "low": float(last_row['Low']),
-        "close": float(last_row['Close']),
-        "volume": float(last_row['Volume']),
-        "prev_close": prev_close,
-        "avg_price": float((last_row['High'] + last_row['Low'] + last_row['Close']) / 3),
-        "upper_circuit": float(prev_close * 1.20),
-        "lower_circuit": float(prev_close * 0.80),
-        "stats_3m": get_period_stats(63),
-        "stats_1y": get_period_stats(252),
-        "stats_3y": get_period_stats(756),
-        "stats_5y": get_period_stats(1260)
+        "open": float(df.iloc[-1]['Open']), "high": float(df.iloc[-1]['High']), "low": float(df.iloc[-1]['Low']),
+        "close": float(df.iloc[-1]['Close']), "volume": float(df.iloc[-1]['Volume']), "prev_close": prev_close,
+        "upper_circuit": prev_close * 1.20, "lower_circuit": prev_close * 0.80,
+        "stats_1y": get_period_stats(252), "stats_3m": get_period_stats(63)
     }
 
-    # Rename columns to lowercase for frontend compatibility
-    chart_data = chart_data.rename(columns={
-        'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'
-    })
-
-
     return {
-        "ticker": ticker,
-        "current_price": curr_price,
-        "price": curr_price, # Keep both for safety
+        "ticker": ticker, "current_price": curr_price, "price": curr_price,
         "change_pct": ((curr_price - prev_close) / prev_close) * 100 if len(df) > 1 else 0,
         "today": today_metrics,
-        "technical": {
-            "rsi": rsi,
-            "mfi": mfi,
-            "macd": macd,
-            "ma_stack": ma_stack,
-            "pivots": pivots,
-            "trend": trend,
-            "performance": performance
-        },
-        "volume": volume,
-        "fundamentals": fundamentals,
+        "technical": {"rsi": rsi, "mfi": mfi, "macd": macd, "ma_stack": ma_stack, "pivots": pivots, "trend": trend, "performance": performance},
+        "volume": volume, "fundamentals": fundamentals,
         "chart_data": chart_data[['timestamp', 'open', 'high', 'low', 'close', 'volume']].to_dict(orient='records'),
         "history": chart_data.tail(10)[['date_str', 'open', 'high', 'low', 'close', 'volume']].to_dict(orient='records')
     }

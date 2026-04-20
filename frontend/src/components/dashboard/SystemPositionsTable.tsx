@@ -1,14 +1,14 @@
 import { Award, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 
 interface SystemPositionsTableProps {
   data?: any[];
   showHeader?: boolean;
 }
 
-export function SystemPositionsTable({ data = [], showHeader = true }: SystemPositionsTableProps) {
+export const SystemPositionsTable = memo(({ data = [], showHeader = true }: SystemPositionsTableProps) => {
   const [posTab, setPosTab] = useState("active");
 
   const filtered = useMemo(() => {
@@ -135,4 +135,4 @@ export function SystemPositionsTable({ data = [], showHeader = true }: SystemPos
       </Tabs>
     </div>
   );
-}
+});

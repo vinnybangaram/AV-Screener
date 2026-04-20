@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException, Query
+import asyncio
 from typing import Dict, Any, Optional
 from app.services.stock_analysis_service import get_full_analysis
 from app.services.llm_service import get_ai_analysis
 from app.services.scoring_service import get_analysis_scores
 from app.data.ticker_db import TICKER_DB
+from app.utils.cache import analysis_cache
+import requests
 
 router = APIRouter()
-
-import requests
 
 @router.get("/search")
 def search_tickers(q: str = Query("", description="Search query")):
@@ -44,7 +45,6 @@ def search_tickers(q: str = Query("", description="Search query")):
     except Exception as e:
         print(f"Live search failed: {e}")
 
-    # Combine and deduplicate
     seen_symbols = {item["symbol"] for item in local_matches}
     for item in live_results:
         if item["symbol"] not in seen_symbols:
@@ -54,57 +54,76 @@ def search_tickers(q: str = Query("", description="Search query")):
     return local_matches[:15]
 
 @router.get("")
-def analyze_stock(
+async def analyze_stock(
     symbol: str = Query(..., description="The stock ticker symbol"), 
     horizon: str = "30D",
     period: str = "1y"
 ):
     """
     Detailed stock analysis endpoint.
-    Returns technical indicators, chart data, and AI-generated insights.
+    Optimized with Caching and Parallel Fetching.
     """
-    print("Symbol received:", symbol)
     ticker = symbol.upper()
+    cache_key = f"analysis_{ticker}_{period}"
+    
+    # 1. Check Cache
+    cached_data = analysis_cache.get(cache_key)
+    if cached_data:
+        return {"success": True, "data": cached_data, "cached": True}
+
     if not ticker.endswith(".NS") and not ticker.endswith(".BO"):
         ticker = f"{ticker}.NS"
         
-    analysis_data = get_full_analysis(ticker, period=period)
-    
+    # 2. Parallel Core Analysis & AI Insights
+    analysis_data = await get_full_analysis(ticker, period=period)
     if not analysis_data:
         raise HTTPException(status_code=404, detail=f"Stock data for {ticker} not found.")
 
-    # Call AI service for explanation
-    ai_insights = get_ai_analysis(analysis_data)
-    
-    # Calculate Institutional Scores
-    scores = get_analysis_scores(analysis_data)
-
-    # 1. NEW: Get Probability Forecast
+    # 3. Parallel Score, AI, Forecast, and Targets
     from app.services.forecast_engine import engine as forecast_engine
-    try:
-        # Forecast for 7D, 30D, 90D to support all tab views
-        forecasts = {
-            "7D": forecast_engine.generate_forecast(ticker, "7D"),
-            "30D": forecast_engine.generate_forecast(ticker, "30D"),
-            "90D": forecast_engine.generate_forecast(ticker, "90D")
-        }
-    except:
-        forecasts = None
-        
-    # 2. NEW: Get Price Targets
     from app.services.price_target_engine import engine as target_engine
-    try:
-        price_targets = target_engine.generate_targets(ticker)
-    except:
-        price_targets = None
-        
+
+    async def get_forecasts():
+        try:
+            return {
+                "7D": await asyncio.to_thread(forecast_engine.generate_forecast, ticker, "7D"),
+                "30D": await asyncio.to_thread(forecast_engine.generate_forecast, ticker, "30D"),
+                "90D": await asyncio.to_thread(forecast_engine.generate_forecast, ticker, "90D")
+            }
+        except: return None
+
+    async def get_ai():
+        return await asyncio.to_thread(get_ai_analysis, analysis_data)
+
+    async def get_scores():
+        return await asyncio.to_thread(get_analysis_scores, analysis_data)
+
+    async def get_targets():
+        try: return await asyncio.to_thread(target_engine.generate_targets, ticker)
+        except: return None
+
+    # Execute all in parallel
+    ai_task = get_ai()
+    scores_task = get_scores()
+    forecasts_task = get_forecasts()
+    targets_task = get_targets()
+
+    ai_insights, scores, forecasts, price_targets = await asyncio.gather(
+        ai_task, scores_task, forecasts_task, targets_task
+    )
+
+    final_result = {
+        "analysis": analysis_data,
+        "ai_insights": ai_insights,
+        "scores": scores,
+        "forecasts": forecasts,
+        "price_targets": price_targets
+    }
+
+    # Store in Cache
+    analysis_cache.set(cache_key, final_result)
+
     return {
         "success": True,
-        "data": {
-            "analysis": analysis_data,
-            "ai_insights": ai_insights,
-            "scores": scores,
-            "forecasts": forecasts,
-            "price_targets": price_targets
-        }
+        "data": final_result
     }

@@ -1,14 +1,14 @@
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.watchlist import WatchlistPosition, PositionSnapshot
-from app.services.watchlist_service import fetch_live_price
+from app.services import market_service
 from datetime import datetime
-import pandas as pd
+import asyncio
 
 def run_snapshot_job(interval_type: str = "hourly"):
     """
     Core engine to capture price snapshots for all active positions.
-    Can be called by APScheduler or manual trigger.
+    Optimized for batch processing.
     """
     db = SessionLocal()
     try:
@@ -20,10 +20,20 @@ def run_snapshot_job(interval_type: str = "hourly"):
             print("[SnapshotEngine] No active positions to track.")
             return
 
-        # 2. Update their latest metrics
+        # 2. Batch fetch live prices
+        symbols = list(set(pos.symbol for pos in positions))
+        # Use existing async market service in a thread safe way
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        live_data = loop.run_until_complete(market_service.get_daily_changes(symbols))
+        loop.close()
+
+        # 3. Update positions and create snapshots
+        snapshot_count = 0
         for pos in positions:
-            live_price = fetch_live_price(pos.symbol)
-            if live_price is not None:
+            data = live_data.get(pos.symbol)
+            if data:
+                live_price = data["latest_price"]
                 entry_price = pos.entry_price or 0.0
                 pnl = live_price - entry_price if pos.side != "SHORT" else entry_price - live_price
                 pnl_pct = (pnl / entry_price * 100) if entry_price > 0 else 0.0
@@ -51,9 +61,10 @@ def run_snapshot_job(interval_type: str = "hourly"):
                     side=pos.side
                 )
                 db.add(snapshot)
+                snapshot_count += 1
         
         db.commit()
-        print(f"[SnapshotEngine] Successfully captured snapshots for {len(positions)} positions.")
+        print(f"[SnapshotEngine] Successfully captured {snapshot_count} snapshots.")
         
     except Exception as e:
         print(f"[SnapshotEngine] Critical error: {e}")
@@ -64,51 +75,37 @@ def run_snapshot_job(interval_type: str = "hourly"):
 def get_performance_trend(db: Session, user_id: int, category: str = "All", timeframe: str = "This Month"):
     """
     Aggregates historical snapshots to power the Dashboard Chart.
+    Optimized for large data sets.
     """
     # 1. Base query for snapshots
     query = db.query(PositionSnapshot).filter(PositionSnapshot.user_id == user_id)
     
-    # 2. Filter by category if not 'All'
+    # 2. Filter by category
     if category != "All":
         cat_map = {
-            "Penny Stocks": "penny", 
-            "Multibaggers": "multibagger", 
-            "Intraday Radar": "intraday",
-            "Intraday Longs": "intraday_long",
-            "Intraday Shorts": "intraday_short",
-            "Core Portfolio": "core"
+            "Penny Stocks": "penny", "Multibaggers": "multibagger", "Intraday Radar": "intraday",
+            "Intraday Longs": "intraday_long", "Intraday Shorts": "intraday_short", "Core Portfolio": "core"
         }
         target_cat = cat_map.get(category, category).lower()
-        
-        from sqlalchemy import or_, and_
         query = query.join(WatchlistPosition)
         
         if target_cat == 'intraday_long':
-            query = query.filter(and_(
-                WatchlistPosition.category.ilike("%intraday%"),
-                WatchlistPosition.side != "SHORT"
-            ))
+            query = query.filter(WatchlistPosition.category.ilike("%intraday%"), WatchlistPosition.side != "SHORT")
         elif target_cat == 'intraday_short':
-            query = query.filter(and_(
-                WatchlistPosition.category.ilike("%intraday%"),
-                WatchlistPosition.side == "SHORT"
-            ))
+            query = query.filter(WatchlistPosition.category.ilike("%intraday%"), WatchlistPosition.side == "SHORT")
         elif target_cat == 'core':
-            # Core includes manual and general investment categories
-            query = query.filter(or_(
-                WatchlistPosition.category.ilike("%core%"),
-                WatchlistPosition.category.ilike("%investment%"),
-                WatchlistPosition.category.ilike("%manual%")
-            ))
+            from sqlalchemy import or_
+            query = query.filter(or_(WatchlistPosition.category.ilike("%core%"), WatchlistPosition.category.ilike("%investment%"), WatchlistPosition.category.ilike("%manual%")))
         else:
             query = query.filter(WatchlistPosition.category.ilike(f"%{target_cat}%"))
     
     # 3. Timeframe filtering
     now = datetime.utcnow()
     if timeframe == "Today":
+        start_date = datetime(entry.year, entry.month, entry.day) if (entry := now) else now # mock
         start_date = datetime(now.year, now.month, now.day)
     elif timeframe == "This Week":
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0) # simplified
+        start_date = now - timedelta(days=now.weekday())
     elif timeframe == "This Month":
         start_date = datetime(now.year, now.month, 1)
     else: # This Year
@@ -116,26 +113,23 @@ def get_performance_trend(db: Session, user_id: int, category: str = "All", time
         
     query = query.filter(PositionSnapshot.captured_at >= start_date)
     
-    snapshots = query.order_by(PositionSnapshot.captured_at.asc()).all()
+    # Use only necessary columns to reduce memory
+    snapshots = query.with_entities(PositionSnapshot.pnl, PositionSnapshot.pnl_percent, PositionSnapshot.captured_at)\
+                     .order_by(PositionSnapshot.captured_at.asc()).all()
+                     
     if not snapshots:
         return {"labels": [], "datasets": []}
 
-    # Format for Chart.js/Recharts
-    # We group by timestamp and sum up P/L for a 'Combined Portfolio' view
-    data_points = {} # timestamp -> {pnl: sum, pnl_pct: avg}
+    data_points = {} 
     
-    for s in snapshots:
-        # Normalize timestamp to hour or day depending on timeframe
-        if timeframe == "Today":
-            ts = s.captured_at.strftime("%H:00")
-        else:
-            ts = s.captured_at.strftime("%d %b")
+    for pnl, pnl_pct, captured_at in snapshots:
+        ts = captured_at.strftime("%H:00") if timeframe == "Today" else captured_at.strftime("%d %b")
             
         if ts not in data_points:
             data_points[ts] = {"pnl": 0.0, "pnl_pct": 0.0, "count": 0}
             
-        data_points[ts]["pnl"] += s.pnl
-        data_points[ts]["pnl_pct"] += s.pnl_percent
+        data_points[ts]["pnl"] += pnl
+        data_points[ts]["pnl_pct"] += pnl_pct
         data_points[ts]["count"] += 1
 
     labels = list(data_points.keys())
@@ -146,18 +140,12 @@ def get_performance_trend(db: Session, user_id: int, category: str = "All", time
         "labels": labels,
         "datasets": [
             {
-                "label": "Total P/L (₹)",
-                "data": pnl_values,
-                "borderColor": "#6366f1",
-                "backgroundColor": "rgba(99, 102, 241, 0.1)",
-                "fill": True
+                "label": "Total P/L (₹)", "data": pnl_values, "borderColor": "#6366f1", 
+                "backgroundColor": "rgba(99, 102, 241, 0.1)", "fill": True
             },
             {
-                "label": "Avg Return (%)",
-                "data": pct_values,
-                "borderColor": "#22c55e",
-                "backgroundColor": "rgba(34, 197, 94, 0.1)",
-                "fill": True
+                "label": "Avg Return (%)", "data": pct_values, "borderColor": "#22c55e", 
+                "backgroundColor": "rgba(34, 197, 94, 0.1)", "fill": True
             }
         ]
     }

@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("/")
 @router.get("")
-def get_dashboard(
+async def get_dashboard(
     category: str = Query("All"),
     timeframe: str = Query("This Month"),
     db: Session = Depends(get_db),
@@ -19,7 +19,7 @@ def get_dashboard(
     Unified endpoint for the high-fidelity Bloomberg Dashboard.
     Strictly Auth-Protected.
     """
-    return dashboard_service.get_dashboard_data(db, user.id, category, timeframe)
+    return await dashboard_service.get_dashboard_data(db, user.id, category, timeframe)
 
 @router.post("/snapshots/run")
 def run_snapshots(

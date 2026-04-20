@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, type LucideIcon } from "lucide-react";
 import { WebGLCardBorder } from "@/components/fx/WebGLCardBorder";
+import { memo } from "react";
 
 interface KpiCardProps {
   label: string;
@@ -28,7 +29,7 @@ const valueAccent: Record<string, string> = {
   warning: "bg-gradient-gold bg-clip-text text-transparent",
 };
 
-export function KpiCard({ label, value, delta, hint, tone = "default", icon: Icon, trendUp }: KpiCardProps) {
+export const KpiCard = memo(({ label, value, delta, hint, tone = "default", icon: Icon, trendUp }: KpiCardProps) => {
   return (
     <WebGLCardBorder color="#10b981" radius={16} intensity={tone === "default" ? 0.7 : 1}>
     <div className="kpi-card group">
@@ -76,4 +77,4 @@ export function KpiCard({ label, value, delta, hint, tone = "default", icon: Ico
     </div>
     </WebGLCardBorder>
   );
-}
+});
