@@ -147,7 +147,7 @@ export function AppHeader() {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-1.5 rounded-full bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-bold text-success">
               <span className="pulse-dot" />

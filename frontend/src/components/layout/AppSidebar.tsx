@@ -73,6 +73,11 @@ export function AppSidebar() {
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
+                      {!collapsed && (item.title === "Option Signals" || item.title === "AI Screener") && (
+                        <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[8px] font-black bg-warning/20 text-warning border border-warning/30 animate-blink-pro tracking-widest leading-none shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                          PRO
+                        </span>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

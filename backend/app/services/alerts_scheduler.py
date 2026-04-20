@@ -273,3 +273,34 @@ scheduler.add_job(
     replace_existing = True,
     misfire_grace_time = 180,
 )
+
+# 8. Option Signals Engine — every 1 minute during market hours
+def _job_option_signals():
+    try:
+        import asyncio
+        from app.services.option_signals_service import run_option_signals_job
+        # Since this is a cron job called from a synchronous scheduler, 
+        # but the function is async, we need to handle the event loop.
+        # However, APScheduler with BackgroundScheduler runs in a separate thread.
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+        loop.run_until_complete(run_option_signals_job())
+    except Exception:
+        traceback.print_exc()
+
+scheduler.add_job(
+    _job_option_signals,
+    CronTrigger(
+        day_of_week = "mon-fri",
+        hour        = "3-10", # 3 AM - 10 AM UTC ≈ 8:30 AM - 3:30 PM IST
+        minute      = "*",
+    ),
+    id            = "option_signals_engine",
+    name          = "Option Signals Engine Scan",
+    replace_existing = True,
+    misfire_grace_time = 30,
+)

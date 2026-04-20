@@ -12,6 +12,7 @@ import Multibaggers from "./pages/Multibaggers";
 import Intraday from "./pages/Intraday";
 import PennyStorm from "./pages/PennyStorm";
 import SystemPositionsPage from "./pages/SystemPositions";
+import OptionSignals from "./pages/OptionSignals";
 import ComingSoon from "./pages/ComingSoon";
 import AdminControlPanel from "./pages/AdminControlPanel";
 import Login from "./pages/Login";
@@ -49,6 +50,7 @@ const App = () => (
             
             {/* Portfolio & Watchlist */}
             <Route path="/positions" element={<SystemPositionsPage />} />
+            <Route path="/option-signals" element={<OptionSignals />} />
             <Route path="/watchlist" element={<Watchlist />} />
             
             {/* Admin */}

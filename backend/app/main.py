@@ -9,6 +9,7 @@ from app.api import (
     stocks,                            # ← NEW
     portfolio_health,                  # ← NEW
     multibagger,                       # ← NEW
+    option_signals,                    # ← NEW
 )
 from app.database import engine, Base
 from app.models import (
@@ -100,6 +101,7 @@ app.include_router(stock_chart.router,   prefix="/api",                tags=["Ch
 app.include_router(stocks.router,        prefix="/api/stocks",         tags=["Conviction"]) # ← NEW
 app.include_router(portfolio_health.router, prefix="/api/portfolio",    tags=["Portfolio Health"]) # ← NEW
 app.include_router(multibagger.router) # ← NEW
+app.include_router(option_signals.router, prefix="/api") # ← NEW
 
 
 # ── STARTUP ───────────────────────────────────────────────────────────────────

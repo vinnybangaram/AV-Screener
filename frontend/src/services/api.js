@@ -443,6 +443,28 @@ export const trackShare = async (symbol, platform) => {
     }
 };
 
+/**
+ * Option Signals API
+ */
+export const fetchOptionSignalsDashboard = async (userId = null) => {
+    const url = userId ? `/option-signals/dashboard?user_id=${userId}` : '/option-signals/dashboard';
+    return await api.get(url);
+};
+
+export const fetchOptionSignalsSettings = async (userId = null) => {
+    const url = userId ? `/option-signals/settings?user_id=${userId}` : '/option-signals/settings';
+    return await api.get(url);
+};
+
+export const updateOptionSignalsSettings = async (settings, userId = null) => {
+    const url = userId ? `/option-signals/settings?user_id=${userId}` : '/option-signals/settings';
+    return await api.post(url, settings);
+};
+
+export const forceOptionSignalsSync = async () => {
+    return await api.post('/option-signals/force-sync');
+};
+
 export default api;
 
 

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, LineChart, Sparkles, Star, Briefcase, Bell,
-  Newspaper, History, FileText, Settings, Rocket, Zap, CloudLightning, Award, Shield,
+  Newspaper, History, FileText, Settings, Rocket, Zap, CloudLightning, Award, Shield
 } from "lucide-react";
 
 export const navItems = [
@@ -10,6 +10,7 @@ export const navItems = [
   { title: "Multibaggers", url: "/multibaggers", icon: Rocket, adminOnly: false },
   { title: "Intraday", url: "/intraday", icon: Zap, adminOnly: false },
   { title: "Penny Storm", url: "/penny-storm", icon: CloudLightning, adminOnly: false },
+  { title: "Option Signals", url: "/option-signals", icon: Zap, adminOnly: false },
   { title: "System Positions", url: "/positions", icon: Award, adminOnly: false },
   { title: "Watchlist", url: "/watchlist", icon: Star, adminOnly: false },
   { title: "Portfolio", url: "/portfolio", icon: Briefcase, adminOnly: false },
