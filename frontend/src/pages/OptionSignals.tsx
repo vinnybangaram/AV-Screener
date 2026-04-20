@@ -182,15 +182,48 @@ const OptionSignals = () => {
 
   const currentTrade = trades.find((t: any) => t.status === "OPEN" && t.symbol === activeTab.toUpperCase());
 
+  // Mapping trades to chart markers (Flags)
+  const tradeFlags = useMemo(() => {
+    const flags: any[] = [];
+    trades.filter((t: any) => t.symbol === activeTab.toUpperCase()).forEach((t: any) => {
+        // Entry Flag
+        flags.push({
+            x: new Date(t.execution_time).getTime(),
+            title: 'E',
+            text: `<b>Entry: ₹${t.entry_price.toFixed(2)}</b><br/>Time: ${new Date(t.execution_time).toLocaleTimeString()}<br/>Type: ${t.type}<br/>Instrument: ${t.instrument}`,
+            shape: 'circlepin',
+            color: '#3b82f6', // accent color
+            fillColor: '#3b82f6',
+            style: { color: 'white' }
+        });
+
+        // Exit Flag
+        if (t.status === 'CLOSED' && t.exit_time) {
+            flags.push({
+                x: new Date(t.exit_time).getTime(),
+                title: 'X',
+                text: `<b>Exit: ₹${t.exit_price?.toFixed(2)}</b><br/>Time: ${new Date(t.exit_time).toLocaleTimeString()}<br/>P&L: ₹${t.pnl?.toLocaleString()}<br/>Reason: ${t.exit_reason || 'N/A'}`,
+                shape: 'squarepin',
+                color: t.pnl >= 0 ? '#10b981' : '#ef4444', 
+                fillColor: t.pnl >= 0 ? '#10b981' : '#ef4444',
+                style: { color: 'white' }
+            });
+        }
+    });
+    return flags;
+  }, [trades, activeTab]);
+
   // Highcharts Options
   const chartOptions = useMemo(() => {
     const dataLength = 100;
-    const ohlc = [];
-    const volume = [];
+    const ohlc: any[] = [];
+    const volume: any[] = [];
     let prevClose = livePrice;
 
+    // Use current time as latest for dummy data generation
+    const now = Date.now();
     for (let i = 0; i < dataLength; i++) {
-        const time = Date.now() - (dataLength - i) * 60000;
+        const time = now - (dataLength - i) * 60000;
         const open = prevClose + (Math.random() * 20 - 10);
         const high = open + Math.random() * 15;
         const low = open - Math.random() * 15;
@@ -248,14 +281,24 @@ const OptionSignals = () => {
                 upColor: '#10b981',
                 lineColor: '#ef4444',
                 upLineColor: '#10b981'
+            },
+            flags: {
+                useHTML: true,
+                onSeries: 'main-ohlc',
+                width: 16,
+                style: { fontSize: '9px', fontWeight: 'bold' }
             }
         },
         tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-            borderColor: 'rgba(255,255,255,0.1)',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            borderColor: 'rgba(255,255,255,0.15)',
+            borderRadius: 8,
             style: { color: '#ffffff', fontSize: '10px' },
             shared: true,
-            split: false
+            split: false,
+            useHTML: true,
+            headerFormat: '<span style="font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase;">{point.key}</span><br/>',
+            pointFormat: '<span style="color:{point.color}">\u25CF</span> {series.name}: <b>{point.y}</b><br/>'
         },
         series: [{
             type: 'hollowcandlestick',
@@ -270,10 +313,18 @@ const OptionSignals = () => {
             data: volume,
             yAxis: 1,
             baseVolume: 'main-volume'
+        }, {
+            type: 'flags',
+            name: 'Execution Events',
+            data: tradeFlags,
+            onSeries: 'main-ohlc',
+            shape: 'circlepin',
+            width: 16,
+            y: -30
         }],
         credits: { enabled: false }
     };
-  }, [activeTab, livePrice, activeTimeframe]);
+  }, [activeTab, livePrice, activeTimeframe, tradeFlags]);
 
   // Metrics Mapping
   const summaryMetrics = [
@@ -447,7 +498,7 @@ const OptionSignals = () => {
           </TabsList>
           
           <div className="hidden md:flex items-center gap-6">
-            {/* Live Index Trace (Requested Placement) */}
+            {/* Live Index Trace */}
             <div className="flex items-center gap-4 bg-muted/30 px-4 py-1.5 rounded-full border border-border/40 backdrop-blur-sm">
                 <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
@@ -551,28 +602,12 @@ const OptionSignals = () => {
                       </div>
                     </div>
                     
-                    {/* Visual Markers overlay logic */}
+                    {/* Active Trade visual overlays persist alongside flags */}
                     {currentTrade && (
                       <div className="relative h-40">
-                         {/* Entry Point */}
-                         <div className="absolute left-[30%] top-[40%] flex flex-col items-center group/marker">
-                            <div className="bg-accent text-white text-[9px] font-black px-1.5 py-0.5 rounded mb-1 shadow-glow-accent uppercase">ENTRY {currentTrade.entry_price}</div>
-                            <div className="h-3 w-3 rounded-full bg-accent ring-4 ring-accent/20 animate-pulse" />
-                         </div>
                          {/* SL Line */}
                          <div className="absolute left-[30%] top-[70%] w-[40%] border-t-2 border-danger/40 border-dashed flex items-center">
                             <span className="bg-danger/20 text-danger text-[8px] font-black px-1 rounded -translate-y-1/2">SL {currentTrade.sl_price}</span>
-                         </div>
-                         {/* TSL Levels */}
-                         <div className="absolute left-[50%] top-[25%] flex flex-col items-start gap-px">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 border-t border-success/40" />
-                              <span className="text-[8px] font-bold text-success/60 uppercase">TSL1: {currentTrade.tsl_1}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 border-t border-success/40" />
-                              <span className="text-[8px] font-bold text-success/60 uppercase">TSL2: {currentTrade.tsl_2}</span>
-                            </div>
                          </div>
                       </div>
                     )}
@@ -768,7 +803,7 @@ const OptionSignals = () => {
                       <TableHead className="text-[10px] font-black uppercase tracking-wider">Time</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-wider">Instrument</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-wider">Type</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-wider">Entry</TableHead>
+                      <TableHead className="text-[10px) font-black uppercase tracking-wider">Entry</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-wider">SL</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-wider">TSL (1/2/3)</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-wider">Status</TableHead>
