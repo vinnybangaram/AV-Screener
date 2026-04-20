@@ -184,7 +184,9 @@ def get_market_indices() -> Dict[str, Any]:
     symbols = {
         "nifty": "^NSEI",
         "banknifty": "^NSEBANK",
-        "sensex": "^BSESN"
+        "sensex": "^BSESN",
+        "midcap": "NIFTY_MIDCAP_100.NS",
+        "smallcap": "NIFTY_SMALLCAP_100.NS"
     }
     
     results = {}
@@ -202,7 +204,7 @@ def get_market_indices() -> Dict[str, Any]:
                         change_pct = (change / prev_close) * 100
                         
                         results[name] = {
-                            "name": name.upper().replace("NIFTY", "NIFTY 50") if name == "nifty" else name.upper().replace("BANKNIFTY", "BANK NIFTY"),
+                            "name": "NIFTY 50" if name == "nifty" else "BANK NIFTY" if name == "banknifty" else "SENSEX" if name == "sensex" else "MIDCAP 100" if name == "midcap" else "SMALLCAP 100",
                             "value": round(float(last_price), 2),
                             "change": round(float(change), 2),
                             "change_pct": round(float(change_pct), 2),
@@ -234,3 +236,44 @@ def get_ticker_data() -> List[Dict[str, Any]]:
         if i < len(gainers): ticker_list.append({**gainers[i], "type": "gainer"})
         if i < len(losers): ticker_list.append({**losers[i], "type": "loser"})
     return ticker_list
+
+def get_sector_performance() -> List[Dict[str, Any]]:
+    """
+    Analyzes performance across major sectors using ticker pool.
+    """
+    sectors_map = {}
+    for item in TICKER_DB:
+        sector = item.get("sector", "Other")
+        if sector not in sectors_map:
+            sectors_map[sector] = []
+        sectors_map[sector].append(item["symbol"])
+    
+    # We take representative tickers if a sector is too large
+    representative_tickers = []
+    sym_to_sector = {}
+    for sector, syms in sectors_map.items():
+        # Limit to top 3 per sector for speed
+        for s in syms[:3]:
+            representative_tickers.append(s)
+            sym_to_sector[s] = sector
+            
+    changes = get_daily_changes(representative_tickers)
+    
+    sector_results = {}
+    for sym, data in changes.items():
+        sec = sym_to_sector[sym]
+        if sec not in sector_results:
+            sector_results[sec] = []
+        sector_results[sec].append(data["today_change_pct"])
+        
+    final_sectors = []
+    for sec, chgs in sector_results.items():
+        avg_chg = sum(chgs) / len(chgs)
+        final_sectors.append({
+            "name": sec,
+            "change": round(avg_chg, 2),
+            "count": len(chgs)
+        })
+        
+    # Sort by absolute change
+    return sorted(final_sectors, key=lambda x: abs(x["change"]), reverse=True)

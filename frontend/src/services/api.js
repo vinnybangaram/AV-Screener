@@ -78,14 +78,15 @@ export const fetchMultibaggers = async (refresh = false) => {
     try {
         const result = await api.get(`/multibagger/${refresh ? '?refresh=true' : ''}`);
         if (result.success) {
-            // Map to camelCase expected by Multibagger.jsx and StockCard.jsx
+            // Map to camelCase expected by Multibaggers.tsx
             const mappedData = result.data.map(d => ({
                 ...d,
                 symbol: d.ticker,
                 ticker: d.ticker ? d.ticker.replace('.NS', '').replace('.BO', '') : 'UNKNOWN',
                 currentPrice: d.current_price,
                 classification: d.signal_classification,
-                confidence: d.confidence_level,
+                confidence: d.score,
+                confidence_level: d.score, // Frontend uses this for toFixed(0)
                 breakdown: {
                     momentum: { achieved: d.scores_breakdown?.momentum_score || 0 },
                     structure: { achieved: d.scores_breakdown?.volume_score || 0 },
@@ -102,22 +103,46 @@ export const fetchMultibaggers = async (refresh = false) => {
     }
 };
 
-export const fetchScreenerResults = fetchMultibaggers;
-
-export const fetchStockAnalysis = async (symbol) => {
+export const fetchScreenerResults = async (filters = {}) => {
     try {
-        const result = await api.get(`/analyse-stock?symbol=${symbol}`);
+        const params = new URLSearchParams();
+        if (filters.marketCap) params.append('market_cap', filters.marketCap);
+        if (filters.sector) params.append('sector', filters.sector);
+        if (filters.peRange) {
+            params.append('pe_min', filters.peRange[0]);
+            params.append('pe_max', filters.peRange[1]);
+        }
+        if (filters.roeMin) params.append('roe_min', filters.roeMin[0]);
+        if (filters.rsiRange) {
+            params.append('rsi_min', filters.rsiRange[0]);
+            params.append('rsi_max', filters.rsiRange[1]);
+        }
+        if (filters.aiScoreMin) params.append('score_min', filters.aiScoreMin[0]);
+        if (filters.riskLevel) params.append('risk_level', filters.riskLevel);
+
+        return await api.get(`/market/screener?${params.toString()}`);
+    } catch (error) {
+        console.error("fetchScreenerResults error:", error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const fetchStockAnalysis = async (symbol, period = "1y") => {
+    try {
+        const result = await api.get(`/analyse-stock?symbol=${symbol}&period=${period}`);
         if (result.success) {
-            const { analysis, ai_insights, scores } = result.data;
+            const { analysis, ai_insights, scores, forecasts, price_targets } = result.data;
             return {
                 success: true,
                 analysis: {
                     ...analysis,
-                    ticker: analysis.ticker.replace('.NS', '').replace('.BO', ''),
+                    ticker: (analysis.ticker || "").replace('.NS', '').replace('.BO', ''),
                     change_pct: analysis.change_pct || 0,
                 },
                 scores: scores,
-                ai_insights: ai_insights
+                ai_insights: ai_insights,
+                forecasts: forecasts,
+                price_targets: price_targets
             };
         }
         return null;
@@ -136,11 +161,56 @@ export const searchTickers = async (query) => {
 };
 
 export const fetchPennyStorm = async (refresh = false) => {
-    return await api.get(`/penny-storm/scan${refresh ? '?refresh=true' : ''}`);
+    try {
+        const result = await api.get(`/penny-storm/scan${refresh ? '?refresh=true' : ''}`);
+        if (result.success) {
+            // Map backend names (verdict, price, score) to frontend names (storm_status, currentPrice, confidence)
+            const mappedData = (result.data || []).map(d => ({
+                ...d,
+                symbol: d.ticker,
+                ticker: d.ticker,
+                currentPrice: d.price,
+                storm_status: d.verdict === "STORM READY" ? "STORM_READY" : d.verdict,
+                confidence: d.score,
+                confidence_level: d.score 
+            }));
+            return { success: true, data: mappedData };
+        }
+        return result;
+    } catch (error) {
+        console.error("Error in fetchPennyStorm:", error);
+        return { success: false, error: error.message };
+    }
 };
 
 export const fetchIntraday = async (refresh = false) => {
-    return await api.get(`/intraday/scan${refresh ? '?refresh=true' : ''}`);
+    try {
+        const result = await api.get(`/intraday/scan${refresh ? '?refresh=true' : ''}`);
+        if (result.success) {
+            // Backend returns {longs: [], shorts: []}. Flatten and map for Intraday.tsx
+            const longs = (result.data.longs || []).map(d => ({ 
+                ...d, 
+                side: 'LONG', 
+                symbol: d.ticker, 
+                change_pct: d.gap_pct,
+                price: d.price,
+                score: d.score
+            }));
+            const shorts = (result.data.shorts || []).map(d => ({ 
+                ...d, 
+                side: 'SHORT', 
+                symbol: d.ticker, 
+                change_pct: d.gap_pct,
+                price: d.price,
+                score: d.score
+            }));
+            return { success: true, data: [...longs, ...shorts] };
+        }
+        return result;
+    } catch (error) {
+        console.error("Error in fetchIntraday:", error);
+        return { success: false, error: error.message };
+    }
 };
 
 /**
@@ -172,6 +242,37 @@ export const fetchDashboardMetrics = async (category = 'All') => {
 
 export const fetchMarketContext = async () => {
     return await api.get('/market/context');
+};
+
+export const fetchMarketIndices = async () => {
+    return await api.get('/market/indices');
+};
+
+export const fetchMarketRegime = async () => {
+    return await api.get('/market/regime/current');
+};
+
+export const fetchRegimeHistory = async (days = 30) => {
+    return await api.get(`/market/regime/history?days=${days}`);
+};
+
+export const fetchStockConviction = async (symbol) => {
+    return await api.get(`/stocks/conviction/${symbol}`);
+};
+
+export const fetchTopConviction = async (limit = 20) => {
+    return await api.get(`/stocks/conviction/top?limit=${limit}`);
+};
+
+/**
+ * Portfolio Health & Risk Engine
+ */
+export const fetchPortfolioHealth = async () => {
+    return await api.get('/portfolio/health');
+};
+
+export const fetchHealthHistory = async (days = 90) => {
+    return await api.get(`/portfolio/health/history?days=${days}`);
 };
 
 
@@ -221,7 +322,7 @@ export const fetchForecast = async (symbol, horizon) => {
 
 export const fetchConfluence = async (symbol) => {
     try {
-        return await api.get(/confluence/ + symbol);
+        return await api.get('/confluence/' + symbol);
     } catch (error) {
         console.error("fetchConfluence error:", error);
         throw error;
@@ -231,7 +332,7 @@ export const fetchConfluence = async (symbol) => {
 
 export const fetchTradeSetup = async (symbol) => {
     try {
-        return await api.get(/trade-setup/ + symbol);
+        return await api.get('/trade-setup/' + symbol);
     } catch (error) {
         console.error("fetchTradeSetup error:", error);
         throw error;
@@ -241,7 +342,7 @@ export const fetchTradeSetup = async (symbol) => {
 
 export const fetchPriceTargets = async (symbol) => {
     try {
-        return await api.get(/price-target/ + symbol);
+        return await api.get('/price-target/' + symbol);
     } catch (error) {
         console.error("fetchPriceTargets error:", error);
         throw error;

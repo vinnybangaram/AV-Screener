@@ -212,3 +212,64 @@ scheduler.add_job(
     replace_existing = True,
     misfire_grace_time = 60,
 )
+
+# 6. Market Regime Snapshot — every 15 minutes during market hours
+def _job_market_regime():
+    try:
+        from app.database import SessionLocal
+        from app.services.regime_service import calculate_current_regime
+        db = SessionLocal()
+        try:
+            calculate_current_regime(db)
+            print("[Scheduler] Market Regime snapshot captured.")
+        finally:
+            db.close()
+    except Exception:
+        traceback.print_exc()
+
+scheduler.add_job(
+    _job_market_regime,
+    CronTrigger(
+        day_of_week = "mon-fri",
+        hour        = "3-10", # 3 AM - 10 AM UTC ≈ 8:30 AM - 3:30 PM IST
+        minute      = "*/15",
+    ),
+    id            = "market_regime_snapshot",
+    name          = "Market Regime Snapshot",
+    replace_existing = True,
+    misfire_grace_time = 120,
+)
+
+# 7. Stock Conviction Refresh — every 15 minutes
+def _job_conviction_refresh():
+    try:
+        from app.database import SessionLocal
+        from app.models.watchlist import WatchlistPosition
+        from app.services.conviction_service import calculate_conviction_score
+        db = SessionLocal()
+        try:
+            # Refresh for all active watchlist stocks
+            positions = db.query(WatchlistPosition).filter(WatchlistPosition.is_active == True).all()
+            symbols = list(set([p.symbol for p in positions]))
+            
+            for symbol in symbols:
+                calculate_conviction_score(symbol, db, save=True)
+                
+            print(f"[Scheduler] Refreshed conviction for {len(symbols)} symbols.")
+        finally:
+            db.close()
+    except Exception:
+        traceback.print_exc()
+
+scheduler.add_job(
+    _job_conviction_refresh,
+    CronTrigger(
+        day_of_week = "mon-fri",
+        hour        = "3-10",
+        minute      = "7,22,37,52", # Offset from regime snapshot
+    ),
+    id            = "conviction_refresh",
+    name          = "Stock Conviction Refresh",
+    replace_existing = True,
+    misfire_grace_time = 180,
+)

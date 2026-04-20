@@ -1,0 +1,258 @@
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Input } from "@/components/ui/input";
+import { Bell, ChevronDown, LogOut, Moon, Search, Settings, Shield, ShieldOff, Sun, User, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { setIsAdmin, useIsAdmin } from "@/lib/admin-store";
+import { signOut, useAuthUser } from "@/lib/auth-store";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { searchTickers, fetchMarketIndices } from "@/services/api";
+
+export function AppHeader() {
+  const [dark, setDark] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredResults, setFilteredResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const isAdmin = useIsAdmin();
+  const user = useAuthUser();
+  const navigate = useNavigate();
+  const [indices, setIndices] = useState<any>(null);
+
+  useEffect(() => {
+    const loadIndices = async () => {
+      try {
+        const res = await fetchMarketIndices();
+        console.log("📊 [Header] Indices Data:", res);
+        const data = res?.success ? res.data : res;
+        if (data && typeof data === 'object') setIndices(data);
+      } catch (err) {
+        console.error("Failed to fetch indices:", err);
+      }
+    };
+    loadIndices();
+    const interval = setInterval(loadIndices, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setFilteredResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await searchTickers(searchQuery);
+        setFilteredResults(results || []);
+      } catch (err) {
+        console.error("Search failed:", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const handleResultClick = (res: any) => {
+    setShowResults(false);
+    setSearchQuery("");
+    navigate(`/analysis?s=${res.symbol}`);
+  };
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
+
+  const handleSignOut = () => {
+    signOut();
+    setIsAdmin(false);
+    toast.success("Signed out");
+    navigate("/login", { replace: true });
+  };
+
+  const initials = user?.initials ?? "AV";
+  const displayName = user?.name ?? "Guest";
+  const planLabel = user?.plan ?? "Not signed in";
+
+  return (
+    <header className="sticky top-0 z-30 h-16 border-b backdrop-blur-xl"
+      style={{
+        background: "linear-gradient(90deg, hsl(var(--card) / 0.9) 0%, hsl(var(--muted) / 0.7) 100%)",
+        boxShadow: "0 1px 0 0 hsl(var(--border)), 0 4px 16px -8px hsl(200 50% 8% / 0.08)",
+      }}
+    >
+      <div className="flex h-full items-center gap-3 px-5">
+        <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+
+        <div className="h-6 w-px bg-border" />
+
+        <div className="relative flex-1 max-w-xl group/search">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within/search:text-accent transition-colors" />
+          <Input
+            placeholder="Search stocks, symbols, sectors…"
+            className="pl-9 h-10 bg-background/60 border-border/60 focus-visible:bg-card focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 rounded-lg pr-12"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setShowResults(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && filteredResults.length > 0) {
+                handleResultClick(filteredResults[0]);
+              }
+            }}
+          />
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center gap-1 rounded border bg-card px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shadow-sm pointer-events-none">
+            ⌘K
+          </kbd>
+
+          {showResults && searchQuery.length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-xl shadow-elevated overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="px-3 py-2 border-b bg-muted/30">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Matching Symbols</span>
+              </div>
+              <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
+                {searching ? (
+                  <div className="p-8 flex flex-col items-center justify-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-accent" />
+                    <span className="text-xs text-muted-foreground">Scanning Market Node...</span>
+                  </div>
+                ) : filteredResults.length > 0 ? (
+                  filteredResults.map((res: any) => (
+                    <button
+                      key={res.symbol}
+                      onClick={() => handleResultClick(res)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b last:border-0 transition-colors text-left"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm tracking-tight">{res.symbol}</div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[200px]">{res.name}</div>
+                      </div>
+                      <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-muted-foreground opacity-30" />
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-xs text-muted-foreground">
+                    No matching assets found.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-1.5 rounded-full bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-bold text-success">
+              <span className="pulse-dot" />
+              LIVE
+            </div>
+
+            {indices && (
+              <div className="hidden md:flex items-center gap-4 border-l pl-4">
+                {['nifty', 'banknifty', 'sensex'].map((key) => {
+                  const idx = indices[key];
+                  if (!idx) return null;
+                  return (
+                    <div key={key} className="flex flex-col leading-none">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">{idx.name}</span>
+                        <span className={`text-[10px] font-bold ${idx.is_up ? 'text-success' : 'text-danger'}`}>
+                          {idx.is_up ? '▲' : '▼'} {idx.change_pct.toFixed(2)}%
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono font-bold tabular-nums">
+                        {idx.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            onClick={() => setDark(!dark)}
+            aria-label="Toggle theme"
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+
+          <Button variant="ghost" size="icon" className="h-9 w-9 relative text-muted-foreground hover:text-foreground hover:bg-muted/60" aria-label="Notifications">
+            <Bell className="h-4 w-4" />
+            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-danger ring-2 ring-card" />
+          </Button>
+
+          <div className="ml-2 h-9 w-px bg-border" />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="ml-2 flex items-center gap-2.5 cursor-pointer rounded-lg hover:bg-muted/60 pl-1 pr-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-emerald text-xs font-bold text-white shadow-glow-emerald">
+                  {initials}
+                </div>
+                <div className="hidden md:flex flex-col leading-tight text-left">
+                  <span className="text-xs font-semibold">{displayName}</span>
+                  <span className="text-[10px] text-muted-foreground">{planLabel}</span>
+                </div>
+                <ChevronDown className="hidden md:block h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>
+                <div className="flex items-center gap-3 py-1">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-emerald text-sm font-bold text-white shadow-glow-emerald">
+                    {initials}
+                  </div>
+                  <div className="flex flex-col leading-tight min-w-0">
+                    <span className="text-sm font-semibold truncate">{displayName}</span>
+                    <span className="text-[11px] text-muted-foreground truncate">{user?.email ?? "—"}</span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <User className="h-4 w-4" /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <Settings className="h-4 w-4" /> Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  const next = !isAdmin;
+                  setIsAdmin(next);
+                  toast.success(next ? "Admin mode enabled" : "Admin mode disabled");
+                }}
+              >
+                {isAdmin ? <Shield className="h-4 w-4 text-accent" /> : <ShieldOff className="h-4 w-4" />}
+                <span className="flex-1">Admin mode</span>
+                <span className={`text-[10px] font-bold uppercase ${isAdmin ? "text-accent" : "text-muted-foreground"}`}>
+                  {isAdmin ? "On" : "Off"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {user ? (
+                <DropdownMenuItem onClick={handleSignOut} className="text-danger focus:text-danger">
+                  <LogOut className="h-4 w-4" /> Sign out
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => navigate("/login")}>
+                  <LogOut className="h-4 w-4" /> Sign in
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
+  );
+}

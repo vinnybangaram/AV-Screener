@@ -54,7 +54,11 @@ def search_tickers(q: str = Query("", description="Search query")):
     return local_matches[:15]
 
 @router.get("")
-def analyze_stock(symbol: str = Query(..., description="The stock ticker symbol")):
+def analyze_stock(
+    symbol: str = Query(..., description="The stock ticker symbol"), 
+    horizon: str = "30D",
+    period: str = "1y"
+):
     """
     Detailed stock analysis endpoint.
     Returns technical indicators, chart data, and AI-generated insights.
@@ -64,7 +68,7 @@ def analyze_stock(symbol: str = Query(..., description="The stock ticker symbol"
     if not ticker.endswith(".NS") and not ticker.endswith(".BO"):
         ticker = f"{ticker}.NS"
         
-    analysis_data = get_full_analysis(ticker)
+    analysis_data = get_full_analysis(ticker, period=period)
     
     if not analysis_data:
         raise HTTPException(status_code=404, detail=f"Stock data for {ticker} not found.")
@@ -74,12 +78,33 @@ def analyze_stock(symbol: str = Query(..., description="The stock ticker symbol"
     
     # Calculate Institutional Scores
     scores = get_analysis_scores(analysis_data)
-    
+
+    # 1. NEW: Get Probability Forecast
+    from app.services.forecast_engine import engine as forecast_engine
+    try:
+        # Forecast for 7D, 30D, 90D to support all tab views
+        forecasts = {
+            "7D": forecast_engine.generate_forecast(ticker, "7D"),
+            "30D": forecast_engine.generate_forecast(ticker, "30D"),
+            "90D": forecast_engine.generate_forecast(ticker, "90D")
+        }
+    except:
+        forecasts = None
+        
+    # 2. NEW: Get Price Targets
+    from app.services.price_target_engine import engine as target_engine
+    try:
+        price_targets = target_engine.generate_targets(ticker)
+    except:
+        price_targets = None
+        
     return {
         "success": True,
         "data": {
             "analysis": analysis_data,
             "ai_insights": ai_insights,
-            "scores": scores
+            "scores": scores,
+            "forecasts": forecasts,
+            "price_targets": price_targets
         }
     }

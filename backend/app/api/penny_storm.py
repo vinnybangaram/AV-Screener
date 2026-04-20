@@ -4,21 +4,14 @@ from app.services.penny_storm_service import run_penny_storm_scan
 router = APIRouter(prefix="/api/penny-storm", tags=["Penny Storm"])
 
 @router.get("/scan")
-async def scan_penny_storm():
+async def scan_penny_storm(refresh: bool = False):
+    """
+    Penny Storm Radar - Identifying high-velocity assets under ₹100.
+    """
     results = await run_penny_storm_scan()
     return {"success": True, "data": results}
 
-    from fastapi import APIRouter
-from app.services.penny_storm_service import run_penny_storm_scan, fetch_nse_smallcap
-
-router = APIRouter(prefix="/api/penny-storm", tags=["Penny Storm"])
-
-@router.get("/scan")
-async def scan_penny_storm():
-    results = await run_penny_storm_scan()
-    return {"success": True, "data": results}
-
-# ── DEBUG endpoint — remove after fixing ──
+# ── DEBUG endpoint for NSE data source ──
 @router.get("/debug")
 async def debug_nse():
     try:

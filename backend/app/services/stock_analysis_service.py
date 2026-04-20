@@ -119,15 +119,38 @@ def calculate_volume_analysis(df: pd.DataFrame) -> Dict[str, Any]:
         "ratio": float(curr_vol / avg_20d) if avg_20d > 0 else 1.0
     }
 
-def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
-    # Standardize symbol for Yahoo Finance
+from app.data.alpha_vantage_fetcher import fetch_av_daily, fetch_av_quote
+from app.data.finnhub_fetcher import fetch_finnhub_quote
+
+def get_full_analysis(ticker: str, period: str = "1y") -> Optional[Dict[str, Any]]:
+    # Standardize symbol
     ticker = format_symbol(ticker)
     
-    # Fetch 5 years of data to support 5y performance
-    df = fetch_stock_data(ticker, period="5y") 
-    if df is None or df.empty: return None
+    # 1. HYBRID FETCHING STRATEGY
+    # Primary: Yahoo
+    df = fetch_stock_data(ticker, period=period) 
     
-    # Technicals (using at least 2y for valid 200 DMA)
+    # Secondary Fallback: Alpha Vantage
+    if df is None or df.empty:
+        print(f"🔄 Switching to Alpha Vantage for {ticker}")
+        df = fetch_av_daily(ticker)
+        
+    if df is None or df.empty:
+        return None
+    
+    # 2. HYBRID QUOTE MELDING (For real-time accuracy)
+    # We try to get the very latest price from Finnhub or AV to augment the chart data
+    fh_quote = fetch_finnhub_quote(ticker)
+    av_quote = fetch_av_quote(ticker)
+    
+    curr_price = float(df['Close'].iloc[-1])
+    # If we have a more recent live price, use it
+    if fh_quote.get("price"):
+        curr_price = fh_quote["price"]
+    elif av_quote.get("price"):
+        curr_price = av_quote["price"]
+
+    # Technicals (using the melded data)
     rsi = calculate_rsi(df)
     mfi = calculate_mfi(df)
     macd = calculate_macd(df)
@@ -136,10 +159,9 @@ def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
     performance = calculate_performance(df)
     volume = calculate_volume_analysis(df)
     
-    # Fundamentals (from fetch_fundamentals mapping)
+    # Fundamentals (Hybrid Fallback)
     fundamentals = fetch_fundamentals(ticker)
     
-    curr_price = float(df['Close'].iloc[-1])
     prev_close = float(df['Close'].iloc[-2]) if len(df) > 1 else curr_price
     
     # Simple trend logic: Price vs 50DMA
@@ -177,9 +199,16 @@ def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
         "stats_5y": get_period_stats(1260)
     }
 
+    # Rename columns to lowercase for frontend compatibility
+    chart_data = chart_data.rename(columns={
+        'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'
+    })
+
+
     return {
         "ticker": ticker,
-        "price": curr_price,
+        "current_price": curr_price,
+        "price": curr_price, # Keep both for safety
         "change_pct": ((curr_price - prev_close) / prev_close) * 100 if len(df) > 1 else 0,
         "today": today_metrics,
         "technical": {
@@ -193,6 +222,6 @@ def get_full_analysis(ticker: str) -> Optional[Dict[str, Any]]:
         },
         "volume": volume,
         "fundamentals": fundamentals,
-        "chart_data": chart_data[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']].to_dict(orient='records'),
-        "history": chart_data.tail(10)[['date_str', 'Open', 'High', 'Low', 'Close', 'Volume']].to_dict(orient='records')
+        "chart_data": chart_data[['timestamp', 'open', 'high', 'low', 'close', 'volume']].to_dict(orient='records'),
+        "history": chart_data.tail(10)[['date_str', 'open', 'high', 'low', 'close', 'volume']].to_dict(orient='records')
     }

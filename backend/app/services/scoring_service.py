@@ -103,11 +103,8 @@ def get_analysis_scores(data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Master Score Construction
     # 0.30 Fundamentals (Durability) + 0.25 Momentum + 0.20 Volume + 0.15 Valuation + 0.10 Risk
-    # Risk is derived from high debt or high PE.
     risk_points = 10 if data["fundamentals"].get("debt_to_equity", 0) < 0.5 else 5
     
-    # Final Score = 30% Fundamentals + 25% Momentum + 20% Volume + 15% Valuation + 10% Risk
-    # Each raw component is 0-100.
     final_score = (
         (durability["score"] * 0.30) +
         (momentum["score"] * 0.25) +
@@ -116,12 +113,29 @@ def get_analysis_scores(data: Dict[str, Any]) -> Dict[str, Any]:
         ((risk_points * 10) * 0.10)
     )
     
+    # Verdict derivation
+    tech_verdict = momentum["label"]
+    fund_verdict = durability["label"]
+    
+    risk_reward = "FAVORABLE"
+    if final_score >= 75: risk_reward = "EXCEPTIONAL"
+    elif final_score < 40: risk_reward = "UNFAVORABLE"
+    
+    risk_verdict = "Low Debt, Stable Growth"
+    if data["fundamentals"].get("debt_to_equity", 0) > 1.0: risk_verdict = "High Debt Overlay"
+    elif final_score < 40: risk_verdict = "Weak Structural Logic"
+
     return {
         "durability": durability,
         "valuation": valuation,
         "momentum": momentum,
         "final_score": round(final_score, 1),
-        "classification": get_smart_classification(final_score)
+        "overall_score": round(final_score, 1), # Support both naming systems
+        "classification": get_smart_classification(final_score),
+        "technical_verdict": tech_verdict,
+        "fundamental_verdict": fund_verdict,
+        "risk_reward_verdict": risk_reward,
+        "risk_verdict": risk_verdict
     }
 
 # --- Legacy Compatibility for Screener ---

@@ -6,6 +6,9 @@ from app.api import (
     admin, forecast, confluence, trade_setup, price_target,
     alerts, community, activity, auth,
     stock_chart,                       # ← NEW
+    stocks,                            # ← NEW
+    portfolio_health,                  # ← NEW
+    multibagger,                       # ← NEW
 )
 from app.database import engine, Base
 from app.models import (
@@ -15,6 +18,9 @@ from app.models import (
     screener_result,
     chat        as chat_model,
     daily_price,                       # ← NEW: ensures table is created
+    market_regime,                     # ← NEW
+    conviction,                        # ← NEW
+    portfolio_health as portfolio_health_model, # ← NEW: aliased to avoid collision
 )
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -73,7 +79,7 @@ def ai_status():
 # ── ROUTERS ───────────────────────────────────────────────────────────────────
 app.include_router(auth.router,          prefix="/api/auth",           tags=["Auth"])
 app.include_router(analysis.router,      prefix="/api/analyse-stock",  tags=["Analysis"])
-app.include_router(screener.router,      prefix="/api/multibagger",    tags=["Multibagger"])
+app.include_router(screener.router,      prefix="/api/market/screener", tags=["AI Screener"])
 app.include_router(penny_storm.router,                                  tags=["Penny Storm"])
 app.include_router(intraday.router)
 app.include_router(watchlist.router,     prefix="/api/watchlist",      tags=["Watchlist"])
@@ -91,6 +97,9 @@ app.include_router(alerts.router,        prefix="/api",                tags=["Ma
 app.include_router(community.router,     prefix="/api",                tags=["Community & Growth"])
 app.include_router(activity.router,      prefix="/api/activity",       tags=["Intelligence"])
 app.include_router(stock_chart.router,   prefix="/api",                tags=["Charts"])   # ← NEW
+app.include_router(stocks.router,        prefix="/api/stocks",         tags=["Conviction"]) # ← NEW
+app.include_router(portfolio_health.router, prefix="/api/portfolio",    tags=["Portfolio Health"]) # ← NEW
+app.include_router(multibagger.router) # ← NEW
 
 
 # ── STARTUP ───────────────────────────────────────────────────────────────────

@@ -369,56 +369,146 @@ def score_stock(ticker: str, data: dict) -> dict:
         "scan_time":   datetime.now().strftime("%H:%M:%S"),
     }
 
-
 # ── Main scan ──
 async def run_intraday_scan(top_n: int = 20) -> dict:
-    print(f"[Intraday] Starting scan at {datetime.now().strftime('%H:%M:%S')}...")
+    import yfinance as yf
+    print(f"[Intraday] Starting bulk scan at {datetime.now().strftime('%H:%M:%S')}...")
 
-    batch_size  = 10
-    all_results = []
-
-    for i in range(0, len(UNIVERSE), batch_size):
-        batch   = UNIVERSE[i:i + batch_size]
-        tasks   = [fetch_stock_data_yfinance(t) for t in batch]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        all_results.extend(zip(batch, results))
-        await asyncio.sleep(2)  # 2s pause between batches
-
-    scored = []
-    for ticker, data in all_results:
-        if data and isinstance(data, dict):
+    tickers_yf = [f"{t}.NS" for t in UNIVERSE]
+    
+    try:
+        # Fetch data for all tickers in one go (2 days to calculate gap)
+        # Using a longer timeout to be safe
+        data = yf.download(
+            tickers_yf, 
+            period="2d", 
+            interval="5m", 
+            group_by='ticker', 
+            auto_adjust=True, 
+            progress=False, 
+            timeout=30
+        )
+        
+        if data.empty:
+            print("[Intraday] Bulk fetch returned empty data. Injecting fallback.")
+            return await _get_fallback_results()
+            
+        scored = []
+        for ticker in UNIVERSE:
             try:
-                s = score_stock(ticker, data)
+                ticker_yf = f"{ticker}.NS"
+                if ticker_yf not in data.columns.levels[0]:
+                    continue
+                    
+                df = data[ticker_yf].dropna()
+                if df.empty or len(df) < 5:
+                    continue
+                
+                # Extract metrics
+                last_row = df.iloc[-1]
+                price = float(last_row['Close'])
+                volume = int(last_row['Volume'])
+                
+                # Get previous close from the previous day's last row
+                # We can find the break by looking at dates
+                days = df.index.normalize().unique()
+                if len(days) >= 2:
+                    prev_day_data = df[df.index.normalize() == days[-2]]
+                    prev_close = float(prev_day_data.iloc[-1]['Close'])
+                else:
+                    prev_close = float(df.iloc[0]['Open'])
+
+                # Indicators
+                # VWAP (Approximate for the day)
+                today_data = df[df.index.normalize() == days[-1]]
+                tp = (today_data['High'] + today_data['Low'] + today_data['Close']) / 3
+                vwap = (tp * today_data['Volume']).sum() / today_data['Volume'].sum() if today_data['Volume'].sum() > 0 else price
+                
+                # RSI (Simplified for intraday)
+                prices_list = today_data['Close'].tolist()
+                rsi = calculate_rsi(prices_list)
+                
+                support, resistance = find_support_resistance(today_data['Close'].tolist())
+                
+                stock_data = {
+                    "price": round(price, 2),
+                    "prev_close": round(prev_close, 2),
+                    "vwap": round(vwap, 2),
+                    "rsi": rsi,
+                    "volume": volume,
+                    "avg_volume": int(today_data['Volume'].mean()),
+                    "support": support,
+                    "resistance": resistance
+                }
+                
+                s = score_stock(ticker, stock_data)
                 if s["score"] >= 40 and s["direction"] != "NEUTRAL":
                     scored.append(s)
+                    
             except Exception as e:
-                print(f"[Intraday] Score error {ticker}: {e}")
+                print(f"[Intraday] Processing error for {ticker}: {e}")
 
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    
-    longs = [s for s in scored if s["direction"] == "LONG"][:10]
-    shorts = [s for s in scored if s["direction"] == "SHORT"][:10]
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        
+        longs = [s for s in scored if s["direction"] == "LONG"][:10]
+        shorts = [s for s in scored if s["direction"] == "SHORT"][:10]
 
-    # ── Fallback: If no real setups found, inject RELIANCE Sample ──
-    if not longs:
-        print("[Intraday] No high-conviction Longs found. Injecting Sample Data.")
-        sample = {
+        # If still empty, use fallback
+        if not longs and not shorts:
+            return await _get_fallback_results()
+
+        print(f"[Intraday] Scan complete — {len(longs) + len(shorts)} setups found")
+
+        return {
+            "longs": longs,
+            "shorts": shorts,
+            "scan_time": datetime.now().strftime("%H:%M:%S IST"),
+            "total_scanned": len(UNIVERSE),
+            "market_open": is_market_open(),
+        }
+
+    except Exception as e:
+        print(f"[Intraday] Bulk scan terminal failure: {e}")
+        return await _get_fallback_results()
+
+async def _get_fallback_results():
+    """Generates high-quality simulated data when live scan fails."""
+    now_str = datetime.now().strftime("%H:%M:%S")
+    longs = [
+        {
             "ticker": "RELIANCE", "price": 2985.40, "prev_close": 2950.00,
             "gap_pct": 1.2, "rsi": 42.5, "vwap": 2970.20, "volume": 8500000,
             "avg_volume": 5000000, "vol_ratio": 1.7, "support": 2940.0, "resistance": 3020.0,
             "score": 88, "direction": "LONG", "conviction": "HIGH", "target": 3060.0, "stoploss": 2950.0,
             "signals": ["Institutional volume spike", "Holding above VWAP"], "red_flags": [],
             "breakdown": {}, "long_pts": 88, "short_pts": 12, "risk_reward": 2.5,
-            "scan_time": datetime.now().strftime("%H:%M:%S"), "is_simulated": True
+            "scan_time": now_str, "is_simulated": True
+        },
+        {
+            "ticker": "TCS", "price": 4120.10, "prev_close": 4080.00,
+            "gap_pct": 0.98, "rsi": 38.2, "vwap": 4105.50, "volume": 1200000,
+            "avg_volume": 800000, "vol_ratio": 1.5, "support": 4050.0, "resistance": 4150.0,
+            "score": 82, "direction": "LONG", "conviction": "HIGH", "target": 4250.0, "stoploss": 4070.0,
+            "signals": ["Trend reversal signal", "Oversold bounce"], "red_flags": [],
+            "breakdown": {}, "long_pts": 82, "short_pts": 18, "risk_reward": 3.1,
+            "scan_time": now_str, "is_simulated": True
         }
-        longs.append(sample)
-
-    print(f"[Intraday] Scan complete — {len(longs) + len(shorts)} setups found")
-
+    ]
+    shorts = [
+        {
+            "ticker": "WIPRO", "price": 485.20, "prev_close": 498.00,
+            "gap_pct": -2.57, "rsi": 72.4, "vwap": 490.10, "volume": 3200000,
+            "avg_volume": 1500000, "vol_ratio": 2.1, "support": 475.0, "resistance": 505.0,
+            "score": 85, "direction": "SHORT", "conviction": "HIGH", "target": 465.0, "stoploss": 492.0,
+            "signals": ["Large gap down", "Failed VWAP retest"], "red_flags": [],
+            "breakdown": {}, "long_pts": 15, "short_pts": 85, "risk_reward": 2.8,
+            "scan_time": now_str, "is_simulated": True
+        }
+    ]
     return {
         "longs": longs,
         "shorts": shorts,
-        "scan_time": datetime.now().strftime("%H:%M:%S IST"),
-        "total_scanned": len(UNIVERSE),
+        "scan_time": now_str + " IST (Simulated Data)",
+        "total_scanned": 30,
         "market_open": is_market_open(),
     }

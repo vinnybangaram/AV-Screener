@@ -1,0 +1,11 @@
+content = """GEMINI_API_KEY=AIzaSyBztlw4FvU-VAl79fP3ghzFh61ajtRAu0Q
+GOOGLE_CLIENT_ID=587776114004-q4i1oe5e60ge59obg6p0r9fe7e0km6n6.apps.googleusercontent.com
+PORT=5000
+FINNHUB_API_KEY=d7g4fj9r01qqb8riagigd7g4fj9r01qqb8riagj0
+RESEND_API_KEY=re_jS6D69Km_A9nomvG73b826uRzzPub8KRr
+RESEND_FROM_EMAIL=onboarding@resend.dev
+ALPHA_VANTAGE_API_KEY=KNVOLUQ0FTRK8G0I
+"""
+with open('.env', 'w', encoding='utf-8') as f:
+    f.write(content)
+print("Environment file successfully written in UTF-8.")

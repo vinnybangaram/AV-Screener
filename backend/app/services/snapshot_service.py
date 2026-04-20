@@ -71,19 +71,37 @@ def get_performance_trend(db: Session, user_id: int, category: str = "All", time
     # 2. Filter by category if not 'All'
     if category != "All":
         cat_map = {
-            "Penny Stocks": "Penny",
-            "Multibaggers": "Multibagger",
-            "Intraday Radar": "Intraday"
+            "Penny Stocks": "penny", 
+            "Multibaggers": "multibagger", 
+            "Intraday Radar": "intraday",
+            "Intraday Longs": "intraday_long",
+            "Intraday Shorts": "intraday_short",
+            "Core Portfolio": "core"
         }
-        target_cat = cat_map.get(category, category)
-        from sqlalchemy import or_
-        query = query.join(WatchlistPosition).filter(
-            or_(
-                WatchlistPosition.category.ilike(f"%{target_cat}%"),
-                WatchlistPosition.category.ilike(f"{target_cat}%"),
-                WatchlistPosition.category == target_cat
-            )
-        )
+        target_cat = cat_map.get(category, category).lower()
+        
+        from sqlalchemy import or_, and_
+        query = query.join(WatchlistPosition)
+        
+        if target_cat == 'intraday_long':
+            query = query.filter(and_(
+                WatchlistPosition.category.ilike("%intraday%"),
+                WatchlistPosition.side != "SHORT"
+            ))
+        elif target_cat == 'intraday_short':
+            query = query.filter(and_(
+                WatchlistPosition.category.ilike("%intraday%"),
+                WatchlistPosition.side == "SHORT"
+            ))
+        elif target_cat == 'core':
+            # Core includes manual and general investment categories
+            query = query.filter(or_(
+                WatchlistPosition.category.ilike("%core%"),
+                WatchlistPosition.category.ilike("%investment%"),
+                WatchlistPosition.category.ilike("%manual%")
+            ))
+        else:
+            query = query.filter(WatchlistPosition.category.ilike(f"%{target_cat}%"))
     
     # 3. Timeframe filtering
     now = datetime.utcnow()
