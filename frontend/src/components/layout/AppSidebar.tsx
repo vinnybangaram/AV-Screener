@@ -10,10 +10,15 @@ import { useIsAdmin } from "@/lib/admin-store";
 import { useNavigate } from "react-router-dom";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const user = useAuthUser();
   const navigate = useNavigate();
+
+  const closeSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
   const isUserAdmin = user?.role === "admin";
   const mockAdmin = useIsAdmin();
   const isAdmin = isUserAdmin || mockAdmin;
@@ -21,6 +26,7 @@ export function AppSidebar() {
 
   const handleSignOut = () => {
     signOut();
+    closeSidebar();
     navigate("/login");
   };
 
@@ -62,6 +68,7 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
+                      onClick={closeSidebar}
                       activeClassName="!bg-gradient-to-r !from-sidebar-accent !to-sidebar-accent/40 !text-sidebar-accent-foreground font-semibold relative before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r before:bg-gradient-emerald before:shadow-glow-emerald [&>svg]:!text-sidebar-primary"
                     >
                       <item.icon className="h-4 w-4" />
@@ -79,7 +86,10 @@ export function AppSidebar() {
         {isAdmin && !collapsed && (
            <div className="px-2 pb-2">
              <button 
-               onClick={() => navigate("/admin")}
+               onClick={() => {
+                 closeSidebar();
+                 navigate("/admin");
+               }}
                className="w-full rounded-lg bg-danger/10 border border-danger/20 p-2 flex items-center gap-2 hover:bg-danger/20 transition-colors group/admin"
              >
                <ShieldCheck className="h-3.5 w-3.5 text-danger group-hover/admin:scale-110 transition-transform" />

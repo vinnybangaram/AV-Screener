@@ -12,7 +12,7 @@ export function AppLayout() {
         <SidebarInset className="flex flex-col min-w-0">
           <AppHeader />
           <MarketTicker />
-          <main className="flex-1 p-6 animate-fade-in">
+          <main className="flex-1 p-6 animate-fade-in overflow-x-hidden">
             <Outlet />
           </main>
         </SidebarInset>

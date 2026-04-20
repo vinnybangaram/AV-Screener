@@ -308,7 +308,7 @@ const Dashboard = () => {
             </div>
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">View all</Button>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {(data?.global?.sectorPerformance || []).map((s: any) => {
               const intensity = Math.min(Math.abs(s.change) / 2.5, 1);
               const up = s.change >= 0;

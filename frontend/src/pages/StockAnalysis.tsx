@@ -715,7 +715,7 @@ function PriceTargetsCard({ currentPrice, targetData }: { currentPrice: number; 
 
 function TargetRow({ label, range, probable, color, bg }: { label: string; range: [number, number]; probable: number; color: string; bg: string }) {
   return (
-    <div className={cn("rounded-lg border p-4 flex items-center justify-between", bg)}>
+    <div className={cn("rounded-lg border p-4 flex flex-wrap items-center justify-between gap-3", bg)}>
       <div>
         <div className={cn("text-[10px] font-bold uppercase tracking-wider", color)}>{label}</div>
         <div className="font-mono text-base font-bold tabular-nums mt-0.5">₹{range[0]?.toFixed(2)} - ₹{range[1]?.toFixed(2)}</div>
@@ -740,7 +740,23 @@ function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }
 
 import { memo } from "react";
 
-// ... existing code ...
+function ForecastBar({ label, range, prob, color, labelColor }: any) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[11px] mb-1">
+        <span className="font-bold text-muted-foreground uppercase tracking-tight">{label}</span>
+        <span className={cn("font-bold", labelColor)}>₹{range[0]?.toFixed(2)} - ₹{range[1]?.toFixed(2)}</span>
+      </div>
+      <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+        <div className={cn("absolute inset-y-0 left-0 rounded-full", color)} style={{ width: `${prob * 100}%` }} />
+      </div>
+      <div className="mt-1 flex justify-between text-[9px] font-mono text-muted-foreground/60 uppercase">
+        <span>Probability</span>
+        <span>{(prob * 100).toFixed(0)}%</span>
+      </div>
+    </div>
+  );
+}
 
 const ProbabilityForecastCard = memo(({ symbol, currentPrice, forecastData }: { symbol: string; currentPrice: number; forecastData: any }) => {
   const [tf, setTf] = useState("30D");

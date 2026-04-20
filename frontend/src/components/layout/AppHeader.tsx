@@ -89,7 +89,7 @@ export function AppHeader() {
         boxShadow: "0 1px 0 0 hsl(var(--border)), 0 4px 16px -8px hsl(200 50% 8% / 0.08)",
       }}
     >
-      <div className="flex h-full items-center gap-3 px-5">
+      <div className="flex h-full items-center gap-3 px-3 md:px-5">
         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
 
         <div className="h-6 w-px bg-border" />
