@@ -45,6 +45,7 @@ class AdminService:
                     "name": u.name, 
                     "email": u.email, 
                     "plan": u.plan, 
+                    "role": u.role,
                     "last_login": u.last_login_at
                 } for u in recent_logins
             ]

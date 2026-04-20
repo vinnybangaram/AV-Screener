@@ -78,10 +78,13 @@ export function AppSidebar() {
       <SidebarFooter className="relative border-t border-sidebar-border/60 p-3 gap-2 z-10">
         {isAdmin && !collapsed && (
            <div className="px-2 pb-2">
-             <div className="rounded-lg bg-danger/10 border border-danger/20 p-2 flex items-center gap-2">
-               <ShieldCheck className="h-3.5 w-3.5 text-danger" />
+             <button 
+               onClick={() => navigate("/admin")}
+               className="w-full rounded-lg bg-danger/10 border border-danger/20 p-2 flex items-center gap-2 hover:bg-danger/20 transition-colors group/admin"
+             >
+               <ShieldCheck className="h-3.5 w-3.5 text-danger group-hover/admin:scale-110 transition-transform" />
                <span className="text-[10px] font-bold text-danger uppercase tracking-wider">Admin Terminal</span>
-             </div>
+             </button>
            </div>
         )}
 

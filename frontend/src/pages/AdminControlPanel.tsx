@@ -1,15 +1,21 @@
 import { Activity, Shield, TrendingUp, Users, UserCheck, Clock, Loader2 } from "lucide-react";
 import { useIsAdmin, setIsAdmin } from "@/lib/admin-store";
-import { Navigate } from "react-router-dom";
+import { useAuthUser } from "@/lib/auth-store";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { fetchAdminAnalytics } from "@/services/api";
 import { cn } from "@/lib/utils";
 
 const AdminControlPanel = () => {
-  const isAdmin = useIsAdmin();
+  const user = useAuthUser();
+  const mockAdmin = useIsAdmin();
+  const isUserAdmin = user?.role === "admin";
+  const isAdmin = isUserAdmin || mockAdmin;
+  
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadData = async () => {
@@ -56,7 +62,14 @@ const AdminControlPanel = () => {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Admin Control Panel</h1>
           <p className="mt-1 text-sm text-muted-foreground">Real-time system-wide analytics and user population monitoring.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setIsAdmin(false)}>Exit admin mode</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            setIsAdmin(false);
+            navigate("/");
+          }}>
+            Exit admin mode
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -100,7 +113,7 @@ const AdminControlPanel = () => {
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                   </td>
                   <td className="py-3 text-center">
-                    <span className="inline-flex items-center justify-center h-6 w-6 rounded border bg-accent/10 text-accent text-xs">U</span>
+                    <span className="inline-flex items-center justify-center h-6 w-6 rounded border bg-accent/10 text-accent text-xs">{u.role === 'admin' ? 'A' : 'U'}</span>
                   </td>
                   <td className="py-3 text-center">
                     <span className={cn(
