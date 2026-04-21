@@ -17,6 +17,9 @@ class OptionTrade(Base):
     tsl_2 = Column(Float, nullable=True)
     tsl_3 = Column(Float, nullable=True)
     current_tsl = Column(Float, nullable=True)
+    tsl_1_hit = Column(Boolean, default=False)
+    tsl_2_hit = Column(Boolean, default=False)
+    tsl_3_hit = Column(Boolean, default=False)
     
     # Advanced Trade Tracker Fields
     partial_booked = Column(Boolean, default=False)

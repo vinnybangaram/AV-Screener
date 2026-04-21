@@ -35,6 +35,9 @@ class OptionTradeResponse(OptionTradeBase):
     partial_booked: bool = False
     active_multiplier: float = 1.0
     realized_partial_pnl: float = 0.0
+    tsl_1_hit: bool = False
+    tsl_2_hit: bool = False
+    tsl_3_hit: bool = False
 
     class Config:
         from_attributes = True

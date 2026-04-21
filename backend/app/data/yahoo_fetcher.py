@@ -28,54 +28,33 @@ def generate_mock_data(ticker: str) -> pd.DataFrame:
     }, index=dates)
     return df
 
-def fetch_stock_data(ticker: str, period: str = "6mo", interval: str = "1d") -> Optional[pd.DataFrame]:
+def fetch_stock_data(ticker: str, period: str = "5d", interval: str = "5m") -> Optional[pd.DataFrame]:
     """
-    Fetches historical OHLCV data. 
-    FALLBACK: Returns simulated data if API is blocked (429/404).
+    Fetches OHLC data using yfinance (Synchronized with NiftyBot).
     """
-    ticker_yf = format_symbol(ticker)
-    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker_yf}?interval={interval}&range={period}"
-    
+    import yfinance as yf
     try:
-        response = _SESSION.get(url, timeout=5)
+        ticker_yf = format_symbol(ticker)
+        df = yf.download(
+            ticker_yf,
+            period=period,
+            interval=interval,
+            auto_adjust=True,
+            progress=False
+        )
+
+        # Fix MultiIndex columns (NiftyBot Native Logic)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        df = df.dropna()
         
-        if response.status_code == 429:
-            print(f"⚠️ Yahoo Rate Limit hit for {ticker}. Using resilient fallback...")
-            return generate_mock_data(ticker)
-            
-        if response.status_code != 200:
-            print(f"❌ Yahoo API error {response.status_code} for {ticker}. Using fallback...")
-            return generate_mock_data(ticker)
-            
-        data = response.json()
-        result = data['chart']['result']
-        if not result:
-            return generate_mock_data(ticker)
-            
-        res = result[0]
-        timestamps = res.get('timestamp')
-        if not timestamps:
-            return generate_mock_data(ticker)
-            
-        quote = res['indicators']['quote'][0]
-        
-        df = pd.DataFrame({
-            'Open': quote.get('open', []),
-            'High': quote.get('high', []),
-            'Low': quote.get('low', []),
-            'Close': quote.get('close', []),
-            'Volume': quote.get('volume', [])
-        })
-        
-        df.index = pd.to_datetime(timestamps, unit='s')
-        df.dropna(inplace=True)
-            
         if df.empty:
             return generate_mock_data(ticker)
             
         return df
     except Exception as e:
-        print(f"fetch_stock_data exception for {ticker}: {e}. Using fallback...")
+        print(f"yFinance Sync Error for {ticker}: {e}. Using fallback...")
         return generate_mock_data(ticker)
 
 def fetch_fundamentals(ticker: str) -> Dict[str, Any]:

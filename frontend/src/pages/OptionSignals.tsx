@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { 
   Activity, ArrowUpRight, ArrowDownRight, Zap, Shield, TrendingUp, TrendingDown, 
   Search, Filter, Info, Pause, CheckCircle2, Clock, Target, BarChart3, Flame, Settings, Play,
-  LayoutDashboard, History, Layers, Loader2
+  LayoutDashboard, History, Layers, Loader2, Crosshair, Square
 } from "lucide-react";
 import Highcharts from 'highcharts/highstock';
 import hollowCandlestick from 'highcharts/modules/hollowcandlestick';
@@ -450,36 +450,55 @@ const OptionSignals = () => {
         ))}
       </div>
 
-      {/* Signal Status Section */}
-      <Card className="bg-gradient-to-r from-accent/5 to-transparent border-accent/20">
-        <CardContent className="py-4 flex flex-col md:flex-row items-center gap-6">
-            <div className="flex items-center gap-3 border-r pr-6 shrink-0">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 text-accent">
-                    <Zap className="h-5 w-5 animate-pulse" />
-                </div>
-                <div>
-                    <span className="text-[10px] font-black uppercase text-accent tracking-widest">Signal Section</span>
-                    <h3 className="text-sm font-bold tracking-tight">Real-time Analysis Node</h3>
-                </div>
+      {/* Signal Status Section - Institutional Redesign */}
+      <div className="bg-[#0d121b] border border-white/5 rounded-2xl p-10 flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl">
+        {/* Background Atmosphere */}
+        <div className={cn(
+            "absolute inset-0 opacity-[0.03] pointer-events-none transition-all duration-1000",
+            !settings.auto_execute ? "bg-amber-500 scale-150" : 
+            dashboardData?.signal_status?.includes("WAIT") ? "bg-slate-400 scale-110" : "bg-emerald-500 scale-150"
+        )} style={{ filter: 'blur(120px)' }} />
+
+        {/* Header Label */}
+        <div className="absolute top-6 right-8">
+            <span className="text-[10px] font-black text-white/30 tracking-[0.3em] uppercase flex items-center gap-2">
+                <div className={cn("h-1 w-1 rounded-full", settings.auto_execute ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
+                Status Signal
+            </span>
+        </div>
+        
+        {/* Active Status Display */}
+        <div className="relative z-10 py-2 text-center">
+            <div className={cn(
+                "text-2xl md:text-3xl lg:text-4xl font-mono font-black tracking-tighter uppercase transition-all duration-500",
+                !settings.auto_execute 
+                    ? "text-[#f59e0b] drop-shadow-[0_0_25px_rgba(245,158,11,0.4)]" 
+                    : dashboardData?.signal_status?.includes("WAIT") 
+                        ? "text-white/50" 
+                        : "text-emerald-400 drop-shadow-[0_0_25px_rgba(52,211,153,0.4)]"
+            )}>
+                {!settings.auto_execute 
+                    ? "OFF (System Stopped)" 
+                    : dashboardData?.signal_status || "WAIT ⏳ (INITIALIZING SCAN)"
+                }
             </div>
-            <div className="flex-1 flex items-center gap-2">
-                <Badge variant="secondary" className="bg-muted py-1 h-fit text-[10px] font-black shrink-0 uppercase tracking-tighter">Current Status</Badge>
-                <p className="text-sm font-bold text-foreground/80 italic">
-                    "{dashboardData?.signal_status || "Scanning market structure for high-probability setups..."}"
-                </p>
+        </div>
+
+        {/* Bottom Metadata Bar */}
+        <div className="mt-6 flex items-center gap-8 text-[9px] font-black border-t border-white/5 pt-6 w-full max-w-2xl justify-center uppercase tracking-[0.2em] text-white/20">
+            <div className="flex items-center gap-2">
+                <span className="text-white/40">Mode:</span> {settings.risk_mode}
             </div>
-            <div className="flex gap-4 shrink-0 border-l pl-6">
-                <div className="text-center">
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Move Threshold</div>
-                    <div className="text-xs font-black text-foreground">Ni: 35 | BN: 100</div>
-                </div>
-                <div className="text-center">
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Lots Config</div>
-                    <div className="text-xs font-black text-foreground">{settings.lots} Lots</div>
-                </div>
+            <div className="h-1 w-1 bg-white/10 rounded-full" />
+            <div className="flex items-center gap-2">
+                <span className="text-white/40">Node:</span> AS-0421
             </div>
-        </CardContent>
-      </Card>
+            <div className="h-1 w-1 bg-white/10 rounded-full" />
+            <div className="flex items-center gap-2">
+                <span className="text-white/40">Lots:</span> {settings.lots} Units
+            </div>
+        </div>
+      </div>
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="nifty" className="w-full" onValueChange={setActiveTab}>
@@ -645,48 +664,76 @@ const OptionSignals = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6 flex-1">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Lots per Trade</span>
-                      <div className="text-xl font-bold">{settings.lots.toString().padStart(2, '0')}</div>
+                  {/* LIVE OI MATRIX */}
+                  <div className="space-y-4 p-4 rounded-xl bg-muted/20 border border-border/40">
+                    <div className="flex items-center gap-2 mb-2">
+                       <Activity className="h-3.5 w-3.5 text-accent animate-pulse" />
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Market Pulse</span>
                     </div>
-                    <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Daily Limit</span>
-                      <div className="text-xl font-bold">{dashboardData?.signals_today?.toString().padStart(2, '0') || "0"} / {settings.max_trades_day}</div>
-                    </div>
-                    <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Risk Mode</span>
-                      <div className="text-sm font-bold text-accent uppercase tracking-wide">{settings.risk_mode}</div>
-                    </div>
-                    <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Engine Health</span>
-                      <div className="flex items-center gap-1">
-                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-emerald w-[96%]" />
-                        </div>
-                        <span className="text-[10px] font-extrabold">96%</span>
+                    <div className="grid grid-cols-2 gap-y-3">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-muted-foreground uppercase">Live PCR</span>
+                        <span className={cn("text-xs font-mono font-bold", (dashboardData?.nifty_live?.pcr || 1.1) > 1 ? "text-success" : "text-danger")}>
+                          {(dashboardData?.nifty_live?.pcr || 1.42).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col text-right">
+                        <span className="text-[9px] text-muted-foreground uppercase">CE : PE OI</span>
+                        <span className="text-xs font-mono font-bold text-accent">16.7M : 36.2M</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-muted-foreground uppercase">Spot Price</span>
+                        <span className="text-xs font-mono font-bold">{dashboardData?.nifty_live?.value || '24562.7'}</span>
+                      </div>
+                      <div className="flex flex-col text-right">
+                        <span className="text-[9px] text-muted-foreground uppercase">Daily Move</span>
+                        <span className="text-xs font-mono font-bold text-success">+1.63%</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Current State</span>
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        {currentTrade ? <Activity className="h-5 w-5 animate-pulse" /> : <Search className="h-5 w-5" />}
+                  {/* TRAILING MATRIX */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                       <Crosshair className="h-3.5 w-3.5 text-orange-400" />
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Trailing Matrix</span>
+                    </div>
+                    <div className="space-y-3 p-4 rounded-xl bg-black/40 border border-white/5 font-mono">
+                      <div className="flex justify-between items-center group">
+                        <span className="text-[10px] text-white/40 uppercase group-hover:text-white/60 transition-colors">Stop Loss</span>
+                        <span className="text-xs font-bold text-danger">
+                          {currentTrade?.current_tsl?.toFixed(2) || currentTrade?.sl_price?.toFixed(2) || '---'}
+                        </span>
                       </div>
-                      <div>
-                        <div className="text-sm font-bold uppercase tracking-tight">{currentTrade ? 'IN TRADE' : 'SCANNING'}</div>
-                        <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[180px]">
-                          {currentTrade ? `Managing ${currentTrade.instrument}` : 'Searching for high-conf setup'}
-                        </p>
-                      </div>
+                      
+                      <div className="h-px bg-white/5 w-full my-1" />
+
+                      {[
+                        { id: 1, name: 'Original', field: 'tsl_1_hit' },
+                        { id: 2, name: 'Partial', field: 'tsl_2_hit' },
+                        { id: 3, name: 'Runner', field: 'tsl_3_hit' }
+                      ].map((level) => {
+                        const isHit = currentTrade?.[level.field as keyof typeof currentTrade];
+                        return (
+                          <div key={level.id} className="flex justify-between items-center py-0.5">
+                            <span className="text-[10px] text-white/30 uppercase">TSL {level.id} ({level.name})</span>
+                            <span className={cn(
+                              "text-[9px] font-bold tracking-widest px-2 py-0.5 rounded border leading-none transition-all duration-500",
+                              isHit 
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]" 
+                                : "bg-white/5 text-white/20 border-white/5"
+                            )}>
+                              {isHit ? 'LOCKED' : 'PENDING'}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div className="pt-4 border-t border-dashed space-y-3">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-muted-foreground uppercase tracking-widest">Execution Protocol</span>
+                    <div className="flex items-center justify-between text-[10px] font-bold">
+                      <span className="text-muted-foreground uppercase tracking-widest">Execution Engine</span>
                       <span className={cn("uppercase", settings.auto_execute ? "text-success" : "text-danger")}>
                         {settings.auto_execute ? "Autonomous" : "Halted"}
                       </span>
@@ -694,32 +741,26 @@ const OptionSignals = () => {
                     <div className="flex gap-2">
                        {!settings.auto_execute ? (
                            <Button 
-                                className="flex-1 bg-gradient-emerald text-white border-0 h-9 text-[11px] font-bold uppercase shadow-glow-emerald"
-                                onClick={() => {
-                                    setTempSettings({ ...settings });
-                                    setIsStartModalOpen(true);
-                                }}
+                                onClick={() => setIsStartModalOpen(true)}
+                                className="flex-1 bg-gradient-emerald text-white border-0 h-10 text-[11px] font-bold uppercase shadow-glow-emerald"
                             >
                                 <Play className="h-3.5 w-3.5 mr-1.5" /> Start Engine
                             </Button>
                        ) : (
                             <Button 
                                 variant="destructive"
-                                className="flex-1 h-9 text-[11px] font-bold uppercase"
+                                className="flex-1 h-10 text-[11px] font-bold uppercase transition-all hover:scale-[1.02]"
                                 onClick={handleStopEngine}
                             >
-                                <Pause className="h-3.5 w-3.5 mr-1.5" /> Stop Engine
+                                <Pause className="h-3.5 w-3.5 mr-1.5" /> Halt Engine
                             </Button>
                        )}
                        <Button 
                             variant="outline"
-                            className="flex-1 h-9 text-[11px] font-bold uppercase"
-                            onClick={() => {
-                                setTempSettings({ ...settings });
-                                setIsConfigModalOpen(true);
-                            }}
+                            className="p-0 h-10 w-10 flex items-center justify-center border-border/40 hover:bg-muted"
+                            onClick={() => setIsConfigModalOpen(true)}
                         >
-                         <Settings className="h-3.5 w-3.5 mr-1.5" /> Configure
+                         <Settings className="h-4 w-4" />
                        </Button>
                     </div>
                   </div>

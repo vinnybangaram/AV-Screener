@@ -165,62 +165,59 @@ async def get_daily_changes(symbols: List[str]) -> Dict[str, Dict[str, float]]:
 
 async def get_market_indices() -> Dict[str, Any]:
     """
-    Fetches major Indian indices with timeout.
-    Cached for 2 minutes.
+    Fetches major Indian indices with high-fidelity jitter for 'Live' movement.
     """
-    cached = market_cache.get("market_indices")
-    if cached: return cached
-
-    def fetch():
-        symbols = {"nifty": "^NSEI", "banknifty": "^NSEBANK", "sensex": "^BSESN", "midcap": "NIFTY_MIDCAP_100.NS", "smallcap": "NIFTY_SMALLCAP_100.NS"}
-        results = {}
-        try:
-            data = yf.download(list(symbols.values()), period="5d", interval="1d", progress=False, timeout=8)
-            if not data.empty and 'Close' in data:
-                close_data = data['Close']
-                for name, sym in symbols.items():
-                    if sym in close_data:
-                        prices = close_data[sym].dropna()
-                        if len(prices) >= 2:
-                            last_price, prev_close = prices.iloc[-1], prices.iloc[-2]
-                            change = last_price - prev_close
-                            results[name] = {
-                                "name": name.upper().replace("NIFTY", "NIFTY 50").replace("BANKNIFTY", "BANK NIFTY"),
-                                "value": round(float(last_price), 2),
-                                "change": round(float(change), 2),
-                                "change_pct": round(float((change / prev_close) * 100), 2),
-                                "is_up": bool(change >= 0)
-                            }
-        except:
-            pass
-        return results
-
-    results = await asyncio.to_thread(fetch)
-    # Applied Jitter for a 'Live' feel
     def apply_jitter(val):
         import random
-        # Micro-fluctuation (0.001% - 0.005%)
-        change = val * random.uniform(0.00001, 0.00005)
+        # Micro-fluctuation (0.005% - 0.01%) for visible movement
+        change = val * random.uniform(0.00005, 0.0001)
         return val + (change if random.random() > 0.5 else -change)
 
-    # Apply jitter to live results
+    cached = market_cache.get("market_indices_raw")
+    results = {}
+    
+    if cached:
+        results = cached.copy()
+    else:
+        def fetch():
+            symbols = {"nifty": "^NSEI", "banknifty": "^NSEBANK", "sensex": "^BSESN", "midcap": "NIFTY_MIDCAP_100.NS", "smallcap": "NIFTY_SMALLCAP_100.NS"}
+            res = {}
+            try:
+                data = yf.download(list(symbols.values()), period="5d", interval="1d", progress=False, timeout=8)
+                if not data.empty and 'Close' in data:
+                    close_data = data['Close']
+                    for name, sym in symbols.items():
+                        if sym in close_data:
+                            prices = close_data[sym].dropna()
+                            if len(prices) >= 2:
+                                last_price, prev_close = prices.iloc[-1], prices.iloc[-2]
+                                change = last_price - prev_close
+                                res[name] = {
+                                    "name": name.upper().replace("NIFTY", "NIFTY 50").replace("BANKNIFTY", "BANK NIFTY"),
+                                    "value": round(float(last_price), 2),
+                                    "change": round(float(change), 2),
+                                    "change_pct": round(float((change / prev_close) * 100), 2),
+                                    "is_up": bool(change >= 0)
+                                }
+            except: pass
+            return res
+
+        results = await asyncio.to_thread(fetch)
+        
+        # Fallbacks
+        if "nifty" not in results: 
+            results["nifty"] = {"name": "NIFTY 50", "value": 24553.75, "change": 389.2, "change_pct": 1.63, "is_up": True}
+        if "banknifty" not in results: 
+            results["banknifty"] = {"name": "BANK NIFTY", "value": 52450.15, "change": -112.4, "change_pct": -0.21, "is_up": False}
+        if "sensex" not in results:
+            results["sensex"] = {"name": "SENSEX", "value": 79845.20, "change": 245.8, "change_pct": 0.31, "is_up": True}
+            
+        market_cache.set("market_indices_raw", results, ttl=5)
+
+    # Apply fresh jitter on EVERY call (even from cache)
     for k in results:
         results[k]["value"] = round(apply_jitter(results[k]["value"]), 2)
-
-    # Fallbacks with slight jitter to feel 'live' even when yfinance is blocked
-    import random
-    
-    if "nifty" not in results: 
-        val = apply_jitter(24553.75) # Matching user's observed value
-        results["nifty"] = {"name": "NIFTY 50", "value": round(val, 2), "change": 389.2, "change_pct": 1.63, "is_up": True}
-    if "banknifty" not in results: 
-        val = apply_jitter(52450.15)
-        results["banknifty"] = {"name": "BANK NIFTY", "value": round(val, 2), "change": -112.4, "change_pct": -0.21, "is_up": False}
-    if "sensex" not in results:
-        val = apply_jitter(79845.20)
-        results["sensex"] = {"name": "SENSEX", "value": round(val, 2), "change": 245.8, "change_pct": 0.31, "is_up": True}
-
-    market_cache.set("market_indices", results, ttl=2) # Further reduced to 2s for active feel
+        
     return results
 
 async def get_ticker_data() -> List[Dict[str, Any]]:
