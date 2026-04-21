@@ -75,3 +75,9 @@ class OptionSignalsDashboard(BaseModel):
     trades: List[OptionTradeResponse]
     nifty_live: Optional[dict] = None
     banknifty_live: Optional[dict] = None
+    pcr: float = 1.0
+    ce_oi_total: float = 0
+    pe_oi_total: float = 0
+    call_wall: float = 0
+    put_wall: float = 0
+    engine_logs: List[str] = []

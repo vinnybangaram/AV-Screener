@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { 
   Activity, ArrowUpRight, ArrowDownRight, Zap, Shield, TrendingUp, TrendingDown, 
   Search, Filter, Info, Pause, CheckCircle2, Clock, Target, BarChart3, Flame, Settings, Play,
-  LayoutDashboard, History, Layers, Loader2, Crosshair, Square
+  LayoutDashboard, History, Layers, Loader2, Crosshair, Square, Terminal
 } from "lucide-react";
 import Highcharts from 'highcharts/highstock';
 import hollowCandlestick from 'highcharts/modules/hollowcandlestick';
@@ -365,6 +365,12 @@ const OptionSignals = () => {
     },
   ];
 
+  const [lastUpdateTime, setLastUpdateTime] = useState(new Date());
+
+  useEffect(() => {
+    setLastUpdateTime(new Date());
+  }, [dashboardData]);
+
   if (loading) {
      return <div className="flex h-[80vh] items-center justify-center">
        <div className="flex flex-col items-center gap-4">
@@ -451,30 +457,26 @@ const OptionSignals = () => {
       </div>
 
       {/* Signal Status Section - Institutional Redesign */}
-      <div className="bg-[#0d121b] border border-white/5 rounded-2xl p-10 flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl">
-        {/* Background Atmosphere */}
+      <div className="bg-[#0b0f17] border border-white/5 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-10 relative overflow-hidden group shadow-2xl">
         <div className={cn(
-            "absolute inset-0 opacity-[0.03] pointer-events-none transition-all duration-1000",
+            "absolute inset-0 opacity-[0.05] pointer-events-none transition-all duration-1000",
             !settings.auto_execute ? "bg-amber-500 scale-150" : 
             dashboardData?.signal_status?.includes("WAIT") ? "bg-slate-400 scale-110" : "bg-emerald-500 scale-150"
         )} style={{ filter: 'blur(120px)' }} />
 
-        {/* Header Label */}
-        <div className="absolute top-6 right-8">
-            <span className="text-[10px] font-black text-white/30 tracking-[0.3em] uppercase flex items-center gap-2">
-                <div className={cn("h-1 w-1 rounded-full", settings.auto_execute ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
-                Status Signal
-            </span>
-        </div>
-        
-        {/* Active Status Display */}
-        <div className="relative z-10 py-2 text-center">
+        {/* Left: Main Focus Signal */}
+        <div className="flex-1 relative z-10 w-full">
+            <div className="flex items-center gap-3 mb-4">
+                <div className={cn("h-3 w-3 rounded-full shadow-[0_0_12px]", settings.auto_execute ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
+                <span className="text-[10px] font-black text-white/40 tracking-[0.4em] uppercase">Engine Execution Status</span>
+            </div>
+            
             <div className={cn(
-                "text-2xl md:text-3xl lg:text-4xl font-mono font-black tracking-tighter uppercase transition-all duration-500",
+                "text-2xl md:text-4xl lg:text-5xl font-mono font-black tracking-tighter uppercase transition-all duration-500",
                 !settings.auto_execute 
                     ? "text-[#f59e0b] drop-shadow-[0_0_25px_rgba(245,158,11,0.4)]" 
                     : dashboardData?.signal_status?.includes("WAIT") 
-                        ? "text-white/50" 
+                        ? "text-white/60" 
                         : "text-emerald-400 drop-shadow-[0_0_25px_rgba(52,211,153,0.4)]"
             )}>
                 {!settings.auto_execute 
@@ -482,20 +484,38 @@ const OptionSignals = () => {
                     : dashboardData?.signal_status || "WAIT ⏳ (INITIALIZING SCAN)"
                 }
             </div>
+
+            <div className="mt-6 flex items-center gap-6 text-[9px] font-black uppercase tracking-[0.2em] text-white/20">
+                <div className="flex items-center gap-1.5"><span className="text-white/40">Risk:</span> {settings.risk_mode}</div>
+                <div className="h-1 w-1 bg-white/10 rounded-full" />
+                <div className="flex items-center gap-1.5"><span className="text-white/40">Last Update:</span> {lastUpdateTime.toLocaleTimeString()}</div>
+                <div className="h-1 w-1 bg-white/10 rounded-full" />
+                <div className="flex items-center gap-1.5"><span className="text-white/40">Ping:</span> 42ms</div>
+                <div className="h-1 w-1 bg-white/10 rounded-full" />
+                <div className="flex items-center gap-1.5 animate-pulse text-emerald-500/60"><Activity className="h-3 w-3" /> Heartbeat Live</div>
+            </div>
         </div>
 
-        {/* Bottom Metadata Bar */}
-        <div className="mt-6 flex items-center gap-8 text-[9px] font-black border-t border-white/5 pt-6 w-full max-w-2xl justify-center uppercase tracking-[0.2em] text-white/20">
-            <div className="flex items-center gap-2">
-                <span className="text-white/40">Mode:</span> {settings.risk_mode}
-            </div>
-            <div className="h-1 w-1 bg-white/10 rounded-full" />
-            <div className="flex items-center gap-2">
-                <span className="text-white/40">Node:</span> AS-0421
-            </div>
-            <div className="h-1 w-1 bg-white/10 rounded-full" />
-            <div className="flex items-center gap-2">
-                <span className="text-white/40">Lots:</span> {settings.lots} Units
+        {/* Right: Live Execution Feed (The Engagement "Terminal") */}
+        <div className="w-full md:w-[320px] lg:w-[450px] relative z-10">
+            <div className="bg-black/60 backdrop-blur-xl border border-white/5 rounded-xl p-4 h-[120px] font-mono overflow-y-auto custom-scrollbar">
+                <div className="flex items-center gap-2 mb-2 sticky top-0 bg-black/40 py-1">
+                    <Terminal className="h-3 w-3 text-emerald-500" />
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Live Engine Feed</span>
+                </div>
+                <div className="space-y-1.5">
+                    {(dashboardData?.engine_logs || []).map((log: string, idx: number) => (
+                        <div key={idx} className={cn(
+                            "text-[10px] leading-tight transition-all duration-300",
+                            idx === 0 ? "text-emerald-400 font-bold" : "text-white/40"
+                        )}>
+                            <span className="opacity-40">{">"}</span> {log}
+                        </div>
+                    ))}
+                    {(!dashboardData?.engine_logs || dashboardData.engine_logs.length === 0) && (
+                        <div className="text-[10px] text-white/20 italic animate-pulse">Initializing socket handshake...</div>
+                    )}
+                </div>
             </div>
         </div>
       </div>
@@ -668,26 +688,28 @@ const OptionSignals = () => {
                   <div className="space-y-4 p-4 rounded-xl bg-muted/20 border border-border/40">
                     <div className="flex items-center gap-2 mb-2">
                        <Activity className="h-3.5 w-3.5 text-accent animate-pulse" />
-                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Market Pulse</span>
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">OI Sentiment (Writer Trap)</span>
                     </div>
                     <div className="grid grid-cols-2 gap-y-3">
                       <div className="flex flex-col">
                         <span className="text-[9px] text-muted-foreground uppercase">Live PCR</span>
-                        <span className={cn("text-xs font-mono font-bold", (dashboardData?.nifty_live?.pcr || 1.1) > 1 ? "text-success" : "text-danger")}>
-                          {(dashboardData?.nifty_live?.pcr || 1.42).toFixed(2)}
+                        <span className={cn("text-xs font-mono font-bold", (dashboardData?.pcr || 1.1) >= 1 ? "text-success" : "text-danger")}>
+                          {(dashboardData?.pcr || 1.42).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex flex-col text-right">
-                        <span className="text-[9px] text-muted-foreground uppercase">CE : PE OI</span>
-                        <span className="text-xs font-mono font-bold text-accent">16.7M : 36.2M</span>
+                        <span className="text-[9px] text-muted-foreground uppercase">CE : PE Delta</span>
+                        <span className="text-xs font-mono font-bold text-accent">
+                          {((dashboardData?.ce_oi_total || 0) / 1000).toFixed(1)}k : {((dashboardData?.pe_oi_total || 0) / 1000).toFixed(1)}k
+                        </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] text-muted-foreground uppercase">Spot Price</span>
-                        <span className="text-xs font-mono font-bold">{dashboardData?.nifty_live?.value || '24562.7'}</span>
+                        <span className="text-[9px] text-muted-foreground uppercase">Gamma Wall</span>
+                        <span className="text-xs font-mono font-bold text-danger">{dashboardData?.call_wall || '---'}</span>
                       </div>
                       <div className="flex flex-col text-right">
-                        <span className="text-[9px] text-muted-foreground uppercase">Daily Move</span>
-                        <span className="text-xs font-mono font-bold text-success">+1.63%</span>
+                        <span className="text-[9px] text-muted-foreground uppercase">Put Wall</span>
+                        <span className="text-xs font-mono font-bold text-success">{dashboardData?.put_wall || '---'}</span>
                       </div>
                     </div>
                   </div>
@@ -700,7 +722,7 @@ const OptionSignals = () => {
                     </div>
                     <div className="space-y-3 p-4 rounded-xl bg-black/40 border border-white/5 font-mono">
                       <div className="flex justify-between items-center group">
-                        <span className="text-[10px] text-white/40 uppercase group-hover:text-white/60 transition-colors">Stop Loss</span>
+                        <span className="text-[10px] text-white/40 uppercase group-hover:text-white/60 transition-colors">Active Stop Loss</span>
                         <span className="text-xs font-bold text-danger">
                           {currentTrade?.current_tsl?.toFixed(2) || currentTrade?.sl_price?.toFixed(2) || '---'}
                         </span>
@@ -709,14 +731,14 @@ const OptionSignals = () => {
                       <div className="h-px bg-white/5 w-full my-1" />
 
                       {[
-                        { id: 1, name: 'Original', field: 'tsl_1_hit' },
-                        { id: 2, name: 'Partial', field: 'tsl_2_hit' },
-                        { id: 3, name: 'Runner', field: 'tsl_3_hit' }
+                        { id: 1, name: 'Profit Locked', field: 'tsl_1_hit' },
+                        { id: 2, name: 'Partial Booked', field: 'partial_booked' },
+                        { id: 3, name: 'Trail Active', field: 'tsl_2_hit' }
                       ].map((level) => {
                         const isHit = currentTrade?.[level.field as keyof typeof currentTrade];
                         return (
                           <div key={level.id} className="flex justify-between items-center py-0.5">
-                            <span className="text-[10px] text-white/30 uppercase">TSL {level.id} ({level.name})</span>
+                            <span className="text-[10px] text-white/30 uppercase">{level.name}</span>
                             <span className={cn(
                               "text-[9px] font-bold tracking-widest px-2 py-0.5 rounded border leading-none transition-all duration-500",
                               isHit 
@@ -793,7 +815,7 @@ const OptionSignals = () => {
                 <div className="space-y-1">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-accent border-l-2 border-accent pl-2">Strategy Model</h4>
                   <p className="text-xs leading-relaxed text-muted-foreground font-medium">
-                    Institutional EMA Crossover (9/21) + RSI Momentum (40/60) + MACD Trend Confirmation. Multi-level TSL enabled.
+                    Writer Trap (OI Reading) + Gamma Wall Magnets + A+ Pullback Engine. Triple-Stage Trailing with 20pt buffer.
                   </p>
                 </div>
               </CardContent>
