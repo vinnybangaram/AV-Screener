@@ -122,7 +122,7 @@ const OptionSignals = () => {
       } catch (err) {
         console.error("Polling error:", err);
       }
-    }, 5000);
+    }, 2000); // Increased polling frequency to 2s
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -218,24 +218,26 @@ const OptionSignals = () => {
     const dataLength = 100;
     const ohlc: any[] = [];
     const volume: any[] = [];
-    let prevClose = livePrice;
-
-    // Use current time as latest for dummy data generation
+    
+    // Generate data working BACKWARDS from livePrice to ensure it ends at current price
     const now = Date.now();
-    for (let i = 0; i < dataLength; i++) {
-        const time = now - (dataLength - i) * 60000;
-        const open = prevClose + (Math.random() * 20 - 10);
-        const high = open + Math.random() * 15;
-        const low = open - Math.random() * 15;
-        const close = open + (Math.random() * 10 - 5);
+    let currentWalk = livePrice;
+    
+    for (let i = dataLength - 1; i >= 0; i--) {
+        const time = now - (dataLength - 1 - i) * 60000 * 5; // 5-min intervals for better view
+        const close = currentWalk;
+        const volatility = activeTab === "nifty" ? 15 : 40;
+        const open = close + (Math.random() * volatility - volatility/2);
+        const high = Math.max(open, close) + Math.random() * (volatility/3);
+        const low = Math.min(open, close) - Math.random() * (volatility/3);
         
-        ohlc.push([time, open, high, low, close]);
-        volume.push({
+        ohlc.unshift([time, open, high, low, close]);
+        volume.unshift({
             x: time,
             y: Math.random() * 1000 + 500,
             color: close > open ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'
         });
-        prevClose = close;
+        currentWalk = open; // Next candle (going backwards) starts from this open
     }
 
     return {
@@ -750,7 +752,7 @@ const OptionSignals = () => {
                 <div className="space-y-1">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-accent border-l-2 border-accent pl-2">Strategy Model</h4>
                   <p className="text-xs leading-relaxed text-muted-foreground font-medium">
-                    Volume Proportional Candlestick Analysis. Multi-level TSL provided for capital preservation.
+                    Institutional EMA Crossover (9/21) + RSI Momentum (40/60) + MACD Trend Confirmation. Multi-level TSL enabled.
                   </p>
                 </div>
               </CardContent>

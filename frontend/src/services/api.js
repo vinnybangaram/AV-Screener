@@ -465,6 +465,10 @@ export const forceOptionSignalsSync = async () => {
     return await api.post('/option-signals/force-sync');
 };
 
+export const fetchMarketTicker = async () => {
+    return await api.get('/market/ticker');
+};
+
 export default api;
 
 

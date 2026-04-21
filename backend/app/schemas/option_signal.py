@@ -32,6 +32,9 @@ class OptionTradeResponse(OptionTradeBase):
     execution_time: datetime
     exit_time: Optional[datetime] = None
     exit_reason: Optional[str] = None
+    partial_booked: bool = False
+    active_multiplier: float = 1.0
+    realized_partial_pnl: float = 0.0
 
     class Config:
         from_attributes = True
@@ -41,12 +44,16 @@ class OptionSettingsBase(BaseModel):
     max_trades_day: int
     risk_mode: str
     auto_execute: bool
+    whatsapp_alerts: bool = False
+    phone_number: Optional[str] = None
 
 class OptionSettingsUpdate(BaseModel):
     lots: Optional[int] = None
     max_trades_day: Optional[int] = None
     risk_mode: Optional[str] = None
     auto_execute: Optional[bool] = None
+    whatsapp_alerts: Optional[bool] = None
+    phone_number: Optional[str] = None
 
 class OptionSettingsResponse(OptionSettingsBase):
     updated_at: datetime

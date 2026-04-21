@@ -28,13 +28,13 @@ def generate_mock_data(ticker: str) -> pd.DataFrame:
     }, index=dates)
     return df
 
-def fetch_stock_data(ticker: str, period: str = "6mo") -> Optional[pd.DataFrame]:
+def fetch_stock_data(ticker: str, period: str = "6mo", interval: str = "1d") -> Optional[pd.DataFrame]:
     """
     Fetches historical OHLCV data. 
     FALLBACK: Returns simulated data if API is blocked (429/404).
     """
     ticker_yf = format_symbol(ticker)
-    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker_yf}?interval=1d&range={period}"
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker_yf}?interval={interval}&range={period}"
     
     try:
         response = _SESSION.get(url, timeout=5)

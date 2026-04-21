@@ -17,6 +17,13 @@ class OptionTrade(Base):
     tsl_2 = Column(Float, nullable=True)
     tsl_3 = Column(Float, nullable=True)
     current_tsl = Column(Float, nullable=True)
+    
+    # Advanced Trade Tracker Fields
+    partial_booked = Column(Boolean, default=False)
+    trailing_sl = Column(Float, nullable=True)
+    active_multiplier = Column(Float, default=1.0)
+    realized_partial_pnl = Column(Float, default=0.0)
+    
     exit_price = Column(Float, nullable=True)
     status = Column(String)  # OPEN / CLOSED / CANCELLED
     exit_reason = Column(String, nullable=True)  # SL / TSL / Manual
@@ -36,4 +43,9 @@ class OptionSettings(Base):
     max_trades_day = Column(Integer, default=10)
     risk_mode = Column(String, default="Balanced")  # Conservative / Balanced / Aggressive
     auto_execute = Column(Boolean, default=True)
+    
+    # Notification Settings
+    whatsapp_alerts = Column(Boolean, default=False)
+    phone_number = Column(String, nullable=True)
+    
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
