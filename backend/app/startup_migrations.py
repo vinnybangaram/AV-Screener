@@ -115,6 +115,42 @@ def run_migrations():
                         except Exception as e:
                             print(f"[Migrations]  ! Failed to add users.{col}: {e}")
 
+            # ── option_trades ────────────────────────────────────────────────
+            if _table_exists(conn, "option_trades"):
+                trade_additions = [
+                    ("tsl_1",              "FLOAT"),
+                    ("tsl_2",              "FLOAT"),
+                    ("tsl_3",              "FLOAT"),
+                    ("tsl_1_hit",          "BOOLEAN DEFAULT FALSE"),
+                    ("tsl_2_hit",          "BOOLEAN DEFAULT FALSE"),
+                    ("tsl_3_hit",          "BOOLEAN DEFAULT FALSE"),
+                    ("current_tsl",        "FLOAT"),
+                    ("partial_booked",     "BOOLEAN DEFAULT FALSE"),
+                    ("realized_partial_pnl", "FLOAT DEFAULT 0.0"),
+                    ("active_multiplier",  "FLOAT DEFAULT 1.0"),
+                ]
+                for col, coltype in trade_additions:
+                    if not _column_exists(conn, "option_trades", col):
+                        try:
+                            conn.execute(text(f"ALTER TABLE option_trades ADD COLUMN {col} {coltype}"))
+                            print(f"[Migrations]  + option_trades.{col}")
+                        except Exception as e:
+                            print(f"[Migrations]  ! Failed to add option_trades.{col}: {e}")
+
+            # ── option_settings ──────────────────────────────────────────────
+            if _table_exists(conn, "option_settings"):
+                settings_additions = [
+                    ("whatsapp_alerts",     "BOOLEAN DEFAULT FALSE"),
+                    ("phone_number",        "VARCHAR"),
+                ]
+                for col, coltype in settings_additions:
+                    if not _column_exists(conn, "option_settings", col):
+                        try:
+                            conn.execute(text(f"ALTER TABLE option_settings ADD COLUMN {col} {coltype}"))
+                            print(f"[Migrations]  + option_settings.{col}")
+                        except Exception as e:
+                            print(f"[Migrations]  ! Failed to add option_settings.{col}: {e}")
+
             conn.commit()
             print("[Migrations] All migrations complete.")
 

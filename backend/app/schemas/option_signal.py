@@ -38,6 +38,7 @@ class OptionTradeResponse(OptionTradeBase):
     tsl_1_hit: bool = False
     tsl_2_hit: bool = False
     tsl_3_hit: bool = False
+    current_tsl: Optional[float] = None
 
     class Config:
         from_attributes = True
