@@ -401,8 +401,9 @@ class OptionSignalsService:
             
         trades = trades_query.all()
         
-        total_pnl = sum([t.pnl for t in trades])
-        wins = len([t for t in trades if t.pnl > 0 and t.status == "CLOSED"])
+        # Null-safe P&L aggregation
+        total_pnl = sum([(t.pnl or 0.0) for t in trades])
+        wins = len([t for t in trades if (t.pnl or 0) > 0 and t.status == "CLOSED"])
         closed_trades = [t for t in trades if t.status == "CLOSED"]
         win_rate = (wins / len(closed_trades) * 100) if closed_trades else 0.0
         active_trades_count = len([t for t in trades if t.status == "OPEN"])
