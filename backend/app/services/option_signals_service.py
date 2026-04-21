@@ -49,6 +49,9 @@ class OptionSignalsService:
             return price
         
         base_price = self.mock_prices.get(symbol.upper(), 19500.0)
+        if not self.is_market_open():
+            return round(base_price, 2)
+            
         change = random.uniform(-5.0, 5.0)
         new_price = base_price + change
         self.mock_prices[symbol.upper()] = new_price
@@ -439,12 +442,20 @@ option_signals_service = OptionSignalsService()
 
 async def run_option_signals_job():
     from app.database import SessionLocal
+    from app.models.option_signal import OptionSettings
     db = SessionLocal()
     try:
-        from app.models.user import User
-        # Run for all active signal subscribers (simplified for now as one system job)
-        await option_signals_service.scan_for_signals(db)
+        # Fetch all users who have the Ignite Engine enabled
+        active_settings = db.query(OptionSettings).filter(OptionSettings.auto_execute == True).all()
+        if not active_settings:
+            return
+
+        print(f"[Engine] Running autonomous scan for {len(active_settings)} active subscribers...")
+        for setting in active_settings:
+            await option_signals_service.scan_for_signals(db, user_id=setting.user_id)
+            
     except Exception:
+        print("❌ [Engine] Background job failed:")
         traceback.print_exc()
     finally:
         db.close()

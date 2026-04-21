@@ -3,6 +3,8 @@ import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { MarketTicker } from "./MarketTicker";
 import { Outlet } from "react-router-dom";
+import { ChatBubble } from "@/components/chat/ChatBubble";
+import { FeedbackBubble } from "@/components/feedback/FeedbackBubble";
 
 export function AppLayout() {
   return (
@@ -16,6 +18,8 @@ export function AppLayout() {
             <Outlet />
           </main>
         </SidebarInset>
+        <ChatBubble />
+        <FeedbackBubble />
       </div>
     </SidebarProvider>
   );

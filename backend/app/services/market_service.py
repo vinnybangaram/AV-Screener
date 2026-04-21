@@ -167,7 +167,18 @@ async def get_market_indices() -> Dict[str, Any]:
     """
     Fetches major Indian indices with high-fidelity jitter for 'Live' movement.
     """
+    def is_market_open():
+        from datetime import datetime, time as dt_time
+        now = datetime.now()
+        market_start = dt_time(9, 15)
+        market_end = dt_time(15, 30)
+        current_time = now.time()
+        if now.weekday() >= 5: return False
+        return market_start <= current_time <= market_end
+
     def apply_jitter(val):
+        if not is_market_open():
+            return val
         import random
         # Micro-fluctuation (0.005% - 0.01%) for visible movement
         change = val * random.uniform(0.00005, 0.0001)

@@ -1,14 +1,17 @@
-import { Activity, Shield, TrendingUp, Users, UserCheck, Clock } from "lucide-react";
+import { Activity, Shield, TrendingUp, Users, UserCheck, Clock, MessageCircleHeart, Star, Trash2, Bug, Lightbulb, Heart, MoreHorizontal } from "lucide-react";
 import { useIsAdmin, setIsAdmin } from "@/lib/admin-store";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useFeedback, clearFeedback, FeedbackType } from "@/lib/feedback-store";
+import { useMemo } from "react";
 
-const kpis = [
-  { label: "Total Users", value: "9", icon: Users, accent: "text-accent" },
-  { label: "DAU (24H)", value: "1", icon: Activity, accent: "text-warning" },
-  { label: "MAU (30D)", value: "3", icon: TrendingUp, accent: "text-success" },
-  { label: "Paid Users", value: "0", icon: Shield, accent: "text-foreground" },
-];
+const typeMeta: Record<FeedbackType, { icon: typeof Bug; tone: string; label: string }> = {
+  bug: { icon: Bug, tone: "bg-danger/10 text-danger border-danger/30", label: "Bug" },
+  idea: { icon: Lightbulb, tone: "bg-warning/10 text-warning border-warning/30", label: "Idea" },
+  praise: { icon: Heart, tone: "bg-success/10 text-success border-success/30", label: "Praise" },
+  other: { icon: MoreHorizontal, tone: "bg-muted text-foreground", label: "Other" },
+};
 
 const users = [
   { name: "mandhala vinodh kumar", email: "vinny009@gmail.com", role: "—", plan: "FREE", logins: 0, joined: "—", last: "19/04/2026, 09:55:40" },
@@ -21,6 +24,13 @@ const users = [
 
 const AdminControlPanel = () => {
   const isAdmin = useIsAdmin();
+  const feedback = useFeedback();
+  const kpis = useMemo(() => [
+    { label: "Total Users", value: "9", icon: Users },
+    { label: "DAU (24H)", value: "1", icon: Activity },
+    { label: "MAU (30D)", value: "3", icon: TrendingUp },
+    { label: "Feedback Items", value: String(feedback.length), icon: MessageCircleHeart },
+  ], [feedback.length]);
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
@@ -96,6 +106,54 @@ const AdminControlPanel = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Feedback inbox */}
+      <div className="premium-card overflow-hidden">
+        <div className="p-5 pb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <MessageCircleHeart className="h-4 w-4 text-accent" />
+            <h3 className="font-semibold">User Feedback Inbox</h3>
+            <Badge variant="secondary" className="text-[10px]">{feedback.length}</Badge>
+          </div>
+          {feedback.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => clearFeedback()}>
+              <Trash2 className="h-3.5 w-3.5" /> Clear all
+            </Button>
+          )}
+        </div>
+        {feedback.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground border-t">
+            No feedback yet. Click the heart bubble on the bottom-left to submit one.
+          </div>
+        ) : (
+          <div className="divide-y border-t">
+            {feedback.map((f) => {
+              const meta = typeMeta[f.type];
+              const Icon = meta.icon;
+              return (
+                <div key={f.id} className="px-5 py-4 hover:bg-muted/30 transition">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <Badge variant="outline" className={`text-[10px] ${meta.tone}`}>
+                      <Icon className="h-3 w-3 mr-1" /> {meta.label}
+                    </Badge>
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star key={n} className={`h-3 w-3 ${n <= f.rating ? "fill-warning text-warning" : "text-muted-foreground/40"}`} />
+                      ))}
+                    </div>
+                    <code className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{f.page}</code>
+                    <span className="text-[10px] text-muted-foreground ml-auto">
+                      {new Date(f.ts).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-relaxed">{f.message}</p>
+                  {f.email && <p className="text-[11px] text-muted-foreground mt-1">↳ {f.email}</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

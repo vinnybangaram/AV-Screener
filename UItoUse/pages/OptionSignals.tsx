@@ -56,17 +56,6 @@ export default function OptionSignals() {
   const safePage = Math.min(page, totalPages);
   const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  if (eng.loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Activity className="h-10 w-10 text-accent animate-spin" />
-          <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Syncing with Ignite Engine...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -98,7 +87,7 @@ export default function OptionSignals() {
       {/* Live indices */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {(["NIFTY", "BANKNIFTY"] as const).map((sym) => {
-          const trade = eng.active.find((t) => t.symbol.toUpperCase() === sym);
+          const trade = eng.active.find((t) => t.symbol === sym);
           return (
             <Card key={sym} className="kpi-card">
               <div className="flex items-center justify-between">

@@ -13,6 +13,12 @@ import Intraday from "./pages/Intraday";
 import PennyStorm from "./pages/PennyStorm";
 import SystemPositionsPage from "./pages/SystemPositions";
 import OptionSignals from "./pages/OptionSignals";
+import Portfolio from "./pages/Portfolio";
+import Alerts from "./pages/Alerts";
+import News from "./pages/News";
+import Backtesting from "./pages/Backtesting";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import ComingSoon from "./pages/ComingSoon";
 import AdminControlPanel from "./pages/AdminControlPanel";
 import Login from "./pages/Login";
@@ -57,67 +63,12 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminControlPanel /></ProtectedRoute>} />
             <Route path="/dashboard/admin" element={<Navigate to="/admin" replace />} />
 
-            {/* Placeholder Routes */}
-            <Route
-              path="/portfolio"
-              element={
-                <ComingSoon
-                  title="Portfolio"
-                  description="Holdings, allocation, P&L and AI-powered rebalance suggestions."
-                  bullets={["Total value & P&L Today", "Allocation donut chart", "Holdings table", "Sector exposure", "Risk score", "AI rebalance suggestions"]}
-                />
-              }
-            />
-            <Route
-              path="/alerts"
-              element={
-                <ComingSoon
-                  title="Alerts"
-                  description="Create price, RSI, breakout and AI-score alerts."
-                  bullets={["Price above/below", "RSI crossing", "Breakout detected", "AI score changed", "Earnings event"]}
-                />
-              }
-            />
-            <Route
-              path="/news"
-              element={
-                <ComingSoon
-                  title="News & Sentiment"
-                  description="Curated news with sentiment analysis across sectors and stocks."
-                  bullets={["News cards with source/time", "Positive / Neutral / Negative meter", "Sector sentiment ranking", "Stock sentiment trend"]}
-                />
-              }
-            />
-            <Route
-              path="/backtesting"
-              element={
-                <ComingSoon
-                  title="Backtesting"
-                  description="Test strategies with historical data — CAGR, win rate, drawdown."
-                  bullets={["Strategy selector", "Date range & capital", "Risk settings", "Equity curve chart", "Trade log table"]}
-                />
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ComingSoon
-                  title="Reports"
-                  description="Generate downloadable investor-grade reports."
-                  bullets={["Daily Market Brief", "Weekly Opportunities", "Portfolio Health Report", "Sector Rotation Report", "AI Recommendation Sheet"]}
-                />
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ComingSoon
-                  title="Settings"
-                  description="Manage your profile, notifications, theme, API keys and subscription."
-                  bullets={["Profile", "Theme", "Notifications", "API Keys", "Subscription", "Security"]}
-                />
-              }
-            />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/alerts" element={<Alerts />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/backtesting" element={<Backtesting />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
