@@ -23,7 +23,6 @@ class OptionTrade(Base):
     
     # Advanced Trade Tracker Fields
     partial_booked = Column(Boolean, default=False)
-    trailing_sl = Column(Float, nullable=True)
     active_multiplier = Column(Float, default=1.0)
     realized_partial_pnl = Column(Float, default=0.0)
     
