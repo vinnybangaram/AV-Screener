@@ -469,6 +469,25 @@ export const fetchMarketTicker = async () => {
     return await api.get('/market/ticker');
 };
 
+/**
+ * Portfolio Management APIs
+ */
+export const fetchPortfolioSummary = async () => {
+    return await api.get('/portfolio/summary');
+};
+
+export const addPortfolioHolding = async (data) => {
+    return await api.post('/portfolio/holdings', data);
+};
+
+export const updatePortfolioHolding = async (id, data) => {
+    return await api.patch(`/portfolio/holdings/${id}`, data);
+};
+
+export const removePortfolioHolding = async (id) => {
+    return await api.delete(`/portfolio/holdings/${id}`);
+};
+
 export default api;
 
 

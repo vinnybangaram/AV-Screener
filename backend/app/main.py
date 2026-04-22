@@ -10,6 +10,7 @@ from app.api import (
     portfolio_health,                  # ← NEW
     multibagger,                       # ← NEW
     option_signals,                    # ← NEW
+    portfolio,                         # ← NEW
 )
 from app.database import engine, Base
 from app.models import (
@@ -22,6 +23,7 @@ from app.models import (
     market_regime,                     # ← NEW
     conviction,                        # ← NEW
     portfolio_health as portfolio_health_model, # ← NEW: aliased to avoid collision
+    portfolio as portfolio_model,      # ← NEW
 )
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -103,6 +105,7 @@ app.include_router(stocks.router,        prefix="/api/stocks",         tags=["Co
 app.include_router(portfolio_health.router, prefix="/api/portfolio",    tags=["Portfolio Health"]) # ← NEW
 app.include_router(multibagger.router) # ← NEW
 app.include_router(option_signals.router, prefix="/api") # ← NEW
+app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"]) # ← NEW
 
 
 # ── STARTUP ───────────────────────────────────────────────────────────────────
