@@ -8,9 +8,16 @@ class BacktestService:
     async def run_backtest(self, strategy_id: str, symbol: str, start_date: str, end_date: str, initial_capital: float, risk_pct: float):
         # 1. Fetch Historical Data
         ticker = f"{symbol}.NS" if not (".NS" in symbol or ".BO" in symbol) else symbol
-        df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+        df = yf.download(ticker, start=start_date, end=end_date, progress=False, group_by='ticker')
         
-        if df.empty or len(df) < 20:
+        if df.empty:
+            return None
+
+        # Flatten multi-index if yfinance group_by='ticker' was used
+        if isinstance(df.columns, pd.MultiIndex):
+            df = df[ticker]
+            
+        if len(df) < 50:
             return None
 
         # 2. Apply Strategy Indicators
@@ -28,7 +35,7 @@ class BacktestService:
         df['sma200'] = df['Close'].rolling(window=200).mean()
         
         trades = []
-        equity = [capital]
+        equity = []
         current_equity = capital
         position = 0
         entry_price = 0
@@ -64,7 +71,7 @@ class BacktestService:
                 position = 0
             
             val = current_equity if position == 0 else position * price
-            equity.append(round(val, 2))
+            equity.append({"date": date, "equity": round(val, 2)})
 
         return self._format_results(trades, equity, capital)
 
@@ -74,7 +81,7 @@ class BacktestService:
         df['rsi'] = self._calculate_rsi(df['Close'])
         
         trades = []
-        equity = [capital]
+        equity = []
         current_equity = capital
         position = 0
         entry_price = 0
@@ -111,39 +118,46 @@ class BacktestService:
                     position = 0
             
             val = current_equity if position == 0 else position * price
-            equity.append(round(val, 2))
+            equity.append({"date": date, "equity": round(val, 2)})
 
         return self._format_results(trades, equity, capital)
 
     def _format_results(self, trades, equity, start_cap):
-        final_equity = equity[-1]
-        cagr = ((final_equity / start_cap) ** (1 / max(1, len(equity)/252)) - 1) * 100
+        if not equity:
+            return None
+            
+        final_equity = equity[-1]["equity"]
+        bars = len(equity)
+        years = bars / 252.0 if bars > 0 else 1
+        
+        cagr = round(((final_equity / start_cap) ** (1 / years) - 1) * 100, 1) if final_equity > 0 else 0
         
         # Max Drawdown calculation
         peak = 0
         max_dd = 0
-        for v in equity:
+        for pt in equity:
+            v = pt["equity"]
             if v > peak: peak = v
             dd = (v - peak) / peak * 100 if peak > 0 else 0
             if dd < max_dd: max_dd = dd
 
         # Win Rate
         wins = [t for t in trades if t['pnl'] > 0]
-        win_rate = (len(wins) / len(trades) * 100) if trades else 0
+        win_rate = round((len(wins) / len(trades) * 100), 1) if trades else 0
 
         # Equity Curve for Chart
-        equity_curve = [{"day": f"D{i}", "equity": v} for i, v in enumerate(equity)]
+        equity_curve = equity # Already formatted in the loop
 
         return {
             "stats": {
-                "cagr": round(cagr, 1),
+                "cagr": cagr,
                 "max_dd": round(max_dd, 1),
-                "win_rate": round(win_rate, 1),
+                "win_rate": win_rate,
                 "sharpe": 1.45,
-                "final_equity": final_equity
+                "final_equity": round(final_equity, 2)
             },
             "trades": trades[::-1], # Latest first
-            "equity_curve": equity_curve[::max(1, len(equity_curve)//100)] # Downsample for performance
+            "equity_curve": equity_curve[::max(1, len(equity_curve)//120)] # Optimal downsampling
         }
 
     def _calculate_rsi(self, series, period=14):

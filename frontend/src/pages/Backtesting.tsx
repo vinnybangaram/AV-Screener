@@ -11,7 +11,7 @@ import { KpiCard } from "@/components/dashboard/KpiCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChangeBadge } from "@/components/common/Badges";
 import { Play, History, TrendingUp, ShieldAlert, Award, Activity, Loader2, Search } from "lucide-react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, CartesianGrid } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { toast } from "sonner";
 import { runBacktest } from "@/services/api";
 import { cn } from "@/lib/utils";
@@ -144,17 +144,41 @@ const Backtesting = () => {
                 </div>
             ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={equity}>
+                <AreaChart data={equity} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                     <defs>
                     <linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.45} />
-                        <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                        <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.02} />
                     </linearGradient>
                     </defs>
                     <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" hide />
-                    <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                    <Area type="monotone" dataKey="equity" stroke="hsl(var(--accent))" fill="url(#eq)" strokeWidth={2.5} animationDuration={1500} />
+                    <XAxis 
+                        dataKey="date" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} 
+                        minTickGap={60}
+                    />
+                    <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                        tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`}
+                        domain={['dataMin - 5000', 'dataMax + 5000']}
+                    />
+                    <Tooltip 
+                        contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                        formatter={(val: any) => [`₹${val.toLocaleString()}`, "Equity"]}
+                        labelStyle={{ fontWeight: 'bold', color: 'hsl(var(--accent))', marginBottom: 4 }}
+                    />
+                    <Area 
+                       type="stepAfter" 
+                       dataKey="equity" 
+                       stroke="hsl(var(--accent))" 
+                       fill="url(#eq)" 
+                       strokeWidth={2} 
+                       animationDuration={1000} 
+                    />
                 </AreaChart>
                 </ResponsiveContainer>
             )}
