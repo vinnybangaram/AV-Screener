@@ -20,6 +20,7 @@ Job schedule (all times IST = UTC+5:30):
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron         import CronTrigger
+from apscheduler.triggers.interval     import IntervalTrigger
 import traceback
 
 
@@ -308,13 +309,9 @@ def _job_option_signals():
 
 scheduler.add_job(
     _job_option_signals,
-    CronTrigger(
-        day_of_week = "mon-fri",
-        hour        = "3-10", # 3 AM - 10 AM UTC ≈ 8:30 AM - 3:30 PM IST
-        minute      = "*",
-    ),
+    IntervalTrigger(seconds=10), # High-frequency scan every 10 seconds
     id            = "option_signals_engine",
     name          = "Option Signals Engine Scan",
     replace_existing = True,
-    misfire_grace_time = 30,
+    misfire_grace_time = 5,
 )
