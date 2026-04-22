@@ -10,6 +10,7 @@ import { Search, Newspaper, TrendingUp, TrendingDown, Minus, ExternalLink, Spark
 import { Progress } from "@/components/ui/progress";
 import { fetchGeneralNews, fetchSectorSentiment } from "@/services/api";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type Sentiment = "positive" | "neutral" | "negative";
 interface NewsItem {
@@ -145,25 +146,40 @@ const News = () => {
         </Card>
 
         <div className="space-y-5">
-          <Card className="p-5 premium-card h-fit">
-            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">Sector Sentiment Matrix</h3>
-            <div className="space-y-4">
+          <Card className="p-6 premium-card border-border/40 shadow-xl overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-success via-warning to-danger opacity-20" />
+            <h3 className="text-sm font-black uppercase tracking-[0.08em] text-foreground mb-8">Sector Sentiment</h3>
+            <div className="space-y-6">
               {sectorList.sort((a, b) => b.score - a.score).map((s) => {
-                const pct = ((s.score + 1) / 2) * 100;
-                const tone = s.score > 0.2 ? "bg-success" : s.score < -0.2 ? "bg-danger" : "bg-warning";
+                // Determine color based on threshold to match the image
+                const score = s.score;
+                let colorClass = "text-success";
+                let barClass = "bg-success";
+                
+                if (score < 0.4 && score >= -0.2) {
+                  colorClass = "text-warning";
+                  barClass = "bg-warning";
+                } else if (score < -0.2) {
+                  colorClass = "text-danger";
+                  barClass = "bg-danger";
+                }
+
+                // Normalized width for the bar (0 to 1 range mapped to 10-100% width)
+                const barWidth = Math.min(100, Math.max(10, ((score + 1) / 2) * 100));
+
                 return (
-                  <div key={s.sector} className="group">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="font-bold group-hover:text-accent transition-colors">{s.sector}</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`tabular-nums font-black text-[10px] tracking-widest ${s.score > 0 ? "text-success" : s.score < 0 ? "text-danger" : "text-muted-foreground"}`}>
-                          {s.score > 0 ? "+" : ""}{s.score.toFixed(2)}
-                        </span>
-                        <div className={`h-1.5 w-1.5 rounded-full ${tone}`} />
-                      </div>
+                  <div key={s.sector} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] font-bold text-foreground/80">{s.sector}</span>
+                      <span className={cn("text-xs font-black tabular-nums", colorClass)}>
+                        {score >= 0 ? "+" : ""}{score.toFixed(2)}
+                      </span>
                     </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full ${tone} transition-all duration-1000`} style={{ width: `${pct}%` }} />
+                    <div className="h-[5px] bg-muted/30 rounded-full w-full overflow-hidden">
+                      <div 
+                        className={cn("h-full transition-all duration-1000 ease-out rounded-full", barClass)} 
+                        style={{ width: `${barWidth}%` }} 
+                      />
                     </div>
                   </div>
                 );

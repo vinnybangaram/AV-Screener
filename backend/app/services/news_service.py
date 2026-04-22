@@ -131,9 +131,11 @@ def get_sector_sentiment() -> List[Dict[str, Any]]:
     """Returns dynamic scores for major sectors."""
     return [
         {"sector": "Banking", "score": 0.62},
-        {"sector": "IT", "score": -0.18},
-        {"sector": "Energy", "score": 0.42},
         {"sector": "Pharma", "score": 0.55},
-        {"sector": "Auto", "score": -0.31},
-        {"sector": "Telecom", "score": 0.48}
+        {"sector": "Telecom", "score": 0.48},
+        {"sector": "Energy", "score": 0.42},
+        {"sector": "FMCG", "score": 0.12},
+        {"sector": "IT", "score": -0.18},
+        {"sector": "Infra", "score": -0.22},
+        {"sector": "Auto", "score": -0.31}
     ]

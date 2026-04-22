@@ -73,24 +73,32 @@ export default function OptionSignals() {
         title="Option Signals"
         description="Automated paper trading engine for Nifty & Banknifty — live scanning, SL/TSL management, and P&L."
         actions={
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn(
-                "gap-1.5",
-                eng.marketOpen ? "border-success/30 text-success bg-success/5" : "border-muted-foreground/30 text-muted-foreground",
-              )}
-            >
-              <span className={cn("h-1.5 w-1.5 rounded-full", eng.marketOpen ? "bg-success animate-pulse" : "bg-muted-foreground")} />
-              {eng.marketOpen ? "Market Live" : "Market Closed"}
-            </Badge>
-            <Button
-              variant={eng.settings.enabled ? "destructive" : "default"}
-              size="sm"
-              onClick={() => eng.updateSettings({ enabled: !eng.settings.enabled })}
-            >
-              {eng.settings.enabled ? (<><Pause className="h-4 w-4 mr-1.5" />Stop Engine</>) : (<><Play className="h-4 w-4 mr-1.5" />Start Engine</>)}
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Day's P&L</span>
+              <span className={cn("text-sm font-black font-mono", eng.runningPnl >= 0 ? "text-success" : "text-danger")}>
+                {fmtMoney(eng.runningPnl)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "gap-1.5",
+                  eng.marketOpen ? "border-success/30 text-success bg-success/5" : "border-muted-foreground/30 text-muted-foreground",
+                )}
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full", eng.marketOpen ? "bg-success animate-pulse" : "bg-muted-foreground")} />
+                {eng.marketOpen ? "Market Live" : "Market Closed"}
+              </Badge>
+              <Button
+                variant={eng.settings.enabled ? "destructive" : "default"}
+                size="sm"
+                onClick={() => eng.updateSettings({ enabled: !eng.settings.enabled })}
+              >
+                {eng.settings.enabled ? (<><Pause className="h-4 w-4 mr-1.5" />Stop Engine</>) : (<><Play className="h-4 w-4 mr-1.5" />Start Engine</>)}
+              </Button>
+            </div>
           </div>
         }
       />
@@ -99,8 +107,15 @@ export default function OptionSignals() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {(["NIFTY", "BANKNIFTY"] as const).map((sym) => {
           const trade = eng.active.find((t) => t.symbol.toUpperCase() === sym);
+          const isComingSoon = sym === "BANKNIFTY";
+          
           return (
-            <Card key={sym} className="kpi-card">
+            <Card key={sym} className={cn("kpi-card relative overflow-hidden", isComingSoon && "opacity-60 grayscale")}>
+              {isComingSoon && (
+                <div className="absolute top-2 right-2 z-10">
+                   <Badge variant="secondary" className="bg-amber-500/20 text-amber-500 border-amber-500/30 text-[10px] font-black uppercase tracking-widest">Coming Soon</Badge>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground tracking-widest font-medium">{sym}</p>
@@ -118,7 +133,7 @@ export default function OptionSignals() {
                       <p className="text-[11px] text-muted-foreground">TSL stage {trade.tslStage}/3</p>
                     </>
                   ) : (
-                    <Badge variant="outline" className="text-muted-foreground">Scanning…</Badge>
+                    <Badge variant="outline" className="text-muted-foreground">{isComingSoon ? "Offline" : "Scanning…"}</Badge>
                   )}
                 </div>
               </div>
@@ -127,10 +142,25 @@ export default function OptionSignals() {
         })}
       </div>
 
-      {/* Live Signals Intelligence — additive panel, does not replace UI */}
+      {/* Live Signals Intelligence */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {(["NIFTY", "BANKNIFTY"] as const).map((sym) => {
           const sig = eng.liveSignals[sym];
+          const isComingSoon = sym === "BANKNIFTY";
+          
+          if (isComingSoon) {
+            return (
+              <Card key={`live-${sym}`} className="p-12 premium-card flex flex-col items-center justify-center text-center gap-3 opacity-50 grayscale border-dashed">
+                 <Activity className="h-8 w-8 text-muted-foreground/30" />
+                 <div className="space-y-1">
+                    <p className="font-bold uppercase tracking-widest text-[10px] text-muted-foreground">BankNifty Intelligence</p>
+                    <p className="text-xs font-medium italic">Advanced Gamma analysis integration in progress...</p>
+                 </div>
+                 <Badge variant="outline" className="mt-2">Coming Soon</Badge>
+              </Card>
+            );
+          }
+
           return sig ? (
             <LiveSignalsPanel key={`live-${sym}`} state={sig} />
           ) : (
