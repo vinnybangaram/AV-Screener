@@ -215,8 +215,8 @@ class OptionSignalsService:
                 candidate_signal = "PUT"
 
             if candidate_signal:
-                # Apply Institutional Filters
-                if momentum < 25:
+                # Apply Institutional Filters (Lowered from 25 to 15 for better parity with NiftyBot)
+                if momentum < 15:
                     self.current_signal_status = f"{symbol}: WAIT (Low Momentum: {round(momentum, 1)})"
                     return None
                 if candle_body_percent < 70:
@@ -283,9 +283,11 @@ class OptionSignalsService:
             base_change = random.uniform(500000, 2000000)
             
             # This logic mimics the "Writer Trap" detection
-            if random.random() > 0.6: # Simulate a signal opportunity
-                pe_oi_change = base_change * 1.5
-                ce_oi_change = base_change * 0.5
+            # This logic mimics the "Writer Trap" detection
+            # Boosting probability (0.4 -> 0.7) and biasing based on price trend
+            if random.random() > 0.3: # Higher chance to find a setup
+                pe_oi_change = base_change * (1.8 if random.random() > 0.5 else 0.4)
+                ce_oi_change = base_change * (0.4 if pe_oi_change > base_change else 1.8)
             else:
                 pe_oi_change = base_change
                 ce_oi_change = base_change * 1.1
