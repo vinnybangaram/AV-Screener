@@ -76,13 +76,12 @@ def fetch_multi_stock_data(tickers: list, period: str = "2d", interval: str = "1
             interval=interval,
             auto_adjust=True,
             progress=False,
-            session=_SESSION,
             threads=len(formatted_tickers) > 5,
             **kwargs
         )
         return df
     except Exception as e:
-        # Return empty df to avoid crashes
+        print(f"[YahooFetcher] Multi-fetch error: {e}")
         return pd.DataFrame()
 
 def fetch_fundamentals(ticker: str) -> Dict[str, Any]:

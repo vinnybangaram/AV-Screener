@@ -102,9 +102,23 @@ def portfolio_trend(
     watchlist = get_watchlist(db, current_user.id)
 
     # Category filter
-    if category != "All":
-        cat_map = {"Penny Stocks": "penny", "Multibaggers": "multibagger", "Intraday": "intraday"}
-        target  = cat_map.get(category, category).lower()
+    if category in ("All", "Investment"):
+        # "All" = everything, "Investment" = exclude intraday
+        if category == "Investment":
+            watchlist = [w for w in watchlist if "intraday" not in (w.get("category") or "").lower()]
+    elif category in ("Intraday", "Intraday Radar"):
+        watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower()]
+    elif category == "Intraday Longs":
+        watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower() and (w.get("side") or "LONG").upper() != "SHORT"]
+    elif category == "Intraday Shorts":
+        watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower() and (w.get("side") or "").upper() == "SHORT"]
+    else:
+        cat_map = {
+            "Penny Stocks": "penny", "Multibaggers": "multibagger",
+            "MULTIBAGGER": "multibagger", "PENNY": "penny", "CORE": "core",
+            "Core Portfolio": "core"
+        }
+        target = cat_map.get(category, category).lower()
         watchlist = [w for w in watchlist if target in (w.get("category") or "").lower()]
 
     symbols = list({w["symbol"] for w in watchlist})

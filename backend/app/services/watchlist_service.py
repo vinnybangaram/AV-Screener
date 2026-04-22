@@ -161,10 +161,14 @@ def add_to_watchlist(db: Session, user_id: int, watchlist_in: WatchlistAdd):
     final_category = watchlist_in.category
     source = (watchlist_in.source_module or "").lower()
     if not final_category or final_category in ("Manual", "Default"):
-        if   "penny"       in source: final_category = "Penny"
+        if   "penny"       in source: final_category = "Penny Stocks"
         elif "multibagger" in source: final_category = "Multibagger"
         elif "intraday"    in source: final_category = "Intraday"
-        else:                          final_category = "Manual"
+        else:                          final_category = "Core Portfolio"
+
+    is_intraday = "intraday" in final_category.lower()
+    trade_sub_type = (watchlist_in.side or "long").lower() if is_intraday else None
+    expiry = datetime.utcnow() + timedelta(days=1) if is_intraday else None
 
     # Auto SL/Target
     sl, target = get_strategy_recommendation(
@@ -180,6 +184,7 @@ def add_to_watchlist(db: Session, user_id: int, watchlist_in: WatchlistAdd):
         company_name = company_name,
         entry_price  = entry_price,
         category     = final_category,
+        sub_type     = trade_sub_type,
         side         = watchlist_in.side.upper() if watchlist_in.side else "LONG",
         source_module= watchlist_in.source_module or "Manual",
         status       = "ACTIVE",
@@ -189,6 +194,8 @@ def add_to_watchlist(db: Session, user_id: int, watchlist_in: WatchlistAdd):
         latest_price = entry_price,
         latest_pnl   = 0.0,
         latest_pnl_percent = 0.0,
+        is_auto_generated = False,
+        expires_at = expiry
     )
     db.add(db_item)
     db.commit()

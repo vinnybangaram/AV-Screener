@@ -45,6 +45,9 @@ def run_migrations():
                     ("target_price",        "FLOAT"),
                     ("updated_at",          "DATETIME"),
                     ("removed_at",          "DATETIME"),
+                    ("sub_type",            "VARCHAR DEFAULT 'long'"),
+                    ("is_auto_generated",   "BOOLEAN DEFAULT FALSE"),
+                    ("expires_at",          "DATETIME"),
                 ]
                 for col, coltype in additions:
                     if not _column_exists(conn, "watchlist_positions", col):

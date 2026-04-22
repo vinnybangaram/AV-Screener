@@ -10,14 +10,17 @@ class WatchlistPosition(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     symbol = Column(String, index=True)
     company_name = Column(String, nullable=True)
-    category = Column(String, index=True) # multibagger / intraday / penny / manual
-    side = Column(String, default="LONG") # LONG / SHORT
-    source_module = Column(String, nullable=True) # Multibagger Screener, Intraday Radar, etc.
+    category = Column(String, index=True) # multibagger | penny | core | intraday
+    sub_type = Column(String, default="long") # long | short | null
+    side = Column(String, default="LONG") # Keep for backwards compatibility if needed
+    source_module = Column(String, nullable=True)
     
     added_at = Column(DateTime, default=datetime.utcnow)
     entry_price = Column(Float)
     quantity = Column(Integer, default=1)
     
+    is_auto_generated = Column(Boolean, default=False)
+    expires_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True, index=True)
     removed_at = Column(DateTime, nullable=True)
     

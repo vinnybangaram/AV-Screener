@@ -323,6 +323,8 @@ def get_multi_stock_trend(symbols: List[str], days: int = 30) -> Dict:
                       .all()
                 )
 
+            # Filter out entries with no close price
+            rows = [r for r in rows if r.close is not None]
             if not rows:
                 continue
 
@@ -330,7 +332,7 @@ def get_multi_stock_trend(symbols: List[str], days: int = 30) -> Dict:
             result[symbol.upper()] = [
                 {
                     "date":    r.date.isoformat(),
-                    "indexed": round((r.close / base - 1) * 100, 2),  # % from entry
+                    "indexed": round(((r.close or 0) / base - 1) * 100, 2),  # % from entry
                     "close":   r.close,
                 }
                 for r in rows

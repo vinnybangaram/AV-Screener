@@ -29,6 +29,7 @@ export const SystemPositionsTable = memo(({ data = [], showHeader = true }: Syst
             <th className="text-left font-semibold py-2.5">Date</th>
             <th className="text-right font-semibold py-2.5">Entry</th>
             <th className="text-right font-semibold py-2.5">Current</th>
+            <th className="text-right font-semibold py-2.5">Day's PnL</th>
             <th className="text-center font-semibold py-2.5">Side</th>
             <th className="text-right font-semibold py-2.5">SL</th>
             <th className="text-right font-semibold py-2.5">Target</th>
@@ -38,9 +39,12 @@ export const SystemPositionsTable = memo(({ data = [], showHeader = true }: Syst
         </thead>
         <tbody>
           {items.map((p) => {
-            const pnlValue = p.latest_pnl * p.quantity;
+            const pnlValue = (p.latest_pnl || 0) * (p.quantity || 1);
             const pnlUp = pnlValue >= 0;
-            const alphaUp = p.latest_pnl_percent >= 0;
+            const alphaUp = (p.latest_pnl_percent || 0) >= 0;
+            const dayPnl = p.day_pnl || 0;
+            const dayPnlUp = dayPnl >= 0;
+            const isIntraday = (p.category || "").toLowerCase().includes("intraday");
             return (
               <tr key={p.id || p.symbol} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="px-5 py-3 font-bold text-foreground tracking-tight">{p.symbol}</td>
@@ -59,26 +63,33 @@ export const SystemPositionsTable = memo(({ data = [], showHeader = true }: Syst
                 </td>
                 <td className="py-3 text-right font-mono tabular-nums">₹{p.entry_price?.toLocaleString('en-IN')}</td>
                 <td className="py-3 text-right font-mono tabular-nums text-foreground">₹{p.latest_price?.toLocaleString('en-IN')}</td>
+                <td className={cn("py-3 text-right font-mono tabular-nums font-semibold", dayPnlUp ? "text-success" : "text-danger")}>
+                  {dayPnlUp ? "+" : ""}₹{Math.abs(dayPnl).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </td>
                 <td className="py-3 text-center">
-                  <span className={cn(
-                    "inline-block rounded-md px-2 py-0.5 text-[10px] font-bold",
-                    p.side === "SHORT" ? "bg-danger/15 text-danger" : "bg-success/15 text-success",
-                  )}>{p.side || 'LONG'}</span>
+                  {isIntraday ? (
+                    <span className={cn(
+                      "inline-block rounded-md px-2 py-0.5 text-[10px] font-bold",
+                      p.side === "SHORT" ? "bg-danger/15 text-danger" : "bg-success/15 text-success",
+                    )}>{p.side || 'LONG'}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
                 <td className="py-3 text-right font-mono tabular-nums text-danger/80">₹{p.stop_loss?.toLocaleString('en-IN')}</td>
                 <td className="py-3 text-right font-mono tabular-nums text-success/80">₹{p.target_price?.toLocaleString('en-IN')}</td>
                 <td className={cn("py-3 text-right font-mono tabular-nums font-bold", pnlUp ? "text-success" : "text-danger")}>
-                  ₹{(Math.abs(pnlValue)).toLocaleString('en-IN')}
+                  ₹{(Math.abs(pnlValue)).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </td>
                 <td className={cn("pr-5 py-3 text-right font-mono tabular-nums font-bold", alphaUp ? "text-success" : "text-danger")}>
-                  {alphaUp ? "↗" : "↘"} {Math.abs(p.latest_pnl_percent).toFixed(2)}%
+                  {alphaUp ? "↗" : "↘"} {Math.abs(p.latest_pnl_percent || 0).toFixed(2)}%
                 </td>
               </tr>
             );
           })}
           {items.length === 0 && (
             <tr>
-              <td colSpan={10} className="p-12 text-center text-sm text-muted-foreground italic">
+              <td colSpan={11} className="p-12 text-center text-sm text-muted-foreground italic">
                 No performance data captured for this criteria.
               </td>
             </tr>

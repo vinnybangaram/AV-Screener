@@ -42,18 +42,25 @@ export function PortfolioPerformanceChart({ timeframe = "This Month", category =
   const { data, symbols } = useMemo(() => {
     if (!rawData || Object.keys(rawData).length === 0) return { data: [], symbols: [] };
     
-    // Convert Highcharts multi-series format to Recharts flat format
     const keys = Object.keys(rawData);
-    // Find all unique dates across all symbols
+    // Collect all unique ISO date strings
     const allDates = new Set<string>();
-    keys.forEach(k => rawData[k].forEach((d: any) => allDates.add(new Date(d.date).toLocaleDateString())));
+    keys.forEach(k => rawData[k].forEach((d: any) => {
+      if (d.date) allDates.add(d.date);
+    }));
     
-    const sortedDates = Array.from(allDates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    // Sort ISO dates chronologically
+    const sortedDates = Array.from(allDates).sort();
     
-    const formattedData = sortedDates.map(dateStr => {
-      const row: any = { day: new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) };
+    const formattedData = sortedDates.map(isoDate => {
+      // Format for display label
+      const parts = isoDate.split('-');
+      const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const label = dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      
+      const row: any = { day: label };
       keys.forEach(k => {
-        const point = rawData[k].find((d: any) => new Date(d.date).toLocaleDateString() === dateStr);
+        const point = rawData[k].find((d: any) => d.date === isoDate);
         if (point) {
           row[k] = mode === "ret" ? point.indexed : point.close;
         }
@@ -61,7 +68,10 @@ export function PortfolioPerformanceChart({ timeframe = "This Month", category =
       return row;
     });
 
-    const colors = ["hsl(var(--accent))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--danger))", "hsl(var(--primary))"];
+    const colors = [
+      "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6",
+      "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"
+    ];
     const symbolsMetadata = keys.map((k, i) => ({
       key: k,
       color: colors[i % colors.length]
@@ -136,7 +146,10 @@ export function PortfolioPerformanceChart({ timeframe = "This Month", category =
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              formatter={(val: any) => [mode === 'pl' ? `₹${val.toLocaleString('en-IN')}` : `${val}%`, "Value"]}
+              formatter={(val: any, name: string) => [
+                mode === 'pl' ? `₹${Number(val).toLocaleString('en-IN')}` : `${val}%`,
+                name
+              ]}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
             {symbols.map((s) => (

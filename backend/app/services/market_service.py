@@ -133,20 +133,57 @@ async def get_daily_changes(symbols: List[str]) -> Dict[str, Dict[str, float]]:
             data = fetch_multi_stock_data(symbols, period="5d", interval="1d")
             if data.empty: return {}
             
-            close_prices = data['Close'] if 'Close' in (data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else data.columns) else None
-            if close_prices is None: return {}
-            
-            for symbol in symbols:
-                yf_sym = format_symbol(symbol)
-                if yf_sym in close_prices:
-                    prices = close_prices[yf_sym].dropna()
-                    if len(prices) >= 2:
-                        prev, curr = float(prices.iloc[-2]), float(prices.iloc[-1])
-                        results[symbol] = {
-                            "latest_price": round(curr, 2), "prev_close": round(prev, 2),
-                            "today_change_abs": round(curr - prev, 2),
-                            "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
-                        }
+            # Handle MultiIndex columns from newer yfinance
+            if isinstance(data.columns, pd.MultiIndex):
+                # MultiIndex: ('Close', 'TCS.NS'), ('Close', 'SBIN.NS'), ...
+                for symbol in symbols:
+                    yf_sym = format_symbol(symbol)
+                    try:
+                        if ('Close', yf_sym) in data.columns:
+                            prices = data[('Close', yf_sym)].dropna()
+                        elif 'Close' in data.columns.get_level_values(0):
+                            close_df = data['Close']
+                            if yf_sym in close_df.columns:
+                                prices = close_df[yf_sym].dropna()
+                            else:
+                                continue
+                        else:
+                            continue
+                        
+                        if len(prices) >= 2:
+                            prev, curr = float(prices.iloc[-2]), float(prices.iloc[-1])
+                            results[symbol] = {
+                                "latest_price": round(curr, 2),
+                                "prev_close": round(prev, 2),
+                                "today_change_abs": round(curr - prev, 2),
+                                "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
+                            }
+                    except Exception as e:
+                        print(f"[MarketService] Symbol {symbol} parse error: {e}")
+            else:
+                # Flat columns (single stock or old yfinance)
+                close_prices = data.get('Close')
+                if close_prices is not None:
+                    for symbol in symbols:
+                        yf_sym = format_symbol(symbol)
+                        try:
+                            if hasattr(close_prices, 'columns') and yf_sym in close_prices.columns:
+                                prices = close_prices[yf_sym].dropna()
+                            elif not hasattr(close_prices, 'columns'):
+                                prices = close_prices.dropna()
+                            else:
+                                continue
+                            
+                            if len(prices) >= 2:
+                                prev, curr = float(prices.iloc[-2]), float(prices.iloc[-1])
+                                results[symbol] = {
+                                    "latest_price": round(curr, 2),
+                                    "prev_close": round(prev, 2),
+                                    "today_change_abs": round(curr - prev, 2),
+                                    "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
+                                }
+                        except Exception as e:
+                            print(f"[MarketService] Symbol {symbol} parse error: {e}")
         except Exception as e:
             print(f"[MarketService] Daily Changes Exception: {e}")
         return results

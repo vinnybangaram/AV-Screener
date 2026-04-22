@@ -15,11 +15,46 @@ async def get_dashboard(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    """
-    Unified endpoint for the high-fidelity Bloomberg Dashboard.
-    Strictly Auth-Protected.
-    """
     return await dashboard_service.get_dashboard_data(db, user.id, category, timeframe)
+
+@router.get("/summary")
+async def get_summary(
+    filter: str = Query("today"),   # today | week | month | year
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """
+    Returns separate Investment and Intraday totals for the dashboard header.
+    """
+    from app.dashboard.engine import DashboardEngine
+    inv = await DashboardEngine.get_summary(db, user.id, "investment", filter)
+    intra = await DashboardEngine.get_summary(db, user.id, "intraday", filter)
+    
+    return {
+        "investment": {
+            "dayPnL": inv.get("dayPnL", 0),
+            "overallPnL": inv.get("overallPnL", 0),
+            "totalValue": inv.get("totalValue", 0)
+        },
+        "intraday": {
+            "todayPnL": intra.get("dayPnL", 0),
+            "weekPnL": intra.get("overallPnL", 0) if filter == "week" else 0,
+            "overallPnL": intra.get("overallPnL", 0)
+        }
+    }
+
+@router.get("/stocks")
+async def get_stocks(
+    tab: str = Query("investment"),
+    subTab: str = Query("all"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """
+    Fetches filtered stock list with live PnL.
+    """
+    from app.dashboard.engine import DashboardEngine
+    return await DashboardEngine.get_stocks(db, user.id, tab, subTab)
 
 @router.post("/snapshots/run")
 def run_snapshots(

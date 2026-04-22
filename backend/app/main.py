@@ -14,7 +14,7 @@ from app.api import (
     backtest,                          # ← NEW
     reports,                           # ← NEW
 )
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
 from app.models import (
     user,
     watchlist   as watchlist_model,
@@ -29,7 +29,11 @@ from app.models import (
     backtest as backtest_model,        # ← NEW
     report as report_model,            # ← NEW
     news as news_model,              # ← NEW
+    intraday_history,                  # ← NEW
+    dashboard_cache,                   # ← NEW
 )
+from app.jobs.daily_intraday_scan import job_daily_intraday_scan
+from app.jobs.cleanup_expired import job_cleanup_expired
 from sqlalchemy.orm import Session
 from app.database import get_db
 from dotenv import load_dotenv
@@ -123,6 +127,28 @@ async def startup_event():
     try:
         scheduler.start()
         print("[Startup] Background scheduler active.")
+        
+        # Check for missed intraday scan if market is open or past scan time
+        from datetime import time
+        from sqlalchemy import func
+        now = datetime.now()
+        if now.weekday() < 5 and now.time() > time(9, 15):
+            db = SessionLocal()
+            try:
+                # Check if scan already run today
+                today_picks = db.query(watchlist_model.WatchlistPosition).filter(
+                    watchlist_model.WatchlistPosition.category == "intraday",
+                    func.date(watchlist_model.WatchlistPosition.added_at) == now.date(),
+                    watchlist_model.WatchlistPosition.is_auto_generated == True
+                ).first()
+                
+                if not today_picks:
+                    print("[Startup] Missed intraday scan detected. Running immediate scan...")
+                    await job_cleanup_expired()
+                    await job_daily_intraday_scan()
+            finally:
+                db.close()
+
         print("[Startup] Scheduled jobs:")
         for job in scheduler.get_jobs():
             print(f"          • {job.name} — next: {job.next_run_time}")
