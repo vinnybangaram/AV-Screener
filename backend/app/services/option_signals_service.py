@@ -132,9 +132,8 @@ class OptionSignalsService:
         import pandas as pd
         import numpy as np
 
-        ticker = "^NSEI" if symbol == "NIFTY" else "^NSEBANK"
-        # Fetch 5m candles for indicators and momentum
-        df = await asyncio.to_thread(fetch_stock_data, ticker, period="5d", interval="5m")
+        # Fetch using standardised keys that format_symbol handles
+        df = await asyncio.to_thread(fetch_stock_data, symbol, period="5d", interval="5m")
         
         if df is None or len(df) < 50:
             return None

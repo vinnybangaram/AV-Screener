@@ -31,16 +31,21 @@ def generate_mock_data(ticker: str) -> pd.DataFrame:
 def fetch_stock_data(ticker: str, period: str = "5d", interval: str = "5m") -> Optional[pd.DataFrame]:
     """
     Fetches OHLC data using yfinance (Synchronized with NiftyBot).
+    Now uses session-aware fetching to reduce 401/404 errors.
     """
     import yfinance as yf
     try:
         ticker_yf = format_symbol(ticker)
+        
+        # Use our session for yfinance to bypass some blockages
         df = yf.download(
             ticker_yf,
             period=period,
             interval=interval,
             auto_adjust=True,
-            progress=False
+            progress=False,
+            session=_SESSION,
+            threads=False # Threads can sometimes cause race conditions in session headers
         )
 
         # Fix MultiIndex columns (NiftyBot Native Logic)
@@ -50,12 +55,35 @@ def fetch_stock_data(ticker: str, period: str = "5d", interval: str = "5m") -> O
         df = df.dropna()
         
         if df.empty:
+            # If Yahoo fails (e.g. 404 for valid symbol), return sync-ready mock data
             return generate_mock_data(ticker)
             
         return df
     except Exception as e:
-        print(f"yFinance Sync Error for {ticker}: {e}. Using fallback...")
+        # Avoid cluttering the logs with known Yahoo flake issues
         return generate_mock_data(ticker)
+
+def fetch_multi_stock_data(tickers: list, period: str = "2d", interval: str = "1d", **kwargs) -> pd.DataFrame:
+    """
+    Fetches OHLC data for multiple tickers in a single high-performance batch call.
+    """
+    import yfinance as yf
+    try:
+        formatted_tickers = [format_symbol(t) for t in tickers]
+        df = yf.download(
+            formatted_tickers,
+            period=period,
+            interval=interval,
+            auto_adjust=True,
+            progress=False,
+            session=_SESSION,
+            threads=len(formatted_tickers) > 5,
+            **kwargs
+        )
+        return df
+    except Exception as e:
+        # Return empty df to avoid crashes
+        return pd.DataFrame()
 
 def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
     """

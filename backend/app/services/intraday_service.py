@@ -371,21 +371,16 @@ def score_stock(ticker: str, data: dict) -> dict:
 
 # ── Main scan ──
 async def run_intraday_scan(top_n: int = 20) -> dict:
-    import yfinance as yf
+    from app.data.yahoo_fetcher import fetch_multi_stock_data
     print(f"[Intraday] Starting bulk scan at {datetime.now().strftime('%H:%M:%S')}...")
 
-    tickers_yf = [f"{t}.NS" for t in UNIVERSE]
-    
     try:
         # Fetch data for all tickers in one go (2 days to calculate gap)
-        # Using a longer timeout to be safe
-        data = yf.download(
-            tickers_yf, 
+        data = fetch_multi_stock_data(
+            UNIVERSE, 
             period="2d", 
             interval="5m", 
-            group_by='ticker', 
-            auto_adjust=True, 
-            progress=False, 
+            group_by='ticker',
             timeout=30
         )
         

@@ -1,9 +1,10 @@
-import yfinance as yf
 import pandas as pd
 import asyncio
 from typing import Dict, List, Any
+from app.data.yahoo_fetcher import fetch_stock_data, fetch_multi_stock_data
 from app.data.ticker_db import TICKER_DB
 from app.utils.cache import market_cache
+from app.utils.format import format_symbol
 
 async def get_market_context() -> Dict[str, Any]:
     """
@@ -15,19 +16,15 @@ async def get_market_context() -> Dict[str, Any]:
 
     def fetch():
         try:
-            data = yf.download("^NSEI", period="2d", interval="1d", progress=False, timeout=5)
-            if data.empty:
+            data = fetch_stock_data("NIFTY", period="2d", interval="1d")
+            if data is None or data.empty:
                 return None
             
-            close_col = None
+            close_col = 'Close'
             if isinstance(data.columns, pd.MultiIndex):
                 if 'Close' in data.columns.levels[0]: close_col = 'Close'
-            elif 'Close' in data.columns:
-                close_col = 'Close'
-                
-            if close_col is None: return None
             
-            close_prices = data['Close']
+            close_prices = data[close_col]
             if len(close_prices) < 2: return None
 
             last_close = float(close_prices.iloc[-1])
@@ -44,7 +41,8 @@ async def get_market_context() -> Dict[str, Any]:
                 "change_pct": round(float(change_pct), 2),
                 "last_price": round(float(last_close), 2)
             }
-        except:
+        except Exception as e:
+            print(f"[MarketService] Context Exception: {e}")
             return None
 
     result = await asyncio.to_thread(fetch)
@@ -64,32 +62,34 @@ async def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
 
     def fetch():
         pool = [item["symbol"] for item in TICKER_DB[:25]] 
-        yf_symbols = [f"{s}.NS" for s in pool]
         movers = []
         try:
-            data = yf.download(yf_symbols, period="2d", interval="1d", progress=False, timeout=8)
+            data = fetch_multi_stock_data(pool, period="2d", interval="1d")
             if not data.empty and 'Close' in data:
                 close_prices = data['Close']
                 if len(close_prices) >= 2:
                     prev_close = close_prices.iloc[-2]
                     curr_price = close_prices.iloc[-1]
-                    pct_change = ((curr_price - prev_close) / prev_close) * 100
                     
                     for symbol in pool:
-                        yf_sym = f"{symbol}.NS"
-                        if yf_sym in pct_change:
-                            change = pct_change[yf_sym]
-                            price = curr_price[yf_sym]
-                            if pd.isna(change) or pd.isna(price): continue
+                        yf_sym = format_symbol(symbol)
+                        # The fetcher standardizes multi-index results
+                        target_col = yf_sym
+                        if target_col in curr_price and target_col in prev_close:
+                            cp = curr_price[target_col]
+                            pc = prev_close[target_col]
+                            if pd.isna(cp) or pd.isna(pc) or pc == 0: continue
+                            
+                            change = ((cp - pc) / pc) * 100
                             movers.append({
                                 "symbol": symbol,
-                                "price": round(float(price), 2),
+                                "price": round(float(cp), 2),
                                 "change_pct": round(float(change), 2),
                                 "volume": 0, 
                                 "momentum_score": round(float(abs(change)), 2)
                             })
-        except:
-            pass
+        except Exception as e:
+            print(f"[MarketService] Moover Fetch Exception: {e}")
         return movers
 
     movers = await asyncio.to_thread(fetch)
@@ -128,37 +128,27 @@ async def get_daily_changes(symbols: List[str]) -> Dict[str, Dict[str, float]]:
     if not symbols: return {}
     
     def fetch():
-        yf_symbols = [f"{s}.NS" if not (s.endswith(".NS") or s.endswith(".BO")) else s for s in symbols]
         results = {}
         try:
-            data = yf.download(yf_symbols, period="5d", interval="1d", progress=False, timeout=10)
+            data = fetch_multi_stock_data(symbols, period="5d", interval="1d")
             if data.empty: return {}
             
             close_prices = data['Close'] if 'Close' in (data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else data.columns) else None
             if close_prices is None: return {}
             
-            if len(yf_symbols) == 1:
-                valid_prices = close_prices.dropna()
-                if len(valid_prices) >= 2:
-                    prev, curr = float(valid_prices.iloc[-2]), float(valid_prices.iloc[-1])
-                    results[symbols[0]] = {
-                        "latest_price": round(curr, 2), "prev_close": round(prev, 2),
-                        "today_change_abs": round(curr - prev, 2),
-                        "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
-                    }
-            else:
-                for i, sym_ns in enumerate(yf_symbols):
-                    if sym_ns in close_prices:
-                        prices = close_prices[sym_ns].dropna()
-                        if len(prices) >= 2:
-                            prev, curr = float(prices.iloc[-2]), float(prices.iloc[-1])
-                            results[symbols[i]] = {
-                                "latest_price": round(curr, 2), "prev_close": round(prev, 2),
-                                "today_change_abs": round(curr - prev, 2),
-                                "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
-                            }
-        except:
-            pass
+            for symbol in symbols:
+                yf_sym = format_symbol(symbol)
+                if yf_sym in close_prices:
+                    prices = close_prices[yf_sym].dropna()
+                    if len(prices) >= 2:
+                        prev, curr = float(prices.iloc[-2]), float(prices.iloc[-1])
+                        results[symbol] = {
+                            "latest_price": round(curr, 2), "prev_close": round(prev, 2),
+                            "today_change_abs": round(curr - prev, 2),
+                            "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
+                        }
+        except Exception as e:
+            print(f"[MarketService] Daily Changes Exception: {e}")
         return results
 
     return await asyncio.to_thread(fetch)
@@ -191,15 +181,17 @@ async def get_market_indices() -> Dict[str, Any]:
         results = cached.copy()
     else:
         def fetch():
-            symbols = {"nifty": "^NSEI", "banknifty": "^NSEBANK", "sensex": "^BSESN", "midcap": "NIFTY_MIDCAP_100.NS", "smallcap": "NIFTY_SMALLCAP_100.NS"}
+            # Use standardised keys that format_symbol will map correctly
+            symbols_map = {"nifty": "NIFTY", "banknifty": "BANKNIFTY", "sensex": "SENSEX", "midcap": "MIDCAP", "smallcap": "SMALLCAP"}
             res = {}
             try:
-                data = yf.download(list(symbols.values()), period="5d", interval="1d", progress=False, timeout=8)
+                data = fetch_multi_stock_data(list(symbols_map.values()), period="5d", interval="1d")
                 if not data.empty and 'Close' in data:
                     close_data = data['Close']
-                    for name, sym in symbols.items():
-                        if sym in close_data:
-                            prices = close_data[sym].dropna()
+                    for name, internal_key in symbols_map.items():
+                        yf_sym = format_symbol(internal_key)
+                        if yf_sym in close_data:
+                            prices = close_data[yf_sym].dropna()
                             if len(prices) >= 2:
                                 last_price, prev_close = prices.iloc[-1], prices.iloc[-2]
                                 change = last_price - prev_close
@@ -210,12 +202,13 @@ async def get_market_indices() -> Dict[str, Any]:
                                     "change_pct": round(float((change / prev_close) * 100), 2),
                                     "is_up": bool(change >= 0)
                                 }
-            except: pass
+            except Exception as e:
+                print(f"[MarketService] Indices Fetch Exception: {e}")
             return res
 
         results = await asyncio.to_thread(fetch)
         
-        # Fallbacks
+        # Fallbacks (to ensure UI never breaks)
         if "nifty" not in results: 
             results["nifty"] = {"name": "NIFTY 50", "value": 24553.75, "change": 389.2, "change_pct": 1.63, "is_up": True}
         if "banknifty" not in results: 

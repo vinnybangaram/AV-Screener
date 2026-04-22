@@ -27,6 +27,8 @@ class User(Base):
     events = relationship("ActivityEvent", back_populates="user")
     receipts = relationship("NotificationReceipt", back_populates="user")
     subscriptions = relationship("Subscription", back_populates="user")
+    backtests = relationship("SavedBacktest", back_populates="user")
+    reports = relationship("GeneratedReport", back_populates="user")
 
 class AdminSession(Base):
     __tablename__ = "sessions"

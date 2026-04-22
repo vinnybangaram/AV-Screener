@@ -5,8 +5,23 @@ def format_symbol(symbol: str) -> str:
     """
     symbol = symbol.upper().strip()
 
+    # Institutional Index Mapping
+    INDEX_MAP = {
+        "NIFTY": "^NSEI",
+        "BANKNIFTY": "^NSEBANK",
+        "NIFTY_BANK": "^NSEBANK",
+        "SENSEX": "^BSESN",
+        "MIDCAP": "^NSEMDCP50",
+        "SMALLCAP": "^CNXSC",
+        "NIFTY_SMALLCAP_100": "^CNXSC",
+        "INDIAVIX": "^INDIAVIX"
+    }
+
+    if symbol in INDEX_MAP:
+        return INDEX_MAP[symbol]
+
     # If already formatted, return as is
-    if symbol.endswith(".NS") or symbol.endswith(".BO"):
+    if symbol.endswith(".NS") or symbol.endswith(".BO") or symbol.startswith("^"):
         return symbol
 
     # Default to NSE

@@ -295,9 +295,7 @@ export const markNotificationRead = async (userId, notificationId) => {
     return await api.post(`/notifications/mark-read?user_id=${userId}&notification_id=${notificationId}`);
 };
 
-export const fetchStockNews = async (symbol) => {
-    return await api.get(`/news/${symbol}`);
-};
+
 
 /**
  * AI Chat Analyst API
@@ -495,8 +493,60 @@ export const runBacktest = async (data) => {
     return await api.post('/backtest/run', data);
 };
 
+export const saveBacktest = async (data) => {
+    return await api.post('/backtest/save', data);
+};
+
+export const fetchBacktestHistory = async () => {
+    return await api.get('/backtest/history');
+};
+
+/**
+ * Investor Reports API
+ */
+export const fetchReports = async () => {
+    return await api.get('/reports/');
+};
+
+export const generateReport = async (data) => {
+    return await api.post('/reports/generate', data);
+};
+
+export const deleteReport = async (id) => {
+    return await api.delete(`/reports/${id}`);
+};
+
 export default api;
 
 
 
 
+/**
+ * News & Sentiment API
+ */
+export const fetchGeneralNews = async () => {
+    try {
+        return await api.get('/news/');
+    } catch (error) {
+        console.error("fetchGeneralNews error:", error);
+        throw error;
+    }
+};
+
+export const fetchStockNews = async (symbol) => {
+    try {
+        return await api.get(`/news/${symbol}`);
+    } catch (error) {
+        console.error("fetchStockNews error:", error);
+        throw error;
+    }
+};
+
+export const fetchSectorSentiment = async () => {
+    try {
+        return await api.get('/news/sectors');
+    } catch (error) {
+        console.error("fetchSectorSentiment error:", error);
+        throw error;
+    }
+};

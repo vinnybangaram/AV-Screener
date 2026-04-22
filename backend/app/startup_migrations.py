@@ -151,6 +151,19 @@ def run_migrations():
                         except Exception as e:
                             print(f"[Migrations]  ! Failed to add option_settings.{col}: {e}")
 
+            # ── generated_reports ────────────────────────────────────────────
+            if _table_exists(conn, "generated_reports"):
+                report_additions = [
+                    ("summary", "VARCHAR"),
+                ]
+                for col, coltype in report_additions:
+                    if not _column_exists(conn, "generated_reports", col):
+                        try:
+                            conn.execute(text(f"ALTER TABLE generated_reports ADD COLUMN {col} {coltype}"))
+                            print(f"[Migrations]  + generated_reports.{col}")
+                        except Exception as e:
+                            print(f"[Migrations]  ! Failed to add generated_reports.{col}: {e}")
+
             conn.commit()
             print("[Migrations] All migrations complete.")
 

@@ -12,6 +12,7 @@ from app.api import (
     option_signals,                    # ← NEW
     portfolio,                         # ← NEW
     backtest,                          # ← NEW
+    reports,                           # ← NEW
 )
 from app.database import engine, Base
 from app.models import (
@@ -25,6 +26,9 @@ from app.models import (
     conviction,                        # ← NEW
     portfolio_health as portfolio_health_model, # ← NEW: aliased to avoid collision
     portfolio as portfolio_model,      # ← NEW
+    backtest as backtest_model,        # ← NEW
+    report as report_model,            # ← NEW
+    news as news_model,              # ← NEW
 )
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -60,8 +64,8 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Temporarily open it up to debug persistent 500/CORS blockers
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -108,6 +112,7 @@ app.include_router(multibagger.router) # ← NEW
 app.include_router(option_signals.router, prefix="/api") # ← NEW
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"]) # ← NEW
 app.include_router(backtest.router, tags=["Backtesting"]) # ← NEW
+app.include_router(reports.router) # ← NEW
 
 
 # ── STARTUP ───────────────────────────────────────────────────────────────────

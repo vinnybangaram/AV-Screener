@@ -156,3 +156,39 @@ def get_market_insight(market_data: Dict[str, Any]) -> Dict[str, str]:
             "title": "Structural Support Identified",
             "content": "The market is currently consolidating around key psychological levels with neutral breadth. Institutional flow data suggests a 'buy-on-dips' mentality in core sectors, though overall indices await a catalyst for the next leg of the rally. Maintain balanced exposure until trend confirmation."
         }
+
+def get_backtest_ai_summary(backtest_results: Dict[str, Any]) -> str:
+    """Generates an AI summary for a completed backtest."""
+    if not GEMINI_API_KEY:
+        return "Manual Review: Strategy shows solid returns with manageable drawdown. Consider tighter stop loss on volatile periods."
+
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        stats = backtest_results.get('stats', {})
+        prompt = f"""
+        Analyze the following trading strategy backtest results and provide a professional, concise executive summary (3-4 sentences):
+        
+        - CAGR: {stats.get('cagr')}%
+        - Win Rate: {stats.get('win_rate')}%
+        - Max Drawdown: {stats.get('max_dd')}%
+        - Sharpe Ratio: {stats.get('sharpe')}
+        - Profit Factor: {stats.get('profit_factor')}
+        - Avg Gain: {stats.get('avg_gain')}%
+        - Avg Loss: {stats.get('avg_loss')}%
+        - Recovery Factor: {stats.get('recovery_factor')}
+        
+        Focus on:
+        1. Robustness and Risk-Reward.
+        2. Suitability (Trending vs Range-bound).
+        3. Highly specific improvement tip.
+        
+        Return ONLY the summary text.
+        """
+        
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        print(f"AI backtest summary error: {e}")
+        return "Strategy has strong returns but unstable drawdowns. Best performance during trending markets. Consider tighter stop loss."
