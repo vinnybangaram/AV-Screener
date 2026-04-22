@@ -395,47 +395,81 @@ class OptionSignalsService:
         db.commit()
 
     async def get_dashboard_summary(self, db: Session, user_id: Optional[int]) -> OptionSignalsDashboard:
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        
-        trades_query = db.query(OptionTrade).filter(
-            OptionTrade.execution_time >= today_start
-        ).order_by(OptionTrade.execution_time.desc())
-        
-        if user_id:
-            trades_query = trades_query.filter(OptionTrade.user_id == user_id)
+        try:
+            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             
-        trades = trades_query.all()
-        
-        # Null-safe P&L aggregation
-        total_pnl = sum([(t.pnl or 0.0) for t in trades])
-        wins = len([t for t in trades if (t.pnl or 0) > 0 and t.status == "CLOSED"])
-        closed_trades = [t for t in trades if t.status == "CLOSED"]
-        win_rate = (wins / len(closed_trades) * 100) if closed_trades else 0.0
-        active_trades_count = len([t for t in trades if t.status == "OPEN"])
-        
-        indices = await get_market_indices()
-        
-        # Latest OI Analysis for Dashboard
-        nifty_live = indices.get("nifty", {"value": 24200})
-        oi_data = await self.analyze_oi("NIFTY", nifty_live["value"])
-        
-        return OptionSignalsDashboard(
-            today_pnl=total_pnl,
-            engine_status="Active" if self.is_market_open() else "Market Closed",
-            signal_status=self.current_signal_status,
-            active_trades_count=active_trades_count,
-            win_rate=round(win_rate, 2),
-            signals_today=len(trades),
-            trades=[OptionTradeResponse.from_orm(t) for t in trades],
-            nifty_live=indices.get("nifty"),
-            banknifty_live=indices.get("banknifty"),
-            pcr=round(oi_data["pe_oi_change"] / max(oi_data["ce_oi_change"], 1), 2),
-            ce_oi_total=oi_data["ce_oi_change"] * 10, # Proxy for totals
-            pe_oi_total=oi_data["pe_oi_change"] * 10,
-            call_wall=oi_data["call_wall"],
-            put_wall=oi_data["put_wall"],
-            engine_logs=self.engine_logs
-        )
+            trades_query = db.query(OptionTrade).filter(
+                OptionTrade.execution_time >= today_start
+            ).order_by(OptionTrade.execution_time.desc())
+            
+            if user_id:
+                trades_query = trades_query.filter(OptionTrade.user_id == user_id)
+                
+            trades = trades_query.all()
+            
+            # Null-safe P&L aggregation
+            total_pnl = sum([(t.pnl or 0.0) for t in trades])
+            wins = len([t for t in trades if (t.pnl or 0) > 0 and t.status == "CLOSED"])
+            closed_trades = [t for t in trades if t.status == "CLOSED"]
+            win_rate = (wins / len(closed_trades) * 100) if closed_trades else 0.0
+            active_trades_count = len([t for t in trades if t.status == "OPEN"])
+            
+            indices = await get_market_indices() or {}
+            
+            # Latest OI Analysis for Dashboard
+            nifty_data = indices.get("nifty", {"value": 24200})
+            nifty_price = nifty_data.get("value", 24200)
+            
+            oi_data = await self.analyze_oi("NIFTY", nifty_price)
+            
+            # Safe PCR calculation
+            pe_oi = oi_data.get("pe_oi_change", 0)
+            ce_oi = oi_data.get("ce_oi_change", 0)
+            pcr = round(pe_oi / max(ce_oi, 1), 2)
+            
+            # Map trades to schema objects (using model_validate for Pydantic v2 compatibility)
+            trade_responses = []
+            for t in trades:
+                try:
+                    # Manually ensure required fields are not None for the schema
+                    if t.reason is None: t.reason = "System Entry"
+                    if t.symbol is None: t.symbol = "NIFTY"
+                    if t.type is None: t.type = "CALL"
+                    trade_responses.append(OptionTradeResponse.from_orm(t))
+                except Exception as e:
+                    print(f"Error mapping trade {t.id}: {e}")
+            
+            return OptionSignalsDashboard(
+                today_pnl=float(total_pnl),
+                engine_status="Active" if self.is_market_open() else "Market Closed",
+                signal_status=self.current_signal_status,
+                active_trades_count=active_trades_count,
+                win_rate=round(float(win_rate), 2),
+                signals_today=len(trades),
+                trades=trade_responses,
+                nifty_live=indices.get("nifty"),
+                banknifty_live=indices.get("banknifty"),
+                pcr=float(pcr),
+                ce_oi_total=float(ce_oi * 10),
+                pe_oi_total=float(pe_oi * 10),
+                call_wall=float(oi_data.get("call_wall", 0)),
+                put_wall=float(oi_data.get("put_wall", 0)),
+                engine_logs=self.engine_logs
+            )
+        except Exception as e:
+            print(f"CRITICAL: OptionSignals dashboard failure: {e}")
+            traceback.print_exc()
+            # Return a minimal valid dashboard instead of crashing with 500
+            return OptionSignalsDashboard(
+                today_pnl=0.0,
+                engine_status="Error",
+                signal_status="Dashboard temporary unavailable",
+                active_trades_count=0,
+                win_rate=0.0,
+                signals_today=0,
+                trades=[],
+                engine_logs=["Engine encounter an error during dashboard generation."]
+            )
 
 # Singleton instance
 option_signals_service = OptionSignalsService()

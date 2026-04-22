@@ -50,13 +50,14 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://av-screener.vercel.app",
+    "https://av-screener-vinnybangaram.vercel.app", # Potential alternative
     "https://av-screener.onrender.com",
     settings.FRONTEND_URL,
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[str(o) for o in origins if o],
+    allow_origins=["*"], # Temporarily open it up to debug persistent 500/CORS blockers
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

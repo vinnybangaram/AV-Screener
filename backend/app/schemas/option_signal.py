@@ -3,15 +3,15 @@ from datetime import datetime
 from typing import Optional, List
 
 class OptionTradeBase(BaseModel):
-    symbol: str
-    instrument: str
-    type: str
-    entry_price: float
-    sl_price: float
+    symbol: Optional[str] = "NIFTY"
+    instrument: Optional[str] = None
+    type: Optional[str] = None
+    entry_price: float = 0.0
+    sl_price: float = 0.0
     tsl_1: Optional[float] = None
     tsl_2: Optional[float] = None
     tsl_3: Optional[float] = None
-    reason: str
+    reason: Optional[str] = "System Entry"
 
 class OptionTradeCreate(OptionTradeBase):
     pass
