@@ -27,12 +27,15 @@ class OptionSignalsService:
 
     def is_market_open(self) -> bool:
         """Checks if current time is within Indian Market hours (9:15 AM - 3:30 PM IST)."""
-        now = datetime.now()
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        
         market_start = dt_time(9, 15)
         market_end = dt_time(15, 30)
-        current_time = now.time()
+        current_time = now_ist.time()
         
-        if now.weekday() >= 5:
+        if now_ist.weekday() >= 5:
             return False
             
         return market_start <= current_time <= market_end
@@ -220,8 +223,9 @@ class OptionSignalsService:
                     self.current_signal_status = f"{symbol}: WAIT (Weak Candle Body: {round(candle_body_percent, 1)}%)"
                     return None
 
-                # Setup Valid -> Set Pullback Target
-                pullback_target = price - 10 if candidate_signal == "CALL" else price + 10
+                # Setup Valid -> Set Pullback Target (Reducing to 5pts for better sensitivity)
+                pullback_pts = 5 if symbol == "NIFTY" else 20
+                pullback_target = price - pullback_pts if candidate_signal == "CALL" else price + pullback_pts
                 self.pending_pullbacks[symbol] = {
                     "signal": candidate_signal,
                     "breakout_price": price,
