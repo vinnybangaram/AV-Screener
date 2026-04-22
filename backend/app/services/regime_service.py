@@ -18,7 +18,7 @@ REGIMES = {
     "R8": "Recovery Rebound"
 }
 
-def calculate_current_regime(db: Session = None) -> Dict[str, Any]:
+async def calculate_current_regime(db: Session = None) -> Dict[str, Any]:
     """
     Main engine that classifies the current market regime.
     """
@@ -48,7 +48,7 @@ def calculate_current_regime(db: Session = None) -> Dict[str, Any]:
         
         # ── 2. Breadth Score (25%) ──
         # Advances/Declines from top movers as proxy + general trend
-        movers = market_service.get_top_movers()
+        movers = await market_service.get_top_movers()
         gainers_count = len(movers.get("gainers", []))
         losers_count = len(movers.get("losers", []))
         breadth_ratio = gainers_count / (gainers_count + losers_count) if (gainers_count + losers_count) > 0 else 0.5

@@ -7,11 +7,11 @@ from typing import List, Optional
 router = APIRouter()
 
 @router.get("/conviction/{symbol}")
-def get_stock_conviction(symbol: str, db: Session = Depends(get_db)):
+async def get_stock_conviction(symbol: str, db: Session = Depends(get_db)):
     """
     Returns live conviction score for a single stock.
     """
-    return conviction_service.calculate_conviction_score(symbol, db, save=True)
+    return await conviction_service.calculate_conviction_score(symbol, db, save=True)
 
 @router.get("/conviction/top")
 def get_top_conviction(limit: int = 20, db: Session = Depends(get_db)):

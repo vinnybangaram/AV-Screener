@@ -216,11 +216,18 @@ scheduler.add_job(
 # 6. Market Regime Snapshot — every 15 minutes during market hours
 def _job_market_regime():
     try:
+        import asyncio
         from app.database import SessionLocal
         from app.services.regime_service import calculate_current_regime
         db = SessionLocal()
         try:
-            calculate_current_regime(db)
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            loop.run_until_complete(calculate_current_regime(db))
             print("[Scheduler] Market Regime snapshot captured.")
         finally:
             db.close()
@@ -243,6 +250,7 @@ scheduler.add_job(
 # 7. Stock Conviction Refresh — every 15 minutes
 def _job_conviction_refresh():
     try:
+        import asyncio
         from app.database import SessionLocal
         from app.models.watchlist import WatchlistPosition
         from app.services.conviction_service import calculate_conviction_score
@@ -252,8 +260,14 @@ def _job_conviction_refresh():
             positions = db.query(WatchlistPosition).filter(WatchlistPosition.is_active == True).all()
             symbols = list(set([p.symbol for p in positions]))
             
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
             for symbol in symbols:
-                calculate_conviction_score(symbol, db, save=True)
+                loop.run_until_complete(calculate_conviction_score(symbol, db, save=True))
                 
             print(f"[Scheduler] Refreshed conviction for {len(symbols)} symbols.")
         finally:

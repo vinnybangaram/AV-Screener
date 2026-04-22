@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.conviction import StockConvictionScore
 from app.services import regime_service, market_service
 
-def calculate_conviction_score(symbol: str, db: Session = None, save: bool = False) -> Dict[str, Any]:
+async def calculate_conviction_score(symbol: str, db: Session = None, save: bool = False) -> Dict[str, Any]:
     """
     AVE-Scoring Engine: Generates 0-100 score for a given stock.
     """
@@ -57,7 +57,8 @@ def calculate_conviction_score(symbol: str, db: Session = None, save: bool = Fal
         delta = close.diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
+        # Avoid division by zero
+        rs = gain / loss.replace(0, 0.001)
         rsi = float(100 - (100 / (1 + rs.iloc[-1])))
         
         m_score = 50 
@@ -88,7 +89,7 @@ def calculate_conviction_score(symbol: str, db: Session = None, save: bool = Fal
         risk_score = max(0, min(100, 100 - (atr_pct * 20))) 
         
         # ── 6. Regime Alignment (10%) ──
-        regime = regime_service.calculate_current_regime()
+        regime = await regime_service.calculate_current_regime()
         regime_code = regime.get("regime_code", "R4")
         g_score = 50 # Neutral
         if regime_code in ["R1", "R2"] and t_score > 70: g_score = 90
