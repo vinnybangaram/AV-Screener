@@ -11,6 +11,7 @@ from app.api import (
     multibagger,                       # ← NEW
     option_signals,                    # ← NEW
     portfolio,                         # ← NEW
+    backtest,                          # ← NEW
 )
 from app.database import engine, Base
 from app.models import (
@@ -106,6 +107,7 @@ app.include_router(portfolio_health.router, prefix="/api/portfolio",    tags=["P
 app.include_router(multibagger.router) # ← NEW
 app.include_router(option_signals.router, prefix="/api") # ← NEW
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"]) # ← NEW
+app.include_router(backtest.router, tags=["Backtesting"]) # ← NEW
 
 
 # ── STARTUP ───────────────────────────────────────────────────────────────────

@@ -488,6 +488,13 @@ export const removePortfolioHolding = async (id) => {
     return await api.delete(`/portfolio/holdings/${id}`);
 };
 
+/**
+ * Backtesting API
+ */
+export const runBacktest = async (data) => {
+    return await api.post('/backtest/run', data);
+};
+
 export default api;
 
 
