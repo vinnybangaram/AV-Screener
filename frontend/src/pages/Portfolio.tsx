@@ -11,6 +11,7 @@ import { Briefcase, TrendingUp, ShieldCheck, Sparkles, Download, RefreshCcw, Pie
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { toast } from "sonner";
 import { fetchPortfolioSummary } from "@/services/api";
+import { cn } from "@/lib/utils";
 
 const sectorPalette = ["hsl(var(--accent))", "hsl(var(--primary))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--danger))", "hsl(220 70% 55%)", "hsl(280 65% 55%)"];
 
