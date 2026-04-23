@@ -25,7 +25,7 @@ def _table_exists(conn, table: str) -> bool:
 def run_migrations():
     print("[Migrations] Running startup migrations…")
 
-    with engine.connect() as conn:
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         try:
             # ── watchlist_positions ──────────────────────────────────────────
             if _table_exists(conn, "watchlist_positions"):
@@ -167,7 +167,6 @@ def run_migrations():
                         except Exception as e:
                             print(f"[Migrations]  ! Failed to add generated_reports.{col}: {e}")
 
-            conn.commit()
             print("[Migrations] All migrations complete.")
 
         except Exception as e:
