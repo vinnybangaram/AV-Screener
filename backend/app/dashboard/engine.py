@@ -105,6 +105,7 @@ class DashboardEngine:
                 price_data = prices.get(p.symbol, {})
                 qty = p.quantity or 1
                 entry_pr = p.entry_price or 0.0
+                curr_pr = p.latest_price or entry_pr
                 current_price = price_data.get("latest_price")
                 if current_price is None: current_price = curr_pr
                 if current_price is None: current_price = 0.0
@@ -159,6 +160,7 @@ class DashboardEngine:
                 price_data = prices.get(p.symbol, {})
                 qty = p.quantity or 1
                 entry_pr = p.entry_price or 0.0
+                curr_pr = p.latest_price or entry_pr
                 curr = price_data.get("latest_price")
                 if curr is None: curr = curr_pr
                 if curr is None: curr = 0.0

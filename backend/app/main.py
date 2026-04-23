@@ -60,6 +60,7 @@ app = FastAPI(title=settings.PROJECT_NAME, version="2.0.0")
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
     "https://av-screener.vercel.app",
     "https://av-screener-vinnybangaram.vercel.app", # Potential alternative
     "https://av-screener.onrender.com",
