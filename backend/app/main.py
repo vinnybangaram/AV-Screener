@@ -83,7 +83,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     traceback.print_exc()
     origin = request.headers.get("origin")
     headers = {}
-    if origin in origins or "*" in origins:
+    if origin:
         headers["Access-Control-Allow-Origin"] = origin
         headers["Access-Control-Allow-Credentials"] = "true"
     

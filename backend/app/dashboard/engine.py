@@ -105,9 +105,12 @@ class DashboardEngine:
                 price_data = prices.get(p.symbol, {})
                 qty = p.quantity or 1
                 entry_pr = p.entry_price or 0.0
-                curr_pr = p.latest_price or entry_pr
-                current_price = price_data.get("latest_price", curr_pr)
-                day_change_abs = price_data.get("today_change_abs", 0.0)
+                current_price = price_data.get("latest_price")
+                if current_price is None: current_price = curr_pr
+                if current_price is None: current_price = 0.0
+                
+                day_change_abs = price_data.get("today_change_abs")
+                if day_change_abs is None: day_change_abs = 0.0
                 
                 day_pnl = day_change_abs * qty
                 overall_pnl = (current_price - entry_pr) * qty
@@ -156,9 +159,12 @@ class DashboardEngine:
                 price_data = prices.get(p.symbol, {})
                 qty = p.quantity or 1
                 entry_pr = p.entry_price or 0.0
-                curr_pr = p.latest_price or entry_pr
-                curr = price_data.get("latest_price", curr_pr)
-                day_change = price_data.get("today_change_abs", 0.0)
+                curr = price_data.get("latest_price")
+                if curr is None: curr = curr_pr
+                if curr is None: curr = 0.0
+                
+                day_change = price_data.get("today_change_abs")
+                if day_change is None: day_change = 0.0
                 
                 trade_type = (p.sub_type or p.side or "long").lower()
                 # Per user spec: Long P&L = (Current - Entry), Short P&L = (Entry - Current)
@@ -218,8 +224,12 @@ class DashboardEngine:
             price_data = prices.get(p.symbol, {})
             entry_pr = p.entry_price or 0.0
             curr_pr = p.latest_price or entry_pr
-            curr = price_data.get("latest_price", curr_pr)
-            day_change = price_data.get("today_change_abs", 0.0)
+            curr = price_data.get("latest_price")
+            if curr is None: curr = curr_pr
+            if curr is None: curr = 0.0
+            
+            day_change = price_data.get("today_change_abs")
+            if day_change is None: day_change = 0.0
             
             is_intraday = "intraday" in (p.category or "").lower()
             trade_type = (p.sub_type or p.side or "long").lower() if is_intraday else None
@@ -304,7 +314,9 @@ class DashboardEngine:
             price_data = prices.get(p.symbol, {})
             entry_pr = p.entry_price or 0.0
             curr_pr = p.latest_price or entry_pr
-            curr = price_data.get("latest_price", curr_pr)
+            curr = price_data.get("latest_price")
+            if curr is None: curr = curr_pr
+            if curr is None: curr = 0.0
             pnl_pct = ((curr - entry_pr) / entry_pr * 100) if entry_pr > 0 else 0.0
             perf.append({"symbol": p.symbol, "pl_pct": round(pnl_pct, 2)})
             
