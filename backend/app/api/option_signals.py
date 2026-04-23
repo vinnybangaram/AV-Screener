@@ -9,7 +9,7 @@ from ..schemas.option_signal import (
     OptionSettingsUpdate,
     OptionSignalsDashboard
 )
-from ..models.option_signal import OptionSettings
+from ..models.option_signal import OptionSettings, OptionTrade
 from ..models.user import User
 # Import auth dependencies if needed, for now using a simple approach
 # from ..utils.auth import get_current_user
@@ -20,6 +20,14 @@ router = APIRouter(prefix="/option-signals", tags=["Option Signals"])
 async def get_dashboard(db: Session = Depends(get_db), user_id: Optional[int] = None):
     """Returns the current state of the Option Signals engine and recent trades."""
     return await option_signals_service.get_dashboard_summary(db, user_id)
+
+@router.get("/history", response_model=List[OptionTradeResponse])
+async def get_history(db: Session = Depends(get_db), user_id: Optional[int] = None):
+    """Returns the full trade history for the user."""
+    query = db.query(OptionTrade).filter(OptionTrade.status == "CLOSED")
+    if user_id:
+        query = query.filter(OptionTrade.user_id == user_id)
+    return query.order_by(OptionTrade.execution_time.desc()).all()
 
 @router.get("/settings", response_model=OptionSettingsResponse)
 async def get_settings(db: Session = Depends(get_db), user_id: Optional[int] = None):

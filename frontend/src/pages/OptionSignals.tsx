@@ -186,24 +186,24 @@ export default function OptionSignals() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
-              <Label className="text-xs text-muted-foreground">Slots ({eng.settings.slots})</Label>
+              <Label className="text-xs text-muted-foreground">Lots ({eng.settings.slots})</Label>
               <Slider
                 className="mt-2"
-                min={1} max={4} step={1}
+                min={1} max={10} step={1}
                 value={[eng.settings.slots]}
                 onValueChange={([v]) => eng.updateSettings({ slots: v })}
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Concurrent open trades</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Number of lots per trade</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Max Trades / index ({eng.settings.trades})</Label>
+              <Label className="text-xs text-muted-foreground">Max Trades / day ({eng.settings.trades})</Label>
               <Slider
                 className="mt-2"
-                min={1} max={20} step={1}
+                min={1} max={5} step={1}
                 value={[eng.settings.trades]}
                 onValueChange={([v]) => eng.updateSettings({ trades: v })}
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Daily cap per Nifty / Banknifty</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Daily cap per user</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Risk Mode</Label>
@@ -286,13 +286,16 @@ export default function OptionSignals() {
                 <TableHead>Time</TableHead>
                 <TableHead>Symbol</TableHead>
                 <TableHead>Dir</TableHead>
+                <TableHead className="text-right">Lots</TableHead>
                 <TableHead className="text-right">Entry</TableHead>
                 <TableHead className="text-right">SL</TableHead>
                 <TableHead className="text-right">TSL1</TableHead>
                 <TableHead className="text-right">TSL2</TableHead>
                 <TableHead className="text-right">TSL3</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">P&L</TableHead>
+                <TableHead className="text-right">P&L%</TableHead>
+                <TableHead className="text-right">P&L (Pts)</TableHead>
+                <TableHead className="text-right">P&L (₹)</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead className="text-right">Score</TableHead>
               </TableRow>
@@ -300,7 +303,7 @@ export default function OptionSignals() {
             <TableBody>
               {pageRows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={14} className="text-center text-muted-foreground py-12">
                     No trades yet. Start the engine to begin scanning.
                   </TableCell>
                 </TableRow>
@@ -315,6 +318,7 @@ export default function OptionSignals() {
                       {t.direction}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-right font-mono font-medium">{t.lots}</TableCell>
                   <TableCell className="text-right font-mono">{t.entry.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-mono">{t.currentSL.toFixed(2)}</TableCell>
                   <TableCell className={cn("text-right font-mono text-xs", t.tslStage >= 1 && "text-accent font-bold")}>{t.tsl1.toFixed(2)}</TableCell>
@@ -328,7 +332,13 @@ export default function OptionSignals() {
                   <TableCell className="text-right">
                     <ChangeBadge value={t.pnlPct} />
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[280px] truncate" title={t.reason}>
+                  <TableCell className={cn("text-right font-mono font-bold", t.pnlPts >= 0 ? "text-success" : "text-danger")}>
+                    {t.pnlPts >= 0 ? `+${t.pnlPts.toFixed(1)}` : t.pnlPts.toFixed(1)}
+                  </TableCell>
+                  <TableCell className={cn("text-right font-mono font-bold", t.pnl >= 0 ? "text-success" : "text-danger")}>
+                    {fmtMoney(t.pnl)}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={t.reason}>
                     {t.reason}
                   </TableCell>
                   <TableCell className="text-right">

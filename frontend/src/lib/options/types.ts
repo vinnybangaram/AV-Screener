@@ -71,6 +71,8 @@ export interface PaperTrade {
   currentPrice: number;
   pnl: number;
   pnlPct: number;
+  pnlPts: number;
+  lots: number;
   reason: string;
   exitReason?: ExitReason;
   confidenceScore: number;

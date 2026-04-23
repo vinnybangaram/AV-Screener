@@ -11,6 +11,7 @@ class OptionTrade(Base):
     symbol = Column(String, index=True)  # Nifty / Banknifty
     instrument = Column(String)  # Nifty 19500 CE
     type = Column(String)  # CALL / PUT
+    lots = Column(Integer, default=1) # Number of lots at entry
     entry_price = Column(Float)
     sl_price = Column(Float)
     tsl_1 = Column(Float, nullable=True)

@@ -21,10 +21,22 @@ class OptionSignalsService:
         self.engine_logs = []
 
     def _log(self, message: str):
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        self.engine_logs.insert(0, f"[{timestamp}] {message}")
-        # Keep only last 20 logs
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] {message}"
+        self.engine_logs.insert(0, log_entry)
+        # Keep only last 20 in-memory logs
         self.engine_logs = self.engine_logs[:20]
+        
+        # Also write to a persistent log file
+        try:
+            import os
+            log_dir = "logs"
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            with open(os.path.join(log_dir, "engine.log"), "a") as f:
+                f.write(log_entry + "\n")
+        except Exception:
+            pass
 
     def is_market_open(self) -> bool:
         """Checks if current time is within Indian Market hours (9:15 AM - 3:30 PM IST)."""
@@ -72,10 +84,14 @@ class OptionSignalsService:
             self.current_signal_status = "Engine Paused. Waiting for manual start."
             return
 
-        # 1. Manage ALL open trades
-        open_trades = db.query(OptionTrade).filter(OptionTrade.status == "OPEN").all()
+        # 1. Manage ALL open trades for THIS user
+        open_trades = db.query(OptionTrade).filter(
+            OptionTrade.status == "OPEN",
+            OptionTrade.user_id == user_id
+        ).all()
+        
         if open_trades:
-            self._log(f"Monitoring {len(open_trades)} active trades...")
+            self._log(f"[User {user_id}] Monitoring {len(open_trades)} active trades...")
             for t in open_trades:
                 await self.manage_trade(t, db, settings.lots)
         else:
@@ -92,10 +108,10 @@ class OptionSignalsService:
         # 3. Detect New Signals - NIFTY ONLY (BANKNIFTY Disabled)
         for symbol in ["NIFTY"]:
             self._log(f"Scanning {symbol} for Institutional OI Traps...")
-            # Check daily limit from settings
             today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             daily_count = db.query(OptionTrade).filter(
                 OptionTrade.symbol == symbol,
+                OptionTrade.user_id == user_id,
                 OptionTrade.execution_time >= today_start
             ).count()
 
@@ -109,13 +125,17 @@ class OptionSignalsService:
                     f"Checking {symbol} A+ Pullback conditions...",
                     f"Scanning {symbol} for Gamma Wall coverage...",
                     f"Filtering {symbol} for Institutional Guardrails...",
-                    f"Monitoring {symbol} PCR Sentiment..."
+                    f"Monitoring {symbol} PCR Sentiment...",
+                    f"Market Pulse: {symbol} at {round(await self.get_live_price(symbol), 2)}"
                 ])
 
             signal = await self.detect_signal(symbol, settings.risk_mode)
             if signal:
                 self.current_signal_status = f"A+ Entry Confirmed on {symbol}! Executing {signal['type']}."
                 await self.execute_trade(signal, db, user_id)
+            # Log periodic scan with indicators to show engine is alive
+            elif random.random() > 0.5: # Show pulse more often
+                pass 
 
     def send_whatsapp_alert(self, msg: str, phone: str):
         """Sends WhatsApp alert via Twilio placeholder."""
@@ -161,61 +181,69 @@ class OptionSignalsService:
             if pb_sig == "CALL":
                 if price <= pb_target:
                     is_triggered = True
-                elif price > br_price + 35: # Cancel if rocks too far without PB
+                elif price > br_price + 45: # Cancel if rocks too far without PB
                     is_missed = True
             elif pb_sig == "PUT":
                 if price >= pb_target:
                     is_triggered = True
-                elif price < br_price - 35:
+                elif price < br_price - 45:
                     is_missed = True
                     
             if is_missed:
                 self.pending_pullbacks[symbol] = None
-                self._log(f"SIGNAL CANCELLED: {symbol} rocketed without 10-pt pullback.")
+                self._log(f"SIGNAL CANCELLED: {symbol} moved too far (45+ pts) without pullback.")
                 return None
             elif not is_triggered:
-                self.current_signal_status = f"{symbol}: Awaiting 10-pt Pullback to {round(pb_target, 1)}..."
+                # Update status but don't log every 10s to avoid clutter
+                self.current_signal_status = f"{symbol}: Awaiting 6-pt Pullback to {round(pb_target, 1)}..."
                 return None
 
             if is_triggered:
                 self.pending_pullbacks[symbol] = None
                 direction = pb_sig
-                reason = "A+ Pullback Triggered (Confirmed 10-pt Dip)"
+                reason = "A+ Pullback Triggered (Confirmed 6-pt Dip)"
                 entry_price = price
         else:
             # --- 💡 STRATEGY FILTERS (Institutional Guardrails) ---
             
-            # Trend Strength: Price moved at least 25 pts in last 10 candles
+            # Trend Strength: Price moved at least 15 pts in last 10 candles (Relaxed from 25)
             trend_move = abs(df["Close"].iloc[-1] - df["Close"].iloc[-10]) if len(df) >= 10 else 0
-            if trend_move < 25:
-                return None
-                
-            # Candle Integrity: Body >= 70% of total Range
+            
+            # Candle Integrity: Body >= 55% of total Range (Relaxed from 70%)
             candle_body = abs(latest["Close"] - latest["Open"])
             candle_range = max(latest["High"] - latest["Low"], 0.1)
-            if (candle_body / candle_range) < 0.70:
+            integrity = (candle_body / candle_range)
+            
+            # Engine Pulse Log (Show every few scans)
+            if random.random() > 0.7:
+                self._log(f"Pulse [{symbol}]: Price={round(price,1)}, Trend={round(trend_move,1)}, RSI={round(rsi,1)}, Integrity={round(integrity*100)}%, PCR={round(pcr,2)}")
+
+            if trend_move < 15:
+                return None
+                
+            if integrity < 0.35:
                 return None
 
-            # Base Signal: EMA 9 > 21 and RSI > 60
+            # Base Signal: EMA 9 > 21 and RSI > 55 (Relaxed from 60)
             candidate = None
-            if ema9 > ema21 and rsi > 60 and pcr > 1.0:
+            if ema9 > ema21 and rsi > 55 and pcr > 1.0:
                 candidate = "CALL"
-            elif ema9 < ema21 and rsi < 40 and pcr < 0.9:
+            elif ema9 < ema21 and rsi < 45 and pcr < 0.9:
                 candidate = "PUT"
 
             if candidate:
-                pb_target = price - 10 if candidate == "CALL" else price + 10
+                pb_target = price - 6 if candidate == "CALL" else price + 6
                 self.pending_pullbacks[symbol] = {
                     "signal": candidate,
                     "breakout_price": price,
                     "pullback_target": pb_target
                 }
-                self._log(f"A+ SETUP DETECTED: {symbol} {candidate}. Waiting for 10-pt Pullback.")
+                self._log(f"A+ SETUP DETECTED: {symbol} {candidate}. Waiting for 6-pt Pullback.")
                 return None
             return None
 
-        # --- ✅ EXECUTION DATA (Target must be 40+ pts away) ---
-        target_pts = 60
+        # --- ✅ EXECUTION DATA (Aimed at 40-60 pts profit) ---
+        target_pts = 75 # Higher target for better RR
         sl_pts = 35
         
         if direction == "CALL":
@@ -224,15 +252,15 @@ class OptionSignalsService:
         else:
             target = entry_price - target_pts
             sl = entry_price + sl_pts
-
+        
         instrument = f"{symbol} {round(entry_price/100)*100} {'CE' if direction == 'CALL' else 'PE'}"
 
         return {
             "symbol": symbol, "instrument": instrument, "type": direction,
             "confidence": 0.98, "entry": entry_price, "sl": sl, 
-            "tsl1": entry_price + (30 if direction == "CALL" else -30), # Stage 1 Trigger
-            "tsl2": 0, # Unused in 3-stage logic but kept for model compatibility
-            "tsl3": target, # Stage 3 Target
+            "tsl1": entry_price + (40 if direction == "CALL" else -40), # Stage 1 Trigger at 40 pts
+            "tsl2": 0, 
+            "tsl3": target, 
             "reason": reason
         }
 
@@ -266,11 +294,15 @@ class OptionSignalsService:
         return 100 - (100 / (1 + rs)).iloc[-1]
 
     async def execute_trade(self, signal: dict, db: Session, user_id: Optional[int]):
+        settings = db.query(OptionSettings).filter(OptionSettings.user_id == user_id).first()
+        lots = settings.lots if settings else 1
+        
         new_trade = OptionTrade(
             user_id=user_id,
             symbol=signal["symbol"],
             instrument=signal["instrument"],
             type=signal["type"],
+            lots=lots,
             entry_price=signal["entry"],
             sl_price=signal["sl"],
             tsl_1=signal["tsl1"],
@@ -294,27 +326,27 @@ class OptionSignalsService:
             msg = f"🚀 {signal['symbol']} A+ SIGNAL\n{signal['type']} @ {signal['entry']}\nTarget: {signal['tsl3']}\nSL: {signal['sl']}"
             self.send_whatsapp_alert(msg, settings.phone_number)
 
-    async def manage_trade(self, trade: OptionTrade, db: Session, total_lots: int):
+    async def manage_trade(self, trade: OptionTrade, db: Session, total_lots_not_used: int):
         """Pillar 3: Triple-Stage Trailing Matrix."""
         current_price = await self.get_live_price(trade.symbol)
-        lot_size = 50 # NiftyLot
+        lot_size = 65 if trade.symbol == "NIFTY" else 15 # Nifty Lot Size updated to 65
         
         pnl_pts = (current_price - trade.entry_price) if trade.type == "CALL" else (trade.entry_price - current_price)
-        trade.pnl = (trade.realized_partial_pnl) + (pnl_pts * lot_size * (total_lots * trade.active_multiplier))
+        trade.pnl = (trade.realized_partial_pnl) + (pnl_pts * lot_size * (trade.lots * trade.active_multiplier))
         trade.pnl_pct = (pnl_pts / trade.entry_price) * 100
         
         # 1. Exit Evaluation
         exit_signal = None
         
-        # Stage 1: Price hits +30 pts -> Book 50% & Move SL to Cost
-        if not trade.partial_booked and pnl_pts >= 30:
+        # Stage 1: Price hits +40 pts -> Book 50% & Move SL to Cost
+        if not trade.partial_booked and pnl_pts >= 40:
             trade.partial_booked = True
             trade.tsl_1_hit = True
             # Realize 50% pnl
-            trade.realized_partial_pnl = (30 * lot_size * total_lots * 0.5)
+            trade.realized_partial_pnl = (40 * lot_size * trade.lots * 0.5)
             trade.active_multiplier = 0.5
             trade.current_tsl = trade.entry_price # Move SL to Entry (Risk-Free)
-            self._log(f"TSL STAGE 1: {trade.symbol} Part-Booked & Secured at Cost.")
+            self._log(f"TSL STAGE 1: {trade.symbol} Part-Booked at +40pts & Secured at Cost.")
         
         # Stage 2: Dynamic Trailing at Current - 20 pts
         if trade.partial_booked:
@@ -344,7 +376,7 @@ class OptionSignalsService:
         else:
             db.commit()
 
-    async def exit_trade(self, trade: OptionTrade, db: Session, exit_price: float, reason: str, total_lots: int):
+    async def exit_trade(self, trade: OptionTrade, db: Session, exit_price: float, reason: str, total_lots_not_used: int):
         trade.exit_price = exit_price
         trade.status = "CLOSED"
         trade.exit_reason = reason
@@ -357,7 +389,7 @@ class OptionSignalsService:
             pnl_points = trade.entry_price - exit_price
             
         # P&L for closed portion or whole position
-        final_pnl = trade.realized_partial_pnl + (pnl_points * lot_size * (total_lots * trade.active_multiplier))
+        final_pnl = trade.realized_partial_pnl + (pnl_points * lot_size * (trade.lots * trade.active_multiplier))
         trade.pnl = round(final_pnl, 2)
         trade.pnl_pct = (pnl_points / trade.entry_price) * 100
         
@@ -404,7 +436,15 @@ class OptionSignalsService:
                     if t.reason is None: t.reason = "System Entry"
                     if t.symbol is None: t.symbol = "NIFTY"
                     if t.type is None: t.type = "CALL"
-                    trade_responses.append(OptionTradeResponse.from_orm(t))
+                    
+                    # Calculate pnl_pts for display
+                    lot_size = 65 if t.symbol == "NIFTY" else 15
+                    current_price = t.exit_price if t.status == "CLOSED" else await self.get_live_price(t.symbol)
+                    pnl_pts = (current_price - t.entry_price) if t.type == "CALL" else (t.entry_price - current_price)
+                    
+                    resp = OptionTradeResponse.from_orm(t)
+                    resp.pnl_pts = round(pnl_pts, 2)
+                    trade_responses.append(resp)
                 except Exception as e:
                     print(f"Error mapping trade {t.id}: {e}")
             

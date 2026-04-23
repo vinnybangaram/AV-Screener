@@ -27,8 +27,10 @@ class OptionTradeUpdate(BaseModel):
 class OptionTradeResponse(OptionTradeBase):
     id: int
     status: str
+    lots: int = 1
     pnl: Optional[float] = 0.0
     pnl_pct: Optional[float] = 0.0
+    pnl_pts: Optional[float] = 0.0
     execution_time: datetime
     exit_time: Optional[datetime] = None
     exit_reason: Optional[str] = None

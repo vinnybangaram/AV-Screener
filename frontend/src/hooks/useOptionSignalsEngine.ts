@@ -211,8 +211,10 @@ function mapBackendTrade(t: any): PaperTrade {
         currentPrice: t.current_price || t.entry_price || 0,
         pnl: t.pnl || 0,
         pnlPct: t.pnl_pct || 0, 
+        pnlPts: t.pnl_pts || 0,
+        lots: t.lots || 1,
         reason: t.reason || "Executed by AI",
         exitReason: (t.exit_reason || "Target Met") as any,
-        confidenceScore: 85 // Backend might not provide this in trade list
+        confidenceScore: 85 
     };
 }

@@ -14,15 +14,22 @@ _SESSION.headers.update({
 
 def generate_mock_data(ticker: str) -> pd.DataFrame:
     """Generates realistic simulated data for testing when Yahoo API is blocked."""
-    dates = pd.date_range(end=pd.Timestamp.now(), periods=100, freq='D')
+    dates = pd.date_range(end=pd.Timestamp.now(), periods=100, freq='5m')
+    
+    # Base prices for indices
+    base_price = 24200.0 if "NSEI" in ticker or "NIFTY" in ticker else 52400.0
+    if not any(x in ticker for x in ["NSEI", "NSEBANK", "NIFTY"]):
+        base_price = 1000.0
+        
     # Generate a random walk
-    np.random.seed(len(ticker))
-    price = 100 + np.cumsum(np.random.randn(100) * 2)
+    np.random.seed(int(time.time()) % 1000)
+    # Scaled to be more realistic for Nifty (approx 5-10 point moves)
+    price = base_price + np.cumsum(np.random.randn(100) * 5)
     
     df = pd.DataFrame({
-        'Open': price * 0.99,
-        'High': price * 1.02,
-        'Low': price * 0.98,
+        'Open': price - np.random.uniform(0, 2, 100),
+        'High': price + np.random.uniform(1, 5, 100),
+        'Low': price - np.random.uniform(1, 5, 100),
         'Close': price,
         'Volume': np.random.randint(100000, 1000000, size=100)
     }, index=dates)
