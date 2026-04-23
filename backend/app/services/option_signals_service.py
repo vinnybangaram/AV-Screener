@@ -468,16 +468,25 @@ class OptionSignalsService:
         except Exception as e:
             print(f"CRITICAL: OptionSignals dashboard failure: {e}")
             traceback.print_exc()
-            # Return a minimal valid dashboard instead of crashing with 500
+            
+            # Even on error, try to get live prices for UI stability
+            indices = {}
+            try:
+                indices = await get_market_indices()
+            except:
+                pass
+                
             return OptionSignalsDashboard(
                 today_pnl=0.0,
                 engine_status="Error",
-                signal_status="Dashboard temporary unavailable",
+                signal_status="Engine state out of sync. Please restart.",
                 active_trades_count=0,
                 win_rate=0.0,
                 signals_today=0,
                 trades=[],
-                engine_logs=["Engine encounter an error during dashboard generation."]
+                nifty_live=indices.get("nifty"),
+                banknifty_live=indices.get("banknifty"),
+                engine_logs=["Engine encountered an error during dashboard generation. Check backend logs."]
             )
 
 # Singleton instance
