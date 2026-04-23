@@ -100,9 +100,9 @@ class OptionSignalsService:
 
         active_count = len(open_trades)
         
-        # 2. Global Guard (Max 5 per system preference)
-        if active_count >= 5:
-            self.current_signal_status = f"System at Capacity ({active_count} Active Trades). Monitoring..."
+        # 2. Sequential Trade Guard (Max 1 concurrent trade as requested)
+        if active_count >= 1:
+            self.current_signal_status = f"Managing {active_count} active position. Next entry paused until exit."
             return
 
         # 3. Detect New Signals - NIFTY ONLY (BANKNIFTY Disabled)

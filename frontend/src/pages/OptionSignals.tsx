@@ -186,14 +186,14 @@ export default function OptionSignals() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
-              <Label className="text-xs text-muted-foreground">Lots ({eng.settings.slots})</Label>
+              <Label className="text-xs text-muted-foreground">Lots Per Trade ({eng.settings.slots})</Label>
               <Slider
                 className="mt-2"
                 min={1} max={10} step={1}
                 value={[eng.settings.slots]}
                 onValueChange={([v]) => eng.updateSettings({ slots: v })}
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Number of lots per trade</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Quantity used for each sequential setup</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Max Trades / day ({eng.settings.trades})</Label>
