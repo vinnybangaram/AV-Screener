@@ -103,15 +103,18 @@ class DashboardEngine:
             
             for p in positions:
                 price_data = prices.get(p.symbol, {})
-                current_price = price_data.get("latest_price", p.latest_price or p.entry_price)
-                day_change_abs = price_data.get("today_change_abs", 0)
+                qty = p.quantity or 1
+                entry_pr = p.entry_price or 0.0
+                curr_pr = p.latest_price or entry_pr
+                current_price = price_data.get("latest_price", curr_pr)
+                day_change_abs = price_data.get("today_change_abs", 0.0)
                 
-                day_pnl = day_change_abs * p.quantity
-                overall_pnl = (current_price - p.entry_price) * p.quantity
+                day_pnl = day_change_abs * qty
+                overall_pnl = (current_price - entry_pr) * qty
                 
                 total_day_pnl += day_pnl
                 total_overall_pnl += overall_pnl
-                total_value += current_price * p.quantity
+                total_value += current_price * qty
                 if overall_pnl > 0:
                     wins += 1
             
@@ -151,19 +154,23 @@ class DashboardEngine:
             
             for p in positions:
                 price_data = prices.get(p.symbol, {})
-                curr = price_data.get("latest_price", p.latest_price or p.entry_price)
-                day_change = price_data.get("today_change_abs", 0)
+                qty = p.quantity or 1
+                entry_pr = p.entry_price or 0.0
+                curr_pr = p.latest_price or entry_pr
+                curr = price_data.get("latest_price", curr_pr)
+                day_change = price_data.get("today_change_abs", 0.0)
                 
                 trade_type = (p.sub_type or p.side or "long").lower()
                 # Per user spec: Long P&L = (Current - Entry), Short P&L = (Entry - Current)
                 if trade_type == "short":
-                    pnl = p.entry_price - curr
+                    pnl_unit = entry_pr - curr
                 else:
-                    pnl = curr - p.entry_price
+                    pnl_unit = curr - entry_pr
                 
+                pnl = pnl_unit * qty
                 total_pnl += pnl           # overall PnL = sum of all per-stock P&L
-                total_day_pnl += day_change  # day PnL = sum of daily price changes
-                total_value += curr
+                total_day_pnl += (day_change * qty)  # day PnL = sum of daily price changes
+                total_value += (curr * qty)
                 if pnl > 0:
                     wins += 1
             
@@ -209,23 +216,25 @@ class DashboardEngine:
         results = []
         for p in positions:
             price_data = prices.get(p.symbol, {})
-            curr = price_data.get("latest_price", p.latest_price or p.entry_price)
-            day_change = price_data.get("today_change_abs", 0)
+            entry_pr = p.entry_price or 0.0
+            curr_pr = p.latest_price or entry_pr
+            curr = price_data.get("latest_price", curr_pr)
+            day_change = price_data.get("today_change_abs", 0.0)
             
             is_intraday = "intraday" in (p.category or "").lower()
             trade_type = (p.sub_type or p.side or "long").lower() if is_intraday else None
             
             if is_intraday:
                 if trade_type == "short":
-                    pnl_unit = (p.entry_price - curr)
+                    pnl_unit = (entry_pr - curr)
                 else:
-                    pnl_unit = (curr - p.entry_price)
+                    pnl_unit = (curr - entry_pr)
             else:
-                pnl_unit = (curr - p.entry_price)
+                pnl_unit = (curr - entry_pr)
             
             qty = p.quantity or 1
             pnl_total = pnl_unit * qty
-            pnl_pct = (pnl_unit / p.entry_price * 100) if p.entry_price > 0 else 0
+            pnl_pct = (pnl_unit / entry_pr * 100) if entry_pr > 0 else 0.0
             day_pnl = day_change * qty
             
             stock_data = {
@@ -234,7 +243,7 @@ class DashboardEngine:
                 "company_name": p.company_name or p.symbol,
                 "category": p.category,
                 "added_at": p.added_at.isoformat() if p.added_at else None,
-                "entry_price": round(p.entry_price, 2) if p.entry_price else 0,
+                "entry_price": round(entry_pr, 2),
                 "latest_price": round(curr, 2),
                 "stop_loss": round(p.stop_loss, 2) if p.stop_loss else 0,
                 "target_price": round(p.target_price, 2) if p.target_price else 0,
@@ -293,8 +302,10 @@ class DashboardEngine:
         perf = []
         for p in positions:
             price_data = prices.get(p.symbol, {})
-            curr = price_data.get("latest_price", p.latest_price or p.entry_price)
-            pnl_pct = ((curr - p.entry_price) / p.entry_price * 100) if p.entry_price > 0 else 0
+            entry_pr = p.entry_price or 0.0
+            curr_pr = p.latest_price or entry_pr
+            curr = price_data.get("latest_price", curr_pr)
+            pnl_pct = ((curr - entry_pr) / entry_pr * 100) if entry_pr > 0 else 0.0
             perf.append({"symbol": p.symbol, "pl_pct": round(pnl_pct, 2)})
             
         perf.sort(key=lambda x: x["pl_pct"], reverse=True)

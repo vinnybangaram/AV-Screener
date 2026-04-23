@@ -74,6 +74,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import JSONResponse
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"Unhandled Exception: {exc}")
+    traceback.print_exc()
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin in origins or "*" in origins:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+        headers=headers
+    )
+
 # ── PULSE CHECK ───────────────────────────────────────────────────────────────
 @app.get("/")
 def root():
