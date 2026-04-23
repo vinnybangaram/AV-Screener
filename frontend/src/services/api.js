@@ -463,6 +463,20 @@ export const forceOptionSignalsSync = async () => {
     return await api.post('/option-signals/force-sync');
 };
 
+export const fetchOptionSignalsStats = async (days = 30, fromDate = null, toDate = null, userId = null) => {
+    let url = `/option-signals/stats?days=${days}`;
+    if (fromDate) url += `&from_date=${fromDate}`;
+    if (toDate) url += `&to_date=${toDate}`;
+    if (userId) url += `&user_id=${userId}`;
+    return await api.get(url);
+};
+
+export const exportOptionSignalsTrades = async (userId = null) => {
+    const url = userId ? `/option-signals/export?user_id=${userId}` : '/option-signals/export';
+    // Use window.location for direct download
+    window.location.href = `${API_BASE_URL}${url}`;
+};
+
 export const fetchMarketTicker = async () => {
     return await api.get('/market/ticker');
 };

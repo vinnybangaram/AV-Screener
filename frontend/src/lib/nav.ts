@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, LineChart, Sparkles, Star, Briefcase, Bell,
-  Newspaper, History, FileText, Settings, Rocket, Zap, CloudLightning, Award, Shield
+  Newspaper, History, FileText, Settings, Rocket, Zap, CloudLightning, Award, Shield, Headphones
 } from "lucide-react";
 
 export const navItems = [
@@ -20,4 +20,9 @@ export const navItems = [
   { title: "Reports", url: "/reports", icon: FileText, adminOnly: false },
   { title: "Settings", url: "/settings", icon: Settings, adminOnly: false },
   { title: "Admin Tools", url: "/admin", icon: Shield, adminOnly: true },
+];
+
+export const secondaryNavItems = [
+  { title: "About Us", url: "/about", icon: Sparkles },
+  { title: "Contact Us", url: "/contact", icon: Headphones },
 ];

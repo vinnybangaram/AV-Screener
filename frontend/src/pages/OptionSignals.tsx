@@ -8,11 +8,13 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChangeBadge, ScorePill } from "@/components/common/Badges";
 import { useOptionSignalsEngine } from "@/hooks/useOptionSignalsEngine";
 import { LiveSignalsPanel } from "@/components/options/LiveSignalsPanel";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
+import { Download, FileText, LayoutDashboard, History as HistoryIcon, Calendar as CalendarIcon, Info } from "lucide-react";
 import type { PaperTrade, RiskMode } from "@/lib/options/types";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,10 @@ export default function OptionSignals() {
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [result, setResult] = useState<ResultFilter>("ALL");
   const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("live");
+  const [statsDays, setStatsDays] = useState("30");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   const allRows: PaperTrade[] = useMemo(
     () => [...eng.active, ...eng.history],
@@ -94,7 +100,14 @@ export default function OptionSignals() {
               <Button
                 variant={eng.settings.enabled ? "destructive" : "default"}
                 size="sm"
-                onClick={() => eng.updateSettings({ enabled: !eng.settings.enabled })}
+                disabled={!eng.marketOpen && !eng.settings.enabled}
+                onClick={() => {
+                  if (!eng.marketOpen && !eng.settings.enabled) {
+                    toast.error("Market session not active. Engine can only be started between 09:15 and 15:30 IST.");
+                    return;
+                  }
+                  eng.updateSettings({ enabled: !eng.settings.enabled });
+                }}
               >
                 {eng.settings.enabled ? (<><Pause className="h-4 w-4 mr-1.5" />Stop Engine</>) : (<><Play className="h-4 w-4 mr-1.5" />Start Engine</>)}
               </Button>
@@ -102,6 +115,72 @@ export default function OptionSignals() {
           </div>
         }
       />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex items-center justify-between mb-4 border-b pb-2">
+            <TabsList className="bg-card border shadow-sm">
+                <TabsTrigger value="live" className="gap-2">
+                    <LayoutDashboard className="h-3.5 w-3.5" /> Live Terminal
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-2" onClick={() => eng.loadStats(Number(statsDays), fromDate, toDate)}>
+                    <FileText className="h-3.5 w-3.5" /> Performance Reports
+                </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex items-center gap-2">
+                {activeTab === "live" ? (
+                    <Button variant="outline" size="sm" onClick={eng.exportTrades} className="gap-2 h-9">
+                        <Download className="h-3.5 w-3.5" /> Export Excel
+                    </Button>
+                ) : (
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 bg-card border rounded-md px-2 h-9">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground whitespace-nowrap">From</Label>
+                            <input 
+                                type="date" 
+                                value={fromDate} 
+                                onChange={(e) => setFromDate(e.target.value)}
+                                className="bg-transparent text-xs border-none outline-none w-[110px]"
+                            />
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground whitespace-nowrap ml-1">To</Label>
+                            <input 
+                                type="date" 
+                                value={toDate} 
+                                onChange={(e) => setToDate(e.target.value)}
+                                className="bg-transparent text-xs border-none outline-none w-[110px]"
+                            />
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 ml-1 text-accent"
+                                onClick={() => eng.loadStats(Number(statsDays), fromDate, toDate)}
+                            >
+                                <RotateCcw className="h-3 w-3" />
+                            </Button>
+                        </div>
+
+                        <div className="h-6 w-px bg-border mx-1" />
+
+                        <Select value={statsDays} onValueChange={(v) => { setStatsDays(v); eng.loadStats(Number(v)); }}>
+                            <SelectTrigger className="w-[120px] h-9">
+                                <CalendarIcon className="h-3.5 w-3.5 mr-2" />
+                                <SelectValue placeholder="Period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="7">Last 7 Days</SelectItem>
+                                <SelectItem value="30">Last 30 Days</SelectItem>
+                                <SelectItem value="90">Last 90 Days</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="sm" onClick={eng.exportTrades} className="gap-2 h-9">
+                            <Download className="h-3.5 w-3.5" /> Export Data
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        <TabsContent value="live" className="space-y-6 mt-0">
 
       {/* Live indices */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -118,7 +197,9 @@ export default function OptionSignals() {
               )}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground tracking-widest font-medium">{sym}</p>
+                  <p className="text-xs text-muted-foreground tracking-widest font-medium">
+                    {sym} {trade && <span className="text-accent ml-1">· {trade.instrument}</span>}
+                  </p>
                   <p className="text-3xl font-bold font-mono mt-1">{eng.livePrices[sym].toFixed(2)}</p>
                 </div>
                 <div className="text-right">
@@ -279,7 +360,7 @@ export default function OptionSignals() {
 
       {/* Trade table */}
       <Card className="premium-card overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative">
           <Table>
             <TableHeader>
               <TableRow>
@@ -291,13 +372,12 @@ export default function OptionSignals() {
                 <TableHead className="text-right">SL</TableHead>
                 <TableHead className="text-right">TSL1</TableHead>
                 <TableHead className="text-right">TSL2</TableHead>
-                <TableHead className="text-right">TSL3</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">P&L%</TableHead>
                 <TableHead className="text-right">P&L (Pts)</TableHead>
-                <TableHead className="text-right">P&L (₹)</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead className="text-right">Score</TableHead>
+                <TableHead className="text-right sticky right-0 bg-card/95 backdrop-blur-sm z-10 border-l shadow-[-4px_0_12px_rgba(0,0,0,0.1)]">P&L (₹)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -311,7 +391,7 @@ export default function OptionSignals() {
               {pageRows.map((t) => (
                 <TableRow key={t.id} className={cn(t.status === "OPEN" && "bg-accent/5")}>
                   <TableCell className="font-mono text-xs">{fmtTime(t.executionTime)}</TableCell>
-                  <TableCell className="font-semibold">{t.symbol}</TableCell>
+                  <TableCell className="font-semibold">{t.instrument || t.symbol}</TableCell>
                   <TableCell>
                     <Badge className={cn("font-mono text-[11px]", t.direction === "CALL" ? "bg-success/15 text-success hover:bg-success/20" : "bg-danger/15 text-danger hover:bg-danger/20")}>
                       {t.direction === "CALL" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
@@ -335,14 +415,14 @@ export default function OptionSignals() {
                   <TableCell className={cn("text-right font-mono font-bold", t.pnlPts >= 0 ? "text-success" : "text-danger")}>
                     {t.pnlPts >= 0 ? `+${t.pnlPts.toFixed(1)}` : t.pnlPts.toFixed(1)}
                   </TableCell>
-                  <TableCell className={cn("text-right font-mono font-bold", t.pnl >= 0 ? "text-success" : "text-danger")}>
-                    {fmtMoney(t.pnl)}
-                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={t.reason}>
                     {t.reason}
                   </TableCell>
                   <TableCell className="text-right">
                     <ScorePill score={t.confidenceScore} />
+                  </TableCell>
+                  <TableCell className={cn("text-right font-mono font-bold sticky right-0 bg-card/95 backdrop-blur-sm z-10 border-l shadow-[-4px_0_12px_rgba(0,0,0,0.1)]", t.pnl >= 0 ? "text-success" : "text-danger")}>
+                    {fmtMoney(t.pnl)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -356,6 +436,140 @@ export default function OptionSignals() {
           </div>
         )}
       </Card>
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-6 mt-0">
+            {eng.statsLoading ? (
+                <div className="flex h-[40vh] items-center justify-center">
+                    <Activity className="h-8 w-8 text-accent animate-spin" />
+                </div>
+            ) : eng.stats ? (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <Card className="p-4 premium-card">
+                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Total P&L</p>
+                            <p className={cn("text-2xl font-black mt-1", eng.stats.total_pnl >= 0 ? "text-success" : "text-danger")}>
+                                {fmtMoney(eng.stats.total_pnl)}
+                            </p>
+                        </Card>
+                        <Card className="p-4 premium-card">
+                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Win Rate</p>
+                            <p className="text-2xl font-black mt-1 text-accent">{eng.stats.win_rate}%</p>
+                        </Card>
+                        <Card className="p-4 premium-card">
+                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Total Trades</p>
+                            <p className="text-2xl font-black mt-1">{eng.stats.trades_count}</p>
+                        </Card>
+                        <Card className="p-4 premium-card">
+                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Profit Factor</p>
+                            <p className="text-2xl font-black mt-1">
+                                {((eng.stats?.win_loss_dist?.wins || 0) / Math.max(eng.stats?.win_loss_dist?.losses || 0, 1)).toFixed(2)}
+                            </p>
+                        </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 p-6 premium-card">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold flex items-center gap-2">
+                                    <TrendingUp className="h-4 w-4 text-accent" /> Equity Curve
+                                </h3>
+                                <div className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">Cumulative Performance (₹)</div>
+                            </div>
+                            <div className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={eng.stats.equity_curve}>
+                                        <defs>
+                                            <linearGradient id="pnlGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                        <XAxis 
+                                            dataKey="date" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{fontSize: 10, fill: 'hsl(var(--muted-foreground))'}}
+                                            minTickGap={30}
+                                        />
+                                        <YAxis 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{fontSize: 10, fill: 'hsl(var(--muted-foreground))'}}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))'}}
+                                            itemStyle={{fontSize: '12px', fontWeight: 'bold'}}
+                                        />
+                                        <Area type="monotone" dataKey="cumulative" stroke="hsl(var(--accent))" strokeWidth={2.5} fillOpacity={1} fill="url(#pnlGrad)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </Card>
+
+                        <Card className="p-6 premium-card">
+                            <h3 className="font-bold mb-6 flex items-center gap-2">
+                                <Activity className="h-4 w-4 text-warning" /> Win/Loss Ratio
+                            </h3>
+                            <div className="h-[200px] flex items-center justify-center relative">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={[
+                                                { name: 'Wins', value: eng.stats?.win_loss_dist?.wins || 0 },
+                                                { name: 'Losses', value: eng.stats?.win_loss_dist?.losses || 0 },
+                                            ]}
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            <Cell fill="hsl(var(--success))" />
+                                            <Cell fill="hsl(var(--danger))" />
+                                        </Pie>
+                                        <Tooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span className="text-2xl font-black">{eng.stats.win_rate}%</span>
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Accuracy</span>
+                                </div>
+                            </div>
+                            <div className="mt-6 space-y-3">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-success" /> Profitable Trades</span>
+                                    <span className="font-bold">{eng.stats?.win_loss_dist?.wins || 0}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-danger" /> Losing Trades</span>
+                                    <span className="font-bold">{eng.stats?.win_loss_dist?.losses || 0}</span>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    <Card className="p-5 premium-card bg-accent/5 border-accent/20">
+                        <div className="flex gap-4">
+                            <Info className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <h4 className="font-bold text-sm">Engine Intelligence Insight</h4>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Based on the last {statsDays} days, your Ignite Engine has maintained a {eng.stats.win_rate}% accuracy. 
+                                    The average profit factor is {(eng.stats.win_loss_dist.wins / Math.max(eng.stats.win_loss_dist.losses, 1)).toFixed(2)}. 
+                                    Institutional activity was highest during breakouts with PCR &gt; 1.2.
+                                </p>
+                            </div>
+                        </div>
+                    </Card>
+                </>
+            ) : (
+                <Card className="p-12 text-center text-muted-foreground premium-card border-dashed">
+                    No historical data available for the selected period.
+                </Card>
+            )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

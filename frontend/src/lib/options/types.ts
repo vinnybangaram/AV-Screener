@@ -57,6 +57,7 @@ export interface SignalResult {
 export interface PaperTrade {
   id: string;
   symbol: IndexSymbol;
+  instrument?: string;
   direction: Direction;
   status: TradeStatus;
   executionTime: number;

@@ -3,7 +3,9 @@ import {
   fetchOptionSignalsDashboard, 
   fetchOptionSignalsSettings, 
   updateOptionSignalsSettings,
-  forceOptionSignalsSync
+  forceOptionSignalsSync,
+  fetchOptionSignalsStats,
+  exportOptionSignalsTrades
 } from "@/services/api";
 import { useAuthUser } from "@/lib/auth-store";
 import { pnlCalculator } from "@/lib/options/pnlCalculator";
@@ -37,6 +39,9 @@ export function useOptionSignalsEngine() {
     NIFTY: null,
     BANKNIFTY: null,
   });
+
+  const [stats, setStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const [loading, setLoading] = useState(true);
 
@@ -104,7 +109,7 @@ export function useOptionSignalsEngine() {
               symbol: sym,
               status: activeTrade ? "Trade Active" : isScanning ? "Waiting" : "Breakout Ready",
               tone: activeTrade ? "green" : isScanning ? "muted" : "blue",
-              description: activeTrade ? `Managing ${activeTrade.direction} position.` : `Engine monitoring index for ${sym} setups.`,
+              description: activeTrade ? `Managing ${activeTrade.instrument || activeTrade.direction} position.` : `Engine monitoring index for ${sym} setups.`,
               confidence: activeTrade ? activeTrade.confidenceScore : 85,
               momentum: sym === "NIFTY" ? (dashRes.nifty_live?.change_pct * 100 || 0) : (dashRes.banknifty_live?.change_pct * 100 || 0),
               trend: (dashRes.nifty_live?.change_pct || 0) >= 0 ? "Up" : "Down",
@@ -158,10 +163,26 @@ export function useOptionSignalsEngine() {
   }, [user?.id, settings]);
 
   const clearHistory = useCallback(() => {
-    // This might not be supported by backend but we can clear local state or call a specific reset if exists
     setHistory([]);
     toast.info("History cleared (Local)");
   }, []);
+
+  const loadStats = useCallback(async (days = 30, fromDate?: string, toDate?: string) => {
+    setStatsLoading(true);
+    try {
+        const res = await fetchOptionSignalsStats(days, fromDate, toDate, user?.id);
+        setStats(res);
+    } catch (err) {
+        console.error("Failed to load stats:", err);
+    } finally {
+        setStatsLoading(false);
+    }
+  }, [user?.id]);
+
+  const exportTrades = useCallback(() => {
+    exportOptionSignalsTrades(user?.id);
+    toast.info("Preparing Excel export...");
+  }, [user?.id]);
 
   const runningPnl = dashboardRaw?.today_pnl || 0;
   const winRate = dashboardRaw?.win_rate || 0;
@@ -189,6 +210,10 @@ export function useOptionSignalsEngine() {
     stopAll,
     clearHistory,
     liveSignals,
+    stats,
+    statsLoading,
+    loadStats,
+    exportTrades,
     loading
   };
 }
@@ -197,6 +222,7 @@ function mapBackendTrade(t: any): PaperTrade {
     return {
         id: String(t.id),
         symbol: (t.symbol || "NIFTY").toUpperCase() as any,
+        instrument: t.instrument || t.symbol, // Use instrument name if available
         direction: (t.type || "CALL").toUpperCase() as any,
         status: t.status === "OPEN" ? "OPEN" : "EXIT",
         executionTime: new Date(t.execution_time).getTime(),

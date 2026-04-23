@@ -4,7 +4,7 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
-import { navItems } from "@/lib/nav";
+import { navItems, secondaryNavItems } from "@/lib/nav";
 import { useAuthUser, signOut } from "@/lib/auth-store";
 import { useIsAdmin } from "@/lib/admin-store";
 import { useNavigate } from "react-router-dom";
@@ -54,7 +54,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="relative px-2 py-4 z-10">
+      <SidebarContent className="relative px-2 py-4 z-10 flex flex-col min-h-0">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
@@ -78,6 +78,36 @@ export function AppSidebar() {
                           PRO
                         </span>
                       )}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-auto pt-4 border-t border-sidebar-border/20">
+          {!collapsed && (
+            <div className="px-3 mb-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sidebar-foreground/40">Terminal</span>
+            </div>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-1">
+              {secondaryNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    className="h-9 rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground transition-all"
+                  >
+                    <NavLink
+                      to={item.url}
+                      onClick={closeSidebar}
+                      activeClassName="!bg-sidebar-accent/60 !text-sidebar-accent-foreground font-semibold"
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                      <span className="text-xs">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

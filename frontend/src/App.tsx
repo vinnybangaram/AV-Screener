@@ -22,6 +22,8 @@ import Settings from "./pages/Settings";
 import ComingSoon from "./pages/ComingSoon";
 import AdminControlPanel from "./pages/AdminControlPanel";
 import Login from "./pages/Login";
+import AboutUs from "./pages/AboutUs";
+import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 
@@ -67,9 +69,11 @@ const App = () => (
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/news" element={<News />} />
             <Route path="/backtesting" element={<Backtesting />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
+             <Route path="/reports" element={<Reports />} />
+             <Route path="/settings" element={<Settings />} />
+             <Route path="/about" element={<AboutUs />} />
+             <Route path="/contact" element={<ContactUs />} />
+           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
