@@ -43,11 +43,11 @@ def run_migrations():
                     ("status",              "VARCHAR DEFAULT 'ACTIVE'"),
                     ("stop_loss",           "FLOAT"),
                     ("target_price",        "FLOAT"),
-                    ("updated_at",          "DATETIME"),
-                    ("removed_at",          "DATETIME"),
+                    ("updated_at",          "TIMESTAMP"),
+                    ("removed_at",          "TIMESTAMP"),
                     ("sub_type",            "VARCHAR DEFAULT 'long'"),
                     ("is_auto_generated",   "BOOLEAN DEFAULT FALSE"),
-                    ("expires_at",          "DATETIME"),
+                    ("expires_at",          "TIMESTAMP"),
                 ]
                 for col, coltype in additions:
                     if not _column_exists(conn, "watchlist_positions", col):
@@ -86,7 +86,7 @@ def run_migrations():
                             close       FLOAT,
                             volume      FLOAT,
                             change_pct  FLOAT,
-                            captured_at DATETIME,
+                            captured_at TIMESTAMP,
                             UNIQUE(symbol, date)
                         )
                     """))
@@ -105,8 +105,8 @@ def run_migrations():
                     ("role",                "VARCHAR DEFAULT 'user'"),
                     ("plan",                "VARCHAR DEFAULT 'free'"),
                     ("login_count",         "INTEGER DEFAULT 1"),
-                    ("created_at",          "DATETIME DEFAULT CURRENT_TIMESTAMP"),
-                    ("last_login_at",       "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+                    ("created_at",          "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+                    ("last_login_at",       "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
                     ("is_active",           "BOOLEAN DEFAULT TRUE"),
                 ]
                 for col, coltype in user_additions:
