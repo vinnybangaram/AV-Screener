@@ -131,6 +131,7 @@ def run_migrations():
                     ("partial_booked",     "BOOLEAN DEFAULT FALSE"),
                     ("realized_partial_pnl", "FLOAT DEFAULT 0.0"),
                     ("active_multiplier",  "FLOAT DEFAULT 1.0"),
+                    ("lots",               "INTEGER DEFAULT 1"),
                 ]
                 for col, coltype in trade_additions:
                     if not _column_exists(conn, "option_trades", col):
