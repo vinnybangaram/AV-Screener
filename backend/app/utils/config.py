@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
     GOOGLE_CLIENT_ID: str = ""
+    UPSTOX_API_KEY: str = "2a81cbb3-648c-4e71-8731-6bbdfbdc7e39"
+
+    UPSTOX_API_SECRET: str = "hxdqx4ofkg"
+    UPSTOX_REDIRECT_URI: str = "http://127.0.0.1:5173/upstox/callback"
+    UPSTOX_BASE_URL: str = "https://api.upstox.com/v2"
+    
     BASE_URL: str = "http://localhost:5000"
     FRONTEND_URL: str = "http://localhost:5173"
 

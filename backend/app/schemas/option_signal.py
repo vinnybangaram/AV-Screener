@@ -31,6 +31,7 @@ class OptionTradeResponse(OptionTradeBase):
     pnl: Optional[float] = 0.0
     pnl_pct: Optional[float] = 0.0
     pnl_pts: Optional[float] = 0.0
+    current_premium: Optional[float] = 0.0
     execution_time: datetime
     exit_time: Optional[datetime] = None
     exit_reason: Optional[str] = None

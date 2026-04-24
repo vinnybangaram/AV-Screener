@@ -238,7 +238,7 @@ function mapBackendTrade(t: any): PaperTrade {
         tsl3: t.tsl_3 || 0,
         currentSL: t.current_tsl || t.sl_price || 0,
         tslStage: t.current_tsl === t.tsl_3 ? 3 : t.current_tsl === t.tsl_2 ? 2 : t.current_tsl === t.tsl_1 ? 1 : 0,
-        currentPrice: t.current_price || t.entry_price || 0,
+        currentPremium: t.current_premium || t.entry_price || 0,
         pnl: t.pnl || 0,
         pnlPct: t.pnl_pct || 0, 
         pnlPts: t.pnl_pts || 0,

@@ -25,6 +25,8 @@ import Login from "./pages/Login";
 import AboutUs from "./pages/AboutUs";
 import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
+import UpstoxDashboard from "./pages/UpstoxDashboard";
+import UpstoxCallback from "./pages/UpstoxCallback";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -60,6 +62,8 @@ const App = () => (
             <Route path="/positions" element={<SystemPositionsPage />} />
             <Route path="/option-signals" element={<OptionSignals />} />
             <Route path="/watchlist" element={<Watchlist />} />
+            <Route path="/upstox" element={<UpstoxDashboard />} />
+            <Route path="/upstox/callback" element={<UpstoxCallback />} />
             
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminControlPanel /></ProtectedRoute>} />

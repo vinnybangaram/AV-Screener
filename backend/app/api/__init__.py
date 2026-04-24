@@ -4,5 +4,6 @@ from . import (
     admin, forecast, confluence, trade_setup, price_target,
     alerts, community, activity, auth,
     stock_chart, stocks, portfolio_health, multibagger,
-    option_signals, portfolio, backtest, reports
+    option_signals, portfolio, backtest, reports, upstox
 )
+

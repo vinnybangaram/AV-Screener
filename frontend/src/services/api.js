@@ -530,7 +530,35 @@ export const deleteReport = async (id) => {
     return await api.delete(`/reports/${id}`);
 };
 
-export default api;
+/**
+ * Upstox Integration APIs
+ */
+export const fetchUpstoxLoginUrl = async () => {
+    return await api.get('/upstox/login');
+};
+
+export const submitUpstoxCallback = async (code) => {
+    return await api.post('/upstox/callback', { code });
+};
+
+export const fetchUpstoxProfile = async () => {
+    return await api.get('/upstox/profile');
+};
+
+export const fetchUpstoxQuote = async (symbol) => {
+    return await api.get(`/upstox/quote?symbol=${symbol}`);
+};
+
+export const fetchUpstoxOptions = async (symbol, expiryDate = null) => {
+    const url = expiryDate ? `/upstox/options?symbol=${symbol}&expiry_date=${expiryDate}` : `/upstox/options?symbol=${symbol}`;
+    return await api.get(url);
+};
+
+export const disconnectUpstox = async () => {
+    return await api.post('/upstox/disconnect');
+};
+
+
 
 
 
@@ -564,3 +592,8 @@ export const fetchSectorSentiment = async () => {
         throw error;
     }
 };
+
+
+export default api;
+
+

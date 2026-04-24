@@ -370,6 +370,7 @@ export default function OptionSignals() {
                 <TableHead>Dir</TableHead>
                 <TableHead className="text-right">Lots</TableHead>
                 <TableHead className="text-right">Entry</TableHead>
+                <TableHead className="text-right">Cur Prem</TableHead>
                 <TableHead className="text-right">SL</TableHead>
                 <TableHead className="text-right">TSL1</TableHead>
                 <TableHead className="text-right">TSL2</TableHead>
@@ -403,6 +404,7 @@ export default function OptionSignals() {
                   </TableCell>
                   <TableCell className="text-right font-mono font-medium">{t.lots}</TableCell>
                   <TableCell className="text-right font-mono">{t.entry.toFixed(2)}</TableCell>
+                  <TableCell className={cn("text-right font-mono font-bold", t.status === "OPEN" ? "text-accent" : "")}>{t.currentPremium.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-mono">{t.currentSL.toFixed(2)}</TableCell>
                   <TableCell className={cn("text-right font-mono text-xs", t.tslStage >= 1 && "text-accent font-bold")}>{t.tsl1.toFixed(2)}</TableCell>
                   <TableCell className={cn("text-right font-mono text-xs", t.tslStage >= 2 && "text-accent font-bold")}>{t.tsl2.toFixed(2)}</TableCell>
