@@ -52,12 +52,20 @@ const AboutUs = () => {
           </p>
         </div>
         
-        <div className="premium-card p-8 bg-gradient-to-br from-sidebar-accent/50 to-transparent flex flex-col items-center justify-center text-center border-accent/20">
-            <Heart className="h-10 w-10 text-danger mb-4 animate-pulse" />
-            <h4 className="font-bold text-foreground mb-2">Founder Note</h4>
-            <p className="text-sm text-muted-foreground italic">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 text-white shadow-elevated p-8 flex flex-col items-center justify-center text-center"
+          style={{ background: "linear-gradient(135deg, hsl(200 60% 8%) 0%, hsl(170 65% 12%) 50%, hsl(158 70% 16%) 100%)" }}
+        >
+          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-accent/40 blur-3xl" />
+          <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-success/20 blur-3xl" />
+          <div className="relative z-10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-emerald shadow-glow-emerald mx-auto mb-4">
+              <Heart className="h-6 w-6 text-white animate-pulse" />
+            </div>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70 mb-2">Founder Note</h4>
+            <p className="text-lg font-bold text-white leading-tight italic">
               "Built from passion, curiosity, and the belief that one great idea can create real impact."
             </p>
+          </div>
         </div>
       </div>
 

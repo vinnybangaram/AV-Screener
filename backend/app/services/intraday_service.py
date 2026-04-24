@@ -61,7 +61,7 @@ class IntradayService:
         
         # If running, simulate price updates for active trades
         if session["running"]:
-            await self._update_active_trades(session)
+            await self._update_active_trades(user_id, session)
             
         return {
             "running": session["running"],
@@ -85,7 +85,7 @@ class IntradayService:
             signals = await self.get_signals(user_id)
             for s in signals[:session["stock_count"]]:
                 qty = int((session["budget"] / session["stock_count"]) / s["current"])
-                session["active_trades"].append({
+                trade = {
                     "id": f"t_{s['symbol']}_{random.randint(1000,9999)}",
                     "symbol": s["symbol"],
                     "buy": s["current"],
@@ -96,11 +96,30 @@ class IntradayService:
                     "sl": s["current"] * 0.985,
                     "target": s["current"] * 1.03,
                     "status": "Running"
-                })
+                }
+                session["active_trades"].append(trade)
+                
+                # Trigger Notification for Entry
+                from app.database import SessionLocal
+                from .notification_service import trigger_notification
+                db = SessionLocal()
+                try:
+                    trigger_notification(
+                        db=db,
+                        user_id=user_id,
+                        symbol=s["symbol"],
+                        message=f"Intraday Execution: Bought {s['symbol']} @ ₹{s['current']}",
+                        type="TRADE_ENTRY",
+                        priority="MEDIUM"
+                    )
+                except Exception as e:
+                    print(f"Intraday Notification Error: {e}")
+                finally:
+                    db.close()
         
         return await self.get_engine_state(user_id)
 
-    async def _update_active_trades(self, session):
+    async def _update_active_trades(self, user_id, session):
         """Simulates price movement and exits for active trades."""
         symbols = [t["symbol"] for t in session["active_trades"]]
         if not symbols: return
@@ -122,7 +141,7 @@ class IntradayService:
                 
                 # Exit logic (SL or Target)
                 if t["current"] <= t["sl"] or t["current"] >= t["target"]:
-                    session["history"].append({
+                    history_item = {
                         "id": f"h_{t['symbol']}_{random.randint(1000,9999)}",
                         "time": datetime.now().strftime("%H:%M:%S"),
                         "symbol": t["symbol"],
@@ -135,7 +154,27 @@ class IntradayService:
                         "pnlPct": t["pnlPct"],
                         "status": "Profit" if t["pnl"] > 0 else "Loss",
                         "reason": "Target Hit" if t["current"] >= t["target"] else "Stop Loss Hit"
-                    })
+                    }
+                    session["history"].append(history_item)
+
+                    # Trigger Notification for Exit
+                    from app.database import SessionLocal
+                    from .notification_service import trigger_notification
+                    db = SessionLocal()
+                    try:
+                        pnl_str = f"₹{history_item['pnl']}" if history_item['pnl'] >= 0 else f"-₹{abs(history_item['pnl'])}"
+                        trigger_notification(
+                            db=db,
+                            user_id=user_id,
+                            symbol=t["symbol"],
+                            message=f"Intraday Exit: {t['symbol']} closed @ ₹{t['current']}. Result: {pnl_str} ({t['pnlPct']}%)",
+                            type="TRADE_EXIT",
+                            priority="MEDIUM"
+                        )
+                    except Exception as e:
+                        print(f"Intraday Exit Notification Error: {e}")
+                    finally:
+                        db.close()
                 else:
                     remaining.append(t)
             else:

@@ -460,6 +460,20 @@ class OptionSignalsService:
         db.commit()
         self._log(f"A+ EXECUTED: {signal['instrument']} @ {signal['entry']}")
 
+        # Trigger In-App Notification
+        from .notification_service import trigger_notification
+        try:
+            trigger_notification(
+                db=db,
+                user_id=user_id,
+                symbol=signal["symbol"],
+                message=f"A+ Execution: Bought {signal['instrument']} @ ₹{signal['entry']}",
+                type="TRADE_ENTRY",
+                priority="HIGH"
+            )
+        except Exception as e:
+            print(f"Notification Error: {e}")
+
         # WhatsApp Notification
         settings = db.query(OptionSettings).filter(OptionSettings.user_id == user_id).first()
         if settings and settings.whatsapp_alerts and settings.phone_number:
@@ -535,6 +549,21 @@ class OptionSignalsService:
         trade.pnl_pct = round((pnl_pts / trade.entry_price) * 100, 2)
         
         db.commit()
+
+        # Trigger In-App Notification
+        from .notification_service import trigger_notification
+        try:
+            pnl_str = f"₹{trade.pnl}" if trade.pnl >= 0 else f"-₹{abs(trade.pnl)}"
+            trigger_notification(
+                db=db,
+                user_id=trade.user_id,
+                symbol=trade.symbol,
+                message=f"Trade Exit: {trade.instrument} closed @ ₹{exit_price}. Result: {pnl_str} ({trade.pnl_pct}%)",
+                type="TRADE_EXIT",
+                priority="HIGH"
+            )
+        except Exception as e:
+            print(f"Notification Error: {e}")
 
     async def get_dashboard_summary(self, db: Session, user_id: Optional[int]) -> OptionSignalsDashboard:
         try:

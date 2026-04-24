@@ -21,29 +21,34 @@ const ContactUs = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Side: Contact Info */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="premium-card p-8 bg-gradient-to-br from-sidebar-accent/50 to-transparent border-emerald-500/10">
-            <h3 className="text-xl font-bold text-foreground mb-4">Get in Touch</h3>
-            <p className="text-muted-foreground mb-8">
-              Whether you have feedback, feature suggestions, business inquiries, or need support, feel free to reach out.
-            </p>
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 text-white shadow-elevated p-8"
+            style={{ background: "linear-gradient(135deg, #065f46 0%, #064e3b 100%)" }}
+          >
+            <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative z-10">
+              <h3 className="text-2xl font-black text-white mb-4 tracking-tight">Get in Touch</h3>
+              <p className="text-emerald-100/80 mb-8 leading-relaxed">
+                Whether you have feedback, feature suggestions, business inquiries, or need support, feel free to reach out.
+              </p>
 
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-lg bg-gradient-emerald shadow-glow-emerald flex items-center justify-center shrink-0">
-                  <Mail className="h-5 w-5 text-white" />
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0">
+                    <Mail className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-emerald-200/60 mb-1">Email Us</div>
+                    <a href="mailto:avscanner.ai@gmail.com" className="text-lg font-bold text-white hover:text-emerald-200 transition-colors underline decoration-white/20 underline-offset-4">
+                      avscanner.ai@gmail.com
+                    </a>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Email Us</div>
-                  <a href="mailto:avscanner.ai@gmail.com" className="text-lg font-bold text-foreground hover:text-accent transition-colors">
-                    avscanner.ai@gmail.com
-                  </a>
-                </div>
-              </div>
 
-              <div className="p-4 rounded-xl bg-card border border-border/60">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  <span className="font-bold text-foreground">Response Note:</span> We aim to respond to all inquiries as soon as possible.
-                </p>
+                <div className="p-4 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5">
+                  <p className="text-xs text-emerald-100/70 leading-relaxed">
+                    <span className="font-bold text-white">Response Note:</span> We aim to respond to all inquiries as soon as possible.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
