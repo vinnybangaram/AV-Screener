@@ -21,7 +21,12 @@ REGIMES = {
 async def calculate_current_regime(db: Session = None) -> Dict[str, Any]:
     """
     Main engine that classifies the current market regime.
+    Cached for 1 hour to prevent redundant heavy downloads.
     """
+    from app.utils.cache import market_cache
+    cached = market_cache.get("market_regime_current")
+    if cached: return cached
+
     try:
         # 1. Fetch Index Data
         indices = ["^NSEI", "^NSEBANK", "^BSESN", "NIFTY_MIDCAP_100.NS", "NIFTY_SMALLCAP_100.NS"]
@@ -129,6 +134,8 @@ async def calculate_current_regime(db: Session = None) -> Dict[str, Any]:
             db.add(snapshot)
             db.commit()
 
+        from app.utils.cache import market_cache
+        market_cache.set("market_regime_current", result, ttl=3600)
         return result
 
     except Exception as e:

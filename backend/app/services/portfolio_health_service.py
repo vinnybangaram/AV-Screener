@@ -25,7 +25,13 @@ SECTOR_MAP = {
 def calculate_portfolio_health(db: Session, user_id: int) -> Dict[str, Any]:
     """
     AVE-1003 Portfolio Health & Risk Engine
+    Cached for 10 minutes per user.
     """
+    from app.utils.cache import market_cache
+    cache_key = f"health_score_{user_id}"
+    cached = market_cache.get(cache_key)
+    if cached: return cached
+
     positions = watchlist_service.get_watchlist(db, user_id, include_inactive=False)
     
     if not positions:
@@ -151,6 +157,8 @@ def calculate_portfolio_health(db: Session, user_id: int) -> Dict[str, Any]:
         ]
     }
 
+    from app.utils.cache import market_cache
+    market_cache.set(f"health_score_{user_id}", result, ttl=600)
     return result
 
 def get_health_history(db: Session, user_id: int, days: int = 90):

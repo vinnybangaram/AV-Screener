@@ -117,20 +117,37 @@ class OptionSignalsService:
             api_symbol = symbol.lower()
             if api_symbol == "banknifty": api_symbol = "nifty-bank"
             
-            # Use cached data if available or fetch fresh
-            url = f"https://groww.in/v1/api/option_chain_service/v1/option_chain/{api_symbol}"
-            async with httpx.AsyncClient() as client:
-                r = await client.get(url, timeout=5.0)
-                if r.status_code == 200:
-                    data = r.json()
-                    chains = data.get('optionChain', {}).get('optionChains', [])
-                    
-                    # Find matching strike and direction
-                    for oc in chains:
-                        if int(oc.get('strikePrice', 0)) == strike:
-                            contract = oc.get('callOption' if direction == 'CALL' else 'putOption')
-                            if contract and contract.get('ltp'):
-                                return float(contract['ltp'])
+            # 1. Check local cache (10 seconds) to avoid redundant Groww hits
+            if not hasattr(self, '_chain_cache'): self._chain_cache = {}
+            now = datetime.now()
+            
+            if api_symbol in self._chain_cache:
+                cache_time, cache_data = self._chain_cache[api_symbol]
+                if (now - cache_time).total_seconds() < 10:
+                    data = cache_data
+                else:
+                    data = None
+            else:
+                data = None
+
+            if data is None:
+                url = f"https://groww.in/v1/api/option_chain_service/v1/option_chain/{api_symbol}"
+                async with httpx.AsyncClient() as client:
+                    r = await client.get(url, timeout=5.0)
+                    if r.status_code == 200:
+                        data = r.json()
+                        self._chain_cache[api_symbol] = (now, data)
+                    else:
+                        return self.get_option_premium(symbol)
+
+            if data:
+                chains = data.get('optionChain', {}).get('optionChains', [])
+                # Find matching strike and direction
+                for oc in chains:
+                    if int(oc.get('strikePrice', 0)) == strike:
+                        contract = oc.get('callOption' if direction == 'CALL' else 'putOption')
+                        if contract and contract.get('ltp'):
+                            return float(contract['ltp'])
         except Exception as e:
             print(f"Failed to fetch real premium for {strike} {direction}: {e}")
             

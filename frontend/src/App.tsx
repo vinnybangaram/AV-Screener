@@ -10,6 +10,7 @@ import AIScreener from "./pages/AIScreener";
 import Watchlist from "./pages/Watchlist";
 import Multibaggers from "./pages/Multibaggers";
 import Intraday from "./pages/Intraday";
+import IntradayTrading from "./pages/IntradayTrading";
 import PennyStorm from "./pages/PennyStorm";
 import SystemPositionsPage from "./pages/SystemPositions";
 import OptionSignals from "./pages/OptionSignals";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/multibagger" element={<Navigate to="/multibaggers" replace />} />
             
             <Route path="/intraday" element={<Intraday />} />
+            <Route path="/intraday-trading" element={<IntradayTrading />} />
             
             <Route path="/penny-storm" element={<PennyStorm />} />
             <Route path="/penny-storm-old" element={<Navigate to="/penny-storm" replace />} />

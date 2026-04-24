@@ -124,19 +124,34 @@ async def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
 async def get_daily_changes(symbols: List[str]) -> Dict[str, Dict[str, float]]:
     """
     Efficiently fetches the daily change (price and pct) for a list of symbols.
+    Uses a 2-minute cache to avoid overwhelming external APIs.
     """
     if not symbols: return {}
     
+    results = {}
+    missing_symbols = []
+    
+    # 1. Check cache first
+    for symbol in symbols:
+        cached = market_cache.get(f"price_{symbol}")
+        if cached:
+            results[symbol] = cached
+        else:
+            missing_symbols.append(symbol)
+            
+    if not missing_symbols:
+        return results
+
+    # 2. Fetch missing symbols in batch
     def fetch():
-        results = {}
+        batch_results = {}
         try:
-            data = fetch_multi_stock_data(symbols, period="5d", interval="1d")
+            data = fetch_multi_stock_data(missing_symbols, period="5d", interval="1d")
             if data.empty: return {}
             
             # Handle MultiIndex columns from newer yfinance
             if isinstance(data.columns, pd.MultiIndex):
-                # MultiIndex: ('Close', 'TCS.NS'), ('Close', 'SBIN.NS'), ...
-                for symbol in symbols:
+                for symbol in missing_symbols:
                     yf_sym = format_symbol(symbol)
                     try:
                         if ('Close', yf_sym) in data.columns:
@@ -145,50 +160,54 @@ async def get_daily_changes(symbols: List[str]) -> Dict[str, Dict[str, float]]:
                             close_df = data['Close']
                             if yf_sym in close_df.columns:
                                 prices = close_df[yf_sym].dropna()
-                            else:
-                                continue
-                        else:
-                            continue
+                            else: continue
+                        else: continue
                         
                         if len(prices) >= 2:
                             prev, curr = float(prices.iloc[-2]), float(prices.iloc[-1])
-                            results[symbol] = {
+                            res = {
                                 "latest_price": round(curr, 2),
                                 "prev_close": round(prev, 2),
                                 "today_change_abs": round(curr - prev, 2),
                                 "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
                             }
+                            batch_results[symbol] = res
+                            market_cache.set(f"price_{symbol}", res, ttl=120) # 2 min cache
                     except Exception as e:
                         print(f"[MarketService] Symbol {symbol} parse error: {e}")
             else:
-                # Flat columns (single stock or old yfinance)
+                # Flat columns
                 close_prices = data.get('Close')
                 if close_prices is not None:
-                    for symbol in symbols:
+                    for symbol in missing_symbols:
                         yf_sym = format_symbol(symbol)
                         try:
                             if hasattr(close_prices, 'columns') and yf_sym in close_prices.columns:
                                 prices = close_prices[yf_sym].dropna()
                             elif not hasattr(close_prices, 'columns'):
                                 prices = close_prices.dropna()
-                            else:
-                                continue
+                            else: continue
                             
                             if len(prices) >= 2:
                                 prev, curr = float(prices.iloc[-2]), float(prices.iloc[-1])
-                                results[symbol] = {
+                                res = {
                                     "latest_price": round(curr, 2),
                                     "prev_close": round(prev, 2),
                                     "today_change_abs": round(curr - prev, 2),
                                     "today_change_pct": round(((curr - prev) / prev * 100) if prev > 0 else 0, 2)
                                 }
+                                batch_results[symbol] = res
+                                market_cache.set(f"price_{symbol}", res, ttl=120) # 2 min cache
                         except Exception as e:
                             print(f"[MarketService] Symbol {symbol} parse error: {e}")
         except Exception as e:
             print(f"[MarketService] Daily Changes Exception: {e}")
-        return results
+        return batch_results
 
-    return await asyncio.to_thread(fetch)
+    batch_data = await asyncio.to_thread(fetch)
+    results.update(batch_data)
+    
+    return results
 
 async def get_market_indices() -> Dict[str, Any]:
     """

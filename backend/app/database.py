@@ -25,10 +25,9 @@ if db_url.startswith("sqlite"):
 if db_url.startswith("postgresql"):
     engine = create_engine(
         db_url,
-        # Extremeley low pool size for Supabase Session Mode compatibility
-        # Total connections per instance = pool_size + max_overflow
-        pool_size=2,
-        max_overflow=0, 
+        # Balanced pool size for production stability and speed
+        pool_size=5,
+        max_overflow=2, 
         pool_pre_ping=True,
         pool_recycle=1800,
     )
