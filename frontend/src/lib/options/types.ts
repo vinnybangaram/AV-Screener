@@ -69,6 +69,9 @@ export interface PaperTrade {
   tsl3: number;
   currentSL: number;
   tslStage: 0 | 1 | 2 | 3;
+  tsl1Hit: boolean;
+  tsl2Hit: boolean;
+  tsl3Hit: boolean;
   currentPremium: number;
   pnl: number;
   pnlPct: number;

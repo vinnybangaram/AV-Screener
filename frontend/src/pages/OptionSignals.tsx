@@ -368,13 +368,13 @@ export default function OptionSignals() {
                 <TableHead>Time</TableHead>
                 <TableHead>Symbol</TableHead>
                 <TableHead>Dir</TableHead>
-                <TableHead className="text-right">Lots</TableHead>
-                <TableHead className="text-right">Entry</TableHead>
-                <TableHead className="text-right">Cur Prem</TableHead>
-                <TableHead className="text-right">SL</TableHead>
-                <TableHead className="text-right">TSL1</TableHead>
-                <TableHead className="text-right">TSL2</TableHead>
-                <TableHead className="text-right">TSL3</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Lots</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Entry</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Cur Prem</TableHead>
+                <TableHead className="text-right whitespace-nowrap">SL</TableHead>
+                <TableHead className="text-right whitespace-nowrap">TSL1</TableHead>
+                <TableHead className="text-right whitespace-nowrap">TSL2</TableHead>
+                <TableHead className="text-right whitespace-nowrap">TSL3</TableHead>
                 <TableHead>Status</TableHead>
 
                 <TableHead className="text-right">P&L%</TableHead>
@@ -394,30 +394,38 @@ export default function OptionSignals() {
               )}
               {pageRows.map((t) => (
                 <TableRow key={t.id} className={cn(t.status === "OPEN" && "bg-accent/5")}>
-                  <TableCell className="font-mono text-xs">{fmtTime(t.executionTime)}</TableCell>
-                  <TableCell className="font-semibold">{t.instrument || t.symbol}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">{fmtTime(t.executionTime)}</TableCell>
+                  <TableCell className="font-semibold whitespace-nowrap">{t.instrument || t.symbol}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Badge className={cn("font-mono text-[11px]", t.direction === "CALL" ? "bg-success/15 text-success hover:bg-success/20" : "bg-danger/15 text-danger hover:bg-danger/20")}>
                       {t.direction === "CALL" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                       {t.direction}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-mono font-medium">{t.lots}</TableCell>
-                  <TableCell className="text-right font-mono">{t.entry.toFixed(2)}</TableCell>
-                  <TableCell className={cn("text-right font-mono font-bold", t.status === "OPEN" ? "text-accent" : "")}>{t.currentPremium.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-mono">{t.currentSL.toFixed(2)}</TableCell>
-                  <TableCell className={cn("text-right font-mono text-xs", t.tslStage >= 1 && "text-accent font-bold")}>{t.tsl1.toFixed(2)}</TableCell>
-                  <TableCell className={cn("text-right font-mono text-xs", t.tslStage >= 2 && "text-accent font-bold")}>{t.tsl2.toFixed(2)}</TableCell>
-                  <TableCell className={cn("text-right font-mono text-xs", t.tslStage >= 3 && "text-accent font-bold")}>{t.tsl3.toFixed(2)}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-right font-mono font-medium whitespace-nowrap">{t.lots}</TableCell>
+                  <TableCell className="text-right font-mono whitespace-nowrap">{t.entry.toFixed(2)}</TableCell>
+                  <TableCell className={cn(
+                    "text-right font-mono font-bold whitespace-nowrap",
+                    t.status === "OPEN" ? "text-accent animate-pulse" : 
+                    t.pnl > 0 ? "text-success opacity-80" :
+                    t.pnl < 0 ? "text-danger opacity-80" : 
+                    "text-muted-foreground opacity-60"
+                  )}>
+                    {t.currentPremium.toFixed(2)}
+                  </TableCell>
+                  <TableCell className={cn("text-right font-mono whitespace-nowrap", t.status === "EXIT" && t.exitReason === "EXIT_SL_TSL" && t.pnl < 0 ? "text-danger font-bold" : "")}>{t.currentSL.toFixed(2)}</TableCell>
+                  <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", t.tsl1Hit && "text-success font-bold")}>{t.tsl1.toFixed(2)}</TableCell>
+                  <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", t.tsl2Hit && "text-success font-bold")}>{t.tsl2.toFixed(2)}</TableCell>
+                  <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", (t.tsl3Hit || t.exitReason === "EXIT_TARGET") && "text-success font-bold")}>{t.tsl3.toFixed(2)}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Badge variant={t.status === "OPEN" ? "default" : "outline"} className="text-[11px]">
                       {t.status === "OPEN" ? "OPEN" : t.exitReason ?? "EXIT"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
                     <ChangeBadge value={t.pnlPct} />
                   </TableCell>
-                  <TableCell className={cn("text-right font-mono font-bold", t.pnlPts >= 0 ? "text-success" : "text-danger")}>
+                  <TableCell className={cn("text-right font-mono font-bold whitespace-nowrap", t.pnlPts >= 0 ? "text-success" : "text-danger")}>
                     {t.pnlPts >= 0 ? `+${t.pnlPts.toFixed(1)}` : t.pnlPts.toFixed(1)}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={t.reason}>
