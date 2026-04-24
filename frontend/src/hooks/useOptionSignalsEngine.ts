@@ -184,12 +184,14 @@ export function useOptionSignalsEngine() {
     toast.info("Preparing Excel export...");
   }, [user?.id]);
 
-  const runningPnl = dashboardRaw?.today_pnl || 0;
+  const totalPnl = dashboardRaw?.today_pnl || 0;
+  const runningPnl = dashboardRaw?.running_pnl || 0;
+  const closedPnl = dashboardRaw?.closed_pnl || 0;
   const winRate = dashboardRaw?.win_rate || 0;
   
   const dailyStats: DailyStats = {
       date: new Date().toISOString().split('T')[0],
-      totalPnl: runningPnl,
+      totalPnl: closedPnl,
       wins: dashboardRaw?.trades?.filter((t: any) => t.status === 'CLOSED' && t.pnl > 0).length || 0,
       losses: dashboardRaw?.trades?.filter((t: any) => t.status === 'CLOSED' && t.pnl <= 0).length || 0,
       trades: dashboardRaw?.trades?.filter((t: any) => t.status === 'CLOSED').length || 0,
@@ -206,6 +208,8 @@ export function useOptionSignalsEngine() {
     marketOpen,
     dailyStats,
     runningPnl,
+    closedPnl,
+    totalPnl,
     winRate,
     stopAll,
     clearHistory,

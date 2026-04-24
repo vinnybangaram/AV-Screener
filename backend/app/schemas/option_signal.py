@@ -69,6 +69,8 @@ class OptionSettingsResponse(OptionSettingsBase):
 
 class OptionSignalsDashboard(BaseModel):
     today_pnl: float
+    closed_pnl: float = 0.0
+    running_pnl: float = 0.0
     engine_status: str
     signal_status: str
     active_trades_count: int
@@ -83,3 +85,4 @@ class OptionSignalsDashboard(BaseModel):
     call_wall: float = 0
     put_wall: float = 0
     engine_logs: List[str] = []
+

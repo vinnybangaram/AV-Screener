@@ -82,9 +82,10 @@ export default function OptionSignals() {
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Day's P&L</span>
-              <span className={cn("text-sm font-black font-mono", eng.runningPnl >= 0 ? "text-success" : "text-danger")}>
-                {fmtMoney(eng.runningPnl)}
+              <span className={cn("text-sm font-black font-mono", eng.totalPnl >= 0 ? "text-success" : "text-danger")}>
+                {fmtMoney(eng.totalPnl)}
               </span>
+
             </div>
             <div className="flex items-center gap-2">
               <Badge
@@ -372,7 +373,9 @@ export default function OptionSignals() {
                 <TableHead className="text-right">SL</TableHead>
                 <TableHead className="text-right">TSL1</TableHead>
                 <TableHead className="text-right">TSL2</TableHead>
+                <TableHead className="text-right">TSL3</TableHead>
                 <TableHead>Status</TableHead>
+
                 <TableHead className="text-right">P&L%</TableHead>
                 <TableHead className="text-right">P&L (Pts)</TableHead>
                 <TableHead>Reason</TableHead>

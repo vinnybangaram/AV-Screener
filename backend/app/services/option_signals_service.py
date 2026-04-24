@@ -459,6 +459,9 @@ class OptionSignalsService:
             
             # Null-safe P&L aggregation
             total_pnl = sum([(t.pnl or 0.0) for t in trades])
+            running_pnl = sum([(t.pnl or 0.0) for t in trades if t.status == "OPEN"])
+            closed_pnl = sum([(t.pnl or 0.0) for t in trades if t.status == "CLOSED"])
+            
             wins = len([t for t in trades if (t.pnl or 0) > 0 and t.status == "CLOSED"])
             closed_trades = [t for t in trades if t.status == "CLOSED"]
             win_rate = (wins / len(closed_trades) * 100) if closed_trades else 0.0
@@ -486,10 +489,9 @@ class OptionSignalsService:
                     if t.symbol is None: t.symbol = "NIFTY"
                     if t.type is None: t.type = "CALL"
                     
-                    # Calculate pnl_pts for display
-                    lot_size = 65 if t.symbol == "NIFTY" else 15
-                    current_price = t.exit_price if t.status == "CLOSED" else await self.get_live_price(t.symbol)
-                    pnl_pts = (current_price - t.entry_price) if t.type == "CALL" else (t.entry_price - current_price)
+                    # Calculate pnl_pts from pnl_pct for consistency (P&L points in Option Premium)
+                    # This prevents the "confusing data" where index price was compared with premium
+                    pnl_pts = (t.pnl_pct / 100.0) * t.entry_price
                     
                     resp = OptionTradeResponse.from_orm(t)
                     resp.pnl_pts = round(pnl_pts, 2)
@@ -499,6 +501,8 @@ class OptionSignalsService:
             
             return OptionSignalsDashboard(
                 today_pnl=float(total_pnl),
+                closed_pnl=float(closed_pnl),
+                running_pnl=float(running_pnl),
                 engine_status="Active" if self.is_market_open() else "Market Closed",
                 signal_status=self.current_signal_status,
                 active_trades_count=active_trades_count,
