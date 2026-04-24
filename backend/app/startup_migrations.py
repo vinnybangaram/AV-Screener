@@ -146,6 +146,7 @@ def run_migrations():
                 settings_additions = [
                     ("whatsapp_alerts",     "BOOLEAN DEFAULT FALSE"),
                     ("phone_number",        "VARCHAR"),
+                    ("preferred_expiry",     "VARCHAR"),
                 ]
                 for col, coltype in settings_additions:
                     if not _column_exists(conn, "option_settings", col):

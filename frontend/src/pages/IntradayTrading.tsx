@@ -45,6 +45,13 @@ interface HistoryRow {
   reason: string;
 }
 
+import { 
+  fetchIntradayState, 
+  fetchIntradaySignals, 
+  toggleIntradayEngine, 
+  resetIntradayDay 
+} from "@/services/api";
+
 const SIGNAL_TONE: Record<LiveStatus, SignalTone> = {
   Scanning: "muted", Weak: "orange", "Low Momentum": "orange",
   Waiting: "yellow", "Waiting for Retest": "blue", "Breakout Ready": "green",
@@ -57,6 +64,7 @@ const TONE_CLASSES: Record<SignalTone, { dot: string; chip: string; ring: string
   yellow:{ dot: "bg-warning", chip: "bg-warning/10 text-warning border-warning/30", ring: "shadow-[0_0_0_4px_hsl(var(--warning)/0.18)]", bar: "bg-warning" },
   orange:{ dot: "bg-warning", chip: "bg-warning/15 text-warning border-warning/40", ring: "shadow-[0_0_0_4px_hsl(var(--warning)/0.18)]", bar: "bg-warning" },
   blue:  { dot: "bg-accent",  chip: "bg-accent/10 text-accent border-accent/30",   ring: "shadow-[0_0_0_4px_hsl(var(--accent)/0.18)]",  bar: "bg-accent" },
+  green: { dot: "bg-success", chip: "bg-success/10 text-success border-success/30", ring: "shadow-[0_0_0_4px_hsl(var(--success)/0.15)]", bar: "bg-success" },
   red:   { dot: "bg-danger",  chip: "bg-danger/10 text-danger border-danger/30",   ring: "shadow-[0_0_0_4px_hsl(var(--danger)/0.18)]",  bar: "bg-danger" },
   muted: { dot: "bg-muted-foreground", chip: "bg-muted text-muted-foreground border-border", ring: "", bar: "bg-muted-foreground" },
 };
@@ -64,32 +72,6 @@ const TONE_CLASSES: Record<SignalTone, { dot: string; chip: string; ring: string
 const LIVE_STATUSES: LiveStatus[] = [
   "Scanning", "Weak", "Low Momentum", "Waiting", "Waiting for Retest",
   "Breakout Ready", "Strong Momentum", "Entry Triggered", "Trade Active", "Cooldown",
-];
-
-const SAMPLE_OPPORTUNITIES: Opportunity[] = [
-  { symbol: "RELIANCE",  company: "Reliance Industries", sector: "Energy",     entry: 2945.20, current: 2962.10, changePct: 0.57, confidence: 88, signal: "Breakout",  status: "Triggered" },
-  { symbol: "TATAMOTORS",company: "Tata Motors",         sector: "Auto",       entry: 982.40,  current: 989.05,  changePct: 0.68, confidence: 82, signal: "Momentum",  status: "Ready" },
-  { symbol: "HDFCBANK",  company: "HDFC Bank",           sector: "Banking",    entry: 1542.10, current: 1547.80, changePct: 0.37, confidence: 79, signal: "Pullback",  status: "Ready" },
-  { symbol: "INFY",      company: "Infosys",             sector: "IT",         entry: 1820.50, current: 1812.20, changePct: -0.46,confidence: 74, signal: "Reversal",  status: "Watching" },
-  { symbol: "ADANIENT",  company: "Adani Enterprises",   sector: "Conglom.",   entry: 2780.00, current: 2812.30, changePct: 1.16, confidence: 91, signal: "Breakout",  status: "Triggered" },
-  { symbol: "ICICIBANK", company: "ICICI Bank",          sector: "Banking",    entry: 1180.20, current: 1184.65, changePct: 0.38, confidence: 77, signal: "Momentum",  status: "Ready" },
-];
-
-const SAMPLE_ACTIVE: ActiveTrade[] = [
-  { id: "t1", symbol: "RELIANCE",  buy: 2945.20, qty: 12, current: 2962.10, pnl: 202.80,  pnlPct: 0.57, sl: 2925.00, target: 2985.00, status: "Trailing" },
-  { id: "t2", symbol: "ADANIENT",  buy: 2780.00, qty: 8,  current: 2812.30, pnl: 258.40,  pnlPct: 1.16, sl: 2762.00, target: 2828.00, status: "Running" },
-  { id: "t3", symbol: "TATAMOTORS",buy: 982.40,  qty: 30, current: 989.05,  pnl: 199.50,  pnlPct: 0.68, sl: 974.00,  target: 996.00,  status: "Running" },
-];
-
-const SAMPLE_HISTORY: HistoryRow[] = [
-  { id: "h1", time: "10:14:22", symbol: "WIPRO",     sector: "IT",       entry: 482.10,  exit: 487.30,  qty: 50, invested: 24105, pnl: 260.00,  pnlPct: 1.08,  status: "Profit", reason: "Breakout with volume surge" },
-  { id: "h2", time: "10:32:48", symbol: "SBIN",      sector: "Banking",  entry: 812.40,  exit: 808.20,  qty: 30, invested: 24372, pnl: -126.00, pnlPct: -0.52, status: "Loss",   reason: "Stop loss — momentum failed" },
-  { id: "h3", time: "11:05:03", symbol: "ITC",       sector: "FMCG",     entry: 462.00,  exit: 467.10,  qty: 50, invested: 23100, pnl: 255.00,  pnlPct: 1.10,  status: "Profit", reason: "Pullback continuation" },
-  { id: "h4", time: "11:42:11", symbol: "AXISBANK",  sector: "Banking",  entry: 1162.00, exit: 1158.40, qty: 22, invested: 25564, pnl: -79.20,  pnlPct: -0.31, status: "Loss",   reason: "Reversal at supply zone" },
-  { id: "h5", time: "12:18:55", symbol: "MARUTI",    sector: "Auto",     entry: 12480,   exit: 12555,   qty: 2,  invested: 24960, pnl: 150.00,  pnlPct: 0.60,  status: "Profit", reason: "Strong relative strength" },
-  { id: "h6", time: "12:51:30", symbol: "BAJFINANCE",sector: "NBFC",     entry: 7120,    exit: 7165,    qty: 3,  invested: 21360, pnl: 135.00,  pnlPct: 0.63,  status: "Profit", reason: "Volume confirmation" },
-  { id: "h7", time: "13:24:09", symbol: "ONGC",      sector: "Energy",   entry: 282.50,  exit: 281.10,  qty: 80, invested: 22600, pnl: -112.00, pnlPct: -0.50, status: "Loss",   reason: "Failed retest" },
-  { id: "h8", time: "13:58:44", symbol: "TECHM",     sector: "IT",       entry: 1612.20, exit: 1624.80, qty: 15, invested: 24183, pnl: 189.00,  pnlPct: 0.78,  status: "Profit", reason: "Momentum continuation" },
 ];
 
 const PNL_TREND = [
@@ -101,10 +83,6 @@ const SECTOR_PERF = [
   { sector: "Banking", v: 1.2 }, { sector: "IT", v: 0.6 }, { sector: "Auto", v: 0.9 },
   { sector: "Energy", v: -0.3 }, { sector: "FMCG", v: 0.4 }, { sector: "NBFC", v: 0.7 },
 ];
-const WIN_LOSS = [
-  { name: "Wins", v: 5 }, { name: "Losses", v: 3 },
-];
-const PIE_COLORS = ["hsl(var(--success))", "hsl(var(--danger))"];
 
 const fmtINR = (n: number) =>
   `${n < 0 ? "−" : ""}₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -116,6 +94,81 @@ export default function IntradayTrading() {
     return window.sessionStorage.getItem("intraday-disclaimer-accepted") === "1"
       || window.localStorage.getItem("intraday-disclaimer-accepted") === "1";
   });
+
+  const [loading, setLoading] = useState(true);
+  const [budget, setBudget] = useState(200000);
+  const [stockCount, setStockCount] = useState(5);
+  const [risk, setRisk] = useState<RiskMode>("Balanced");
+  const [running, setRunning] = useState(false);
+  
+  const [opps, setOpps] = useState<Opportunity[]>([]);
+  const [active, setActive] = useState<ActiveTrade[]>([]);
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [dayPnl, setDayPnl] = useState(0);
+
+  const [resultFilter, setResultFilter] = useState<"ALL" | "PROFIT" | "LOSS">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CLOSED">("ALL");
+  const [sectorFilter, setSectorFilter] = useState<string>("ALL");
+
+  const loadState = async () => {
+    try {
+      const state = await fetchIntradayState();
+      setRunning(state.running);
+      setBudget(state.budget);
+      setStockCount(state.stock_count);
+      setRisk(state.risk_mode);
+      setActive(state.active_trades);
+      setHistory(state.history);
+      setDayPnl(state.day_pnl);
+    } catch (e) {
+      console.error("Failed to load engine state", e);
+    }
+  };
+
+  const loadSignals = async () => {
+    try {
+      const data = await fetchIntradaySignals();
+      setOpps(data);
+    } catch (e) {
+      console.error("Failed to load signals", e);
+    }
+  };
+
+  useEffect(() => {
+    if (disclaimerAccepted) {
+      loadState();
+      loadSignals();
+      const interval = setInterval(() => {
+        loadState();
+        loadSignals();
+      }, 5000); // Poll every 5s for live updates
+      return () => clearInterval(interval);
+    }
+  }, [disclaimerAccepted]);
+
+  const handleToggle = async () => {
+    try {
+      const newState = await toggleIntradayEngine({
+        running: !running,
+        budget,
+        stock_count: stockCount,
+        risk_mode: risk
+      });
+      setRunning(newState.running);
+      setActive(newState.active_trades);
+    } catch (e) {
+      console.error("Toggle failed", e);
+    }
+  };
+
+  const handleReset = async () => {
+    try {
+      await resetIntradayDay();
+      loadState();
+    } catch (e) {
+      console.error("Reset failed", e);
+    }
+  };
 
   useEffect(() => {
     if (!disclaimerAccepted) {
@@ -137,20 +190,6 @@ export default function IntradayTrading() {
     navigate("/");
   };
 
-  const [budget, setBudget] = useState(200000);
-  const [stockCount, setStockCount] = useState(5);
-  const [risk, setRisk] = useState<RiskMode>("Balanced");
-  const [running, setRunning] = useState(false);
-
-  const [resultFilter, setResultFilter] = useState<"ALL" | "PROFIT" | "LOSS">("ALL");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CLOSED">("ALL");
-  const [sectorFilter, setSectorFilter] = useState<string>("ALL");
-
-  const opps = SAMPLE_OPPORTUNITIES.slice(0, stockCount);
-  const active = running ? SAMPLE_ACTIVE.slice(0, Math.min(stockCount, SAMPLE_ACTIVE.length)) : [];
-  const history = running ? SAMPLE_HISTORY : [];
-
-  const dayPnl = active.reduce((s, t) => s + t.pnl, 0) + history.reduce((s, h) => s + h.pnl, 0);
   const budgetUsed = active.reduce((s, t) => s + t.buy * t.qty, 0);
   const available = Math.max(0, budget - budgetUsed);
   const wins = history.filter((h) => h.pnl > 0).length;
@@ -169,18 +208,22 @@ export default function IntradayTrading() {
     });
   }, [history, resultFilter, statusFilter, sectorFilter]);
 
-  const sectors = useMemo(() => Array.from(new Set(SAMPLE_HISTORY.map((h) => h.sector))), []);
+  const sectors = useMemo(() => Array.from(new Set(history.map((h) => h.sector))), [history]);
 
-  // Live signals: derive 2 representative panels (Momentum / Breakout watch)
   const liveSignals: { title: string; status: LiveStatus; confidence: number; description: string }[] = running
     ? [
-        { title: "Momentum Watch", status: "Strong Momentum", confidence: 84, description: "Banking & Auto leading the tape — RSI > 60 with rising volume." },
-        { title: "Breakout Watch", status: "Breakout Ready",  confidence: 78, description: "ADANIENT & RELIANCE coiled near intraday highs — primed for entry." },
+        { title: "Momentum Watch", status: "Strong Momentum", confidence: 84, description: "Real-time volatility scanning active across high-beta clusters." },
+        { title: "Breakout Watch", status: "Breakout Ready",  confidence: 78, description: "Detecting supply exhaustion at multi-day pivot levels." },
       ]
     : [
         { title: "Momentum Watch", status: "Scanning", confidence: 18, description: "Engine idle — start to begin scanning live opportunities." },
         { title: "Breakout Watch", status: "Waiting",  confidence: 22, description: "Awaiting setup confirmation across the watchlist." },
       ];
+
+  const WIN_LOSS = [
+    { name: "Wins", v: wins }, { name: "Losses", v: history.length - wins },
+  ];
+  const PIE_COLORS = ["hsl(var(--success))", "hsl(var(--danger))"];
 
   return (
     <>
@@ -204,13 +247,14 @@ export default function IntradayTrading() {
             <Button
               variant={running ? "destructive" : "default"}
               size="sm"
-              onClick={() => setRunning((v) => !v)}
+              onClick={handleToggle}
             >
               {running ? (<><Pause className="h-4 w-4 mr-1.5" />Stop Engine</>) : (<><Play className="h-4 w-4 mr-1.5" />Start Engine</>)}
             </Button>
           </div>
         }
       />
+
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -274,10 +318,10 @@ export default function IntradayTrading() {
             <Button size="sm" variant={running ? "destructive" : "default"} onClick={() => setRunning((v) => !v)}>
               {running ? <><Pause className="h-3.5 w-3.5 mr-1.5" /> Stop Engine</> : <><Play className="h-3.5 w-3.5 mr-1.5" /> Start Engine</>}
             </Button>
-            <Button size="sm" variant="outline" disabled={!running}>
+            <Button size="sm" variant="outline" disabled={!running} onClick={loadSignals}>
               <Zap className="h-3.5 w-3.5 mr-1.5" /> Force Rescan
             </Button>
-            <Button size="sm" variant="ghost">
+            <Button size="sm" variant="ghost" onClick={handleReset}>
               <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset Day
             </Button>
             <span className="ml-auto text-[11px] text-muted-foreground self-center">

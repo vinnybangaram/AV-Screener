@@ -596,6 +596,25 @@ export const fetchSectorSentiment = async () => {
 };
 
 
+/**
+ * Intraday Trading API
+ */
+export const fetchIntradayState = async () => {
+    return await api.get('/intraday/state');
+};
+
+export const fetchIntradaySignals = async () => {
+    return await api.get('/intraday/signals');
+};
+
+export const toggleIntradayEngine = async (config) => {
+    return await api.post('/intraday/toggle', config);
+};
+
+export const resetIntradayDay = async () => {
+    return await api.post('/intraday/reset');
+};
+
 export default api;
 
 

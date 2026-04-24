@@ -204,19 +204,22 @@ class OptionSignalsService:
             OptionTrade.user_id == user_id
         ).all()
         
-        if open_trades:
-            import pytz
-            ist = pytz.timezone('Asia/Kolkata')
-            now_ist = datetime.now(ist)
-            
-            # AUTO-EXIT AT 3:30 PM
-            if now_ist.time() >= dt_time(15, 30):
-                self._log(f"MARKET CLOSE: Auto-exiting {len(open_trades)} trades at 3:30 PM.")
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+
+        # AUTO-EXIT AT 3:25 PM (Indian Market Cutoff)
+        if now_ist.time() >= dt_time(15, 25):
+            if open_trades:
+                self._log(f"MARKET CLOSE: Auto-exiting {len(open_trades)} trades at 3:25 PM.")
                 for t in open_trades:
                     current_idx_price = await self.get_live_price(t.symbol)
                     await self.exit_trade(t, db, current_idx_price, "MARKET_CLOSE", 0)
-                return
+            else:
+                self.current_signal_status = "Intraday Cutoff (3:25 PM). No new entries today."
+            return
 
+        if open_trades:
             self._log(f"[User {user_id}] Monitoring {len(open_trades)} active trades...")
             for t in open_trades:
                 await self.manage_trade(t, db, settings.lots)
@@ -654,8 +657,7 @@ class OptionSignalsService:
             start_date = datetime.utcnow() - timedelta(days=days)
         
         query = db.query(OptionTrade).filter(
-            OptionTrade.execution_time >= start_date,
-            OptionTrade.status == "CLOSED"
+            OptionTrade.execution_time >= start_date
         )
         if end_date:
             query = query.filter(OptionTrade.execution_time < end_date)
@@ -663,35 +665,52 @@ class OptionSignalsService:
         if user_id:
             query = query.filter(OptionTrade.user_id == user_id)
             
-        trades = query.all()
+        trades = query.order_by(OptionTrade.execution_time.desc()).all()
         
         if not trades:
-            return {"total_pnl": 0, "win_rate": 0, "trades_count": 0, "equity_curve": [], "win_loss_dist": {"wins": 0, "losses": 0}}
+            return {"total_pnl": 0, "win_rate": 0, "trades_count": 0, "equity_curve": [], "win_loss_dist": {"wins": 0, "losses": 0}, "trades": []}
             
         # Daily P&L for equity curve
         df = pd.DataFrame([
-            {"date": t.execution_time.date(), "pnl": t.pnl} for t in trades
+            {"date": t.execution_time.date(), "pnl": t.pnl or 0} for t in trades if t.status == "CLOSED"
         ])
-        daily_pnl = df.groupby("date")["pnl"].sum().reset_index()
-        daily_pnl["cumulative_pnl"] = daily_pnl["pnl"].cumsum()
         
-        equity_curve = [
-            {"date": str(row["date"]), "pnl": float(row["pnl"]), "cumulative": float(row["cumulative_pnl"])}
-            for _, row in daily_pnl.iterrows()
-        ]
+        equity_curve = []
+        if not df.empty:
+            daily_pnl = df.groupby("date")["pnl"].sum().reset_index()
+            daily_pnl["cumulative_pnl"] = daily_pnl["pnl"].cumsum()
+            
+            equity_curve = [
+                {"date": str(row["date"]), "pnl": float(row["pnl"]), "cumulative": float(row["cumulative_pnl"])}
+                for _, row in daily_pnl.iterrows()
+            ]
         
-        wins = len([t for t in trades if t.pnl > 0])
-        total = len(trades)
+        closed_trades = [t for t in trades if t.status == "CLOSED"]
+        wins = len([t for t in closed_trades if (t.pnl or 0) > 0])
+        total = len(closed_trades)
+        
+        # Format trades for response
+        trade_list = []
+        for t in trades:
+            # Map P&L pts and current premium for UI consistency
+            pnl_pts = (t.pnl_pct / 100.0) * t.entry_price if t.pnl_pct and t.entry_price else 0.0
+            curr_prem = t.entry_price + pnl_pts
+            
+            resp = OptionTradeResponse.from_orm(t)
+            resp.pnl_pts = round(pnl_pts, 2)
+            resp.current_premium = round(curr_prem, 2)
+            trade_list.append(resp)
         
         return {
-            "total_pnl": sum([t.pnl for t in trades]),
+            "total_pnl": sum([(t.pnl or 0) for t in closed_trades]),
             "win_rate": round((wins / total * 100), 2) if total > 0 else 0,
-            "trades_count": total,
+            "trades_count": len(trades),
             "equity_curve": equity_curve,
             "win_loss_dist": {
                 "wins": wins,
                 "losses": total - wins
-            }
+            },
+            "trades": trade_list
         }
 
     async def export_trades_to_excel(self, db: Session, user_id: Optional[int]) -> io.BytesIO:

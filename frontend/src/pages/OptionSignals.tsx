@@ -42,13 +42,14 @@ export default function OptionSignals() {
   const [statsDays, setStatsDays] = useState("30");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [reportPage, setReportPage] = useState(1);
 
   const allRows: PaperTrade[] = useMemo(
     () => [...eng.active, ...eng.history],
     [eng.active, eng.history],
   );
 
-  const filtered = useMemo(() => {
+  const filteredLive = useMemo(() => {
     return allRows.filter((t) => {
       if (dir !== "ALL" && t.direction !== dir) return false;
       if (status !== "ALL" && t.status !== status) return false;
@@ -58,9 +59,55 @@ export default function OptionSignals() {
     });
   }, [allRows, dir, status, result]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const filteredStats = useMemo(() => {
+    if (!eng.stats?.trades) return [];
+    return eng.stats.trades.filter((t: PaperTrade) => {
+      if (dir !== "ALL" && t.direction !== dir) return false;
+      if (status !== "ALL" && t.status !== status) return false;
+      if (result === "PROFIT" && t.pnl <= 0) return false;
+      if (result === "LOSS" && t.pnl > 0) return false;
+      return true;
+    });
+  }, [eng.stats, dir, status, result]);
+
+  const exportFilteredData = () => {
+    const data = activeTab === "live" ? filteredLive : filteredStats;
+    if (data.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const headers = [
+      "Time", "Symbol", "Instrument", "Direction", "Lots", "Entry", "Exit", "P&L", "P&L%", "Reason", "Status"
+    ];
+    
+    const csvRows = data.map(t => [
+      new Date(t.executionTime).toLocaleString(),
+      t.symbol,
+      t.instrument || "",
+      t.direction,
+      t.lots,
+      t.entry,
+      t.status === "EXIT" ? t.currentPremium : "",
+      t.pnl,
+      t.pnlPct,
+      t.reason,
+      t.status
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...csvRows.map(row => row.map(v => `"${v}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Option_Trades_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
+    toast.success(`Exported ${data.length} records to CSV`);
+  };
 
   if (eng.loading) {
     return (
@@ -130,8 +177,8 @@ export default function OptionSignals() {
             
             <div className="flex items-center gap-2">
                 {activeTab === "live" ? (
-                    <Button variant="outline" size="sm" onClick={eng.exportTrades} className="gap-2 h-9">
-                        <Download className="h-3.5 w-3.5" /> Export Excel
+                    <Button variant="outline" size="sm" onClick={exportFilteredData} className="gap-2 h-9">
+                        <Download className="h-3.5 w-3.5" /> Export Selected
                     </Button>
                 ) : (
                     <div className="flex items-center gap-3">
@@ -173,13 +220,43 @@ export default function OptionSignals() {
                                 <SelectItem value="90">Last 90 Days</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button variant="outline" size="sm" onClick={eng.exportTrades} className="gap-2 h-9">
-                            <Download className="h-3.5 w-3.5" /> Export Data
+                        <Button variant="outline" size="sm" onClick={exportFilteredData} className="gap-2 h-9">
+                            <Download className="h-3.5 w-3.5" /> Export Filtered
                         </Button>
                     </div>
                 )}
             </div>
         </div>
+
+        {/* Filter Controls (Shared) */}
+        <Card className="p-4 premium-card mb-6">
+            <div className="flex flex-wrap items-center gap-3">
+                <Tabs value={dir} onValueChange={(v) => { setDir(v as DirectionFilter); setPage(1); setReportPage(1); }}>
+                    <TabsList>
+                        <TabsTrigger value="ALL">All Directions</TabsTrigger>
+                        <TabsTrigger value="CALL">Calls Only</TabsTrigger>
+                        <TabsTrigger value="PUT">Puts Only</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <Tabs value={status} onValueChange={(v) => { setStatus(v as StatusFilter); setPage(1); setReportPage(1); }}>
+                    <TabsList>
+                        <TabsTrigger value="ALL">Any Status</TabsTrigger>
+                        <TabsTrigger value="OPEN">Open Only</TabsTrigger>
+                        <TabsTrigger value="EXIT">Closed Only</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <Tabs value={result} onValueChange={(v) => { setResult(v as ResultFilter); setPage(1); setReportPage(1); }}>
+                    <TabsList>
+                        <TabsTrigger value="ALL">All P&L</TabsTrigger>
+                        <TabsTrigger value="PROFIT">Profitable</TabsTrigger>
+                        <TabsTrigger value="LOSS">Loss-Making</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Filtered: {activeTab === "live" ? filteredLive.length : filteredStats.length} Trades
+                </span>
+            </div>
+        </Card>
 
         <TabsContent value="live" className="space-y-6 mt-0">
 
@@ -324,7 +401,7 @@ export default function OptionSignals() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => eng.stopAll("Manual Stop")}>
+            <Button size="sm" variant="outline" onClick={() => eng.stopAll()}>
               <Square className="h-3.5 w-3.5 mr-1.5" /> Force exit all
             </Button>
             <Button size="sm" variant="ghost" onClick={() => eng.clearHistory()}>
@@ -349,126 +426,12 @@ export default function OptionSignals() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="p-4 premium-card">
-        <div className="flex flex-wrap items-center gap-3">
-          <Tabs value={dir} onValueChange={(v) => { setDir(v as DirectionFilter); setPage(1); }}>
-            <TabsList>
-              <TabsTrigger value="ALL">All</TabsTrigger>
-              <TabsTrigger value="CALL">Calls</TabsTrigger>
-              <TabsTrigger value="PUT">Puts</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Tabs value={status} onValueChange={(v) => { setStatus(v as StatusFilter); setPage(1); }}>
-            <TabsList>
-              <TabsTrigger value="ALL">Any status</TabsTrigger>
-              <TabsTrigger value="OPEN">Open</TabsTrigger>
-              <TabsTrigger value="EXIT">Exit</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Tabs value={result} onValueChange={(v) => { setResult(v as ResultFilter); setPage(1); }}>
-            <TabsList>
-              <TabsTrigger value="ALL">All P&L</TabsTrigger>
-              <TabsTrigger value="PROFIT">Profit</TabsTrigger>
-              <TabsTrigger value="LOSS">Loss</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <span className="ml-auto text-xs text-muted-foreground">
-            {filtered.length} trades · Page {safePage}/{totalPages}
-          </span>
-        </div>
-      </Card>
-
-      {/* Trade table */}
-      <Card className="premium-card overflow-hidden">
-        <div className="overflow-x-auto relative">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Dir</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Lots</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Entry</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Cur Prem</TableHead>
-                <TableHead className="text-right whitespace-nowrap">SL</TableHead>
-                <TableHead className="text-right whitespace-nowrap">TSL1</TableHead>
-                <TableHead className="text-right whitespace-nowrap">TSL2</TableHead>
-                <TableHead className="text-right whitespace-nowrap">TSL3</TableHead>
-                <TableHead>Status</TableHead>
-
-                <TableHead className="text-right">P&L%</TableHead>
-                <TableHead className="text-right">P&L (Pts)</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead className="text-right">Score</TableHead>
-                <TableHead className="text-right sticky right-0 bg-card/95 backdrop-blur-sm z-10 border-l shadow-[-4px_0_12px_rgba(0,0,0,0.1)]">P&L (₹)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pageRows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={14} className="text-center text-muted-foreground py-12">
-                    No trades yet. Start the engine to begin scanning.
-                  </TableCell>
-                </TableRow>
-              )}
-              {pageRows.map((t) => (
-                <TableRow key={t.id} className={cn(t.status === "OPEN" && "bg-accent/5")}>
-                  <TableCell className="font-mono text-xs whitespace-nowrap">{fmtTime(t.executionTime)}</TableCell>
-                  <TableCell className="font-semibold whitespace-nowrap">{t.instrument || t.symbol}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <Badge className={cn("font-mono text-[11px]", t.direction === "CALL" ? "bg-success/15 text-success hover:bg-success/20" : "bg-danger/15 text-danger hover:bg-danger/20")}>
-                      {t.direction === "CALL" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                      {t.direction}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono font-medium whitespace-nowrap">{t.lots}</TableCell>
-                  <TableCell className="text-right font-mono whitespace-nowrap">{t.entry.toFixed(2)}</TableCell>
-                  <TableCell className={cn(
-                    "text-right font-mono font-bold whitespace-nowrap",
-                    t.status === "OPEN" ? "text-accent animate-pulse" : 
-                    t.pnl > 0 ? "text-success opacity-80" :
-                    t.pnl < 0 ? "text-danger opacity-80" : 
-                    "text-muted-foreground opacity-60"
-                  )}>
-                    {t.currentPremium.toFixed(2)}
-                  </TableCell>
-                  <TableCell className={cn("text-right font-mono whitespace-nowrap", t.status === "EXIT" && t.exitReason === "EXIT_SL_TSL" && t.pnl < 0 ? "text-danger font-bold" : "")}>{t.currentSL.toFixed(2)}</TableCell>
-                  <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", t.tsl1Hit && "text-success font-bold")}>{t.tsl1.toFixed(2)}</TableCell>
-                  <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", t.tsl2Hit && "text-success font-bold")}>{t.tsl2.toFixed(2)}</TableCell>
-                  <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", (t.tsl3Hit || t.exitReason === "EXIT_TARGET") && "text-success font-bold")}>{t.tsl3.toFixed(2)}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <Badge variant={t.status === "OPEN" ? "default" : "outline"} className="text-[11px]">
-                      {t.status === "OPEN" ? "OPEN" : t.exitReason ?? "EXIT"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <ChangeBadge value={t.pnlPct} />
-                  </TableCell>
-                  <TableCell className={cn("text-right font-mono font-bold whitespace-nowrap", t.pnlPts >= 0 ? "text-success" : "text-danger")}>
-                    {t.pnlPts >= 0 ? `+${t.pnlPts.toFixed(1)}` : t.pnlPts.toFixed(1)}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={t.reason}>
-                    {t.reason}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <ScorePill score={t.confidenceScore} />
-                  </TableCell>
-                  <TableCell className={cn("text-right font-mono font-bold sticky right-0 bg-card/95 backdrop-blur-sm z-10 border-l shadow-[-4px_0_12px_rgba(0,0,0,0.1)]", t.pnl >= 0 ? "text-success" : "text-danger")}>
-                    {fmtMoney(t.pnl)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-end gap-2 p-3 border-t">
-            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
-            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-          </div>
-        )}
-      </Card>
+      <TradeTable 
+        trades={filteredLive} 
+        page={page} 
+        setPage={setPage} 
+        emptyMessage="No trades yet. Start the engine to begin scanning."
+      />
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-6 mt-0">
@@ -588,13 +551,29 @@ export default function OptionSignals() {
                             <div className="space-y-1">
                                 <h4 className="font-bold text-sm">Engine Intelligence Insight</h4>
                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                    Based on the last {statsDays} days, your Ignite Engine has maintained a {eng.stats.win_rate}% accuracy. 
+                                    Based on the selected period, your Ignite Engine has maintained a {eng.stats.win_rate}% accuracy. 
                                     The average profit factor is {(eng.stats.win_loss_dist.wins / Math.max(eng.stats.win_loss_dist.losses, 1)).toFixed(2)}. 
                                     Institutional activity was highest during breakouts with PCR &gt; 1.2.
                                 </p>
                             </div>
                         </div>
                     </Card>
+
+                    <div className="pt-4">
+                        <div className="flex items-center justify-between mb-4 px-1">
+                            <h3 className="font-bold flex items-center gap-2">
+                                <HistoryIcon className="h-4 w-4 text-accent" /> Detailed Performance Log
+                            </h3>
+                            <Badge variant="secondary" className="text-[10px] font-mono">ALL RECORDS (SYNCED)</Badge>
+                        </div>
+                        <TradeTable 
+                            trades={filteredStats} 
+                            page={reportPage} 
+                            setPage={setReportPage} 
+                            pageSize={10}
+                            emptyMessage="No historical trades found for the selected criteria."
+                        />
+                    </div>
                 </>
             ) : (
                 <Card className="p-12 text-center text-muted-foreground premium-card border-dashed">
@@ -604,6 +583,118 @@ export default function OptionSignals() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function TradeTable({ 
+  trades, 
+  page, 
+  setPage, 
+  pageSize = PAGE_SIZE,
+  emptyMessage = "No trades yet." 
+}: { 
+  trades: PaperTrade[]; 
+  page: number; 
+  setPage: (p: number) => void; 
+  pageSize?: number;
+  emptyMessage?: string;
+}) {
+  const totalPages = Math.max(1, Math.ceil(trades.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = trades.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  return (
+    <Card className="premium-card overflow-hidden">
+      <div className="overflow-x-auto relative">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Time</TableHead>
+              <TableHead>Symbol</TableHead>
+              <TableHead>Dir</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Lots</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Entry</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Cur Prem</TableHead>
+              <TableHead className="text-right whitespace-nowrap">SL</TableHead>
+              <TableHead className="text-right whitespace-nowrap">TSL1</TableHead>
+              <TableHead className="text-right whitespace-nowrap">TSL2</TableHead>
+              <TableHead className="text-right whitespace-nowrap">TSL3</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">P&L%</TableHead>
+              <TableHead className="text-right">P&L (Pts)</TableHead>
+              <TableHead>Reason</TableHead>
+              <TableHead className="text-right">Score</TableHead>
+              <TableHead className="text-right sticky right-0 bg-card/95 backdrop-blur-sm z-10 border-l shadow-[-4px_0_12px_rgba(0,0,0,0.1)]">P&L (₹)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pageRows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={16} className="text-center text-muted-foreground py-12">
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
+            )}
+            {pageRows.map((t) => (
+              <TableRow key={t.id} className={cn(t.status === "OPEN" && "bg-accent/5")}>
+                <TableCell className="font-mono text-xs whitespace-nowrap">{fmtTime(t.executionTime)}</TableCell>
+                <TableCell className="font-semibold whitespace-nowrap">{t.instrument || t.symbol}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge className={cn("font-mono text-[11px]", t.direction === "CALL" ? "bg-success/15 text-success hover:bg-success/20" : "bg-danger/15 text-danger hover:bg-danger/20")}>
+                    {t.direction === "CALL" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                    {t.direction}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-mono font-medium whitespace-nowrap">{t.lots}</TableCell>
+                <TableCell className="text-right font-mono whitespace-nowrap">{t.entry.toFixed(2)}</TableCell>
+                <TableCell className={cn(
+                  "text-right font-mono font-bold whitespace-nowrap",
+                  t.status === "OPEN" ? "text-accent animate-pulse" : 
+                  t.pnl > 0 ? "text-success opacity-80" :
+                  t.pnl < 0 ? "text-danger opacity-80" : 
+                  "text-muted-foreground opacity-60"
+                )}>
+                  {t.currentPremium.toFixed(2)}
+                </TableCell>
+                <TableCell className={cn("text-right font-mono whitespace-nowrap", t.status === "EXIT" && t.exitReason === "SL Hit" && t.pnl < 0 ? "text-danger font-bold" : "")}>{t.currentSL.toFixed(2)}</TableCell>
+                <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", t.tsl1Hit && "text-success font-bold")}>{t.tsl1.toFixed(2)}</TableCell>
+                <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", t.tsl2Hit && "text-success font-bold")}>{t.tsl2.toFixed(2)}</TableCell>
+                <TableCell className={cn("text-right font-mono text-xs whitespace-nowrap", (t.tsl3Hit || t.exitReason === "TSL Locked") && "text-success font-bold")}>{t.tsl3.toFixed(2)}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge variant={t.status === "OPEN" ? "default" : "outline"} className="text-[11px]">
+                    {t.status === "OPEN" ? "OPEN" : t.exitReason ?? "EXIT"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  <ChangeBadge value={t.pnlPct} />
+                </TableCell>
+                <TableCell className={cn("text-right font-mono font-bold whitespace-nowrap", t.pnlPts >= 0 ? "text-success" : "text-danger")}>
+                  {t.pnlPts >= 0 ? `+${t.pnlPts.toFixed(1)}` : t.pnlPts.toFixed(1)}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={t.reason}>
+                  {t.reason}
+                </TableCell>
+                <TableCell className="text-right">
+                  <ScorePill score={t.confidenceScore} />
+                </TableCell>
+                <TableCell className={cn("text-right font-mono font-bold sticky right-0 bg-card/95 backdrop-blur-sm z-10 border-l shadow-[-4px_0_12px_rgba(0,0,0,0.1)]", t.pnl >= 0 ? "text-success" : "text-danger")}>
+                  {fmtMoney(t.pnl)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2 p-3 border-t">
+          <span className="text-[10px] text-muted-foreground uppercase font-bold ml-2">Page {safePage} of {totalPages}</span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>Prev</Button>
+            <Button size="sm" variant="outline" disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>Next</Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

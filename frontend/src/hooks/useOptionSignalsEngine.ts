@@ -178,6 +178,9 @@ export function useOptionSignalsEngine() {
     setStatsLoading(true);
     try {
         const res = await fetchOptionSignalsStats(days, fromDate, toDate, user?.id);
+        if (res && res.trades) {
+            res.trades = res.trades.map(mapBackendTrade);
+        }
         setStats(res);
     } catch (err) {
         console.error("Failed to load stats:", err);

@@ -1,30 +1,26 @@
-from fastapi import APIRouter
-from app.services.intraday_service import run_intraday_scan, is_market_open
+from fastapi import APIRouter, Depends, Body
+from app.utils.auth import get_current_user
+from app.models.user import User
+from app.services.intraday_service import intraday_service
+from typing import Dict, Any
 
-router = APIRouter(prefix="/api/intraday", tags=["Intraday"])
+router = APIRouter(prefix="/intraday", tags=["Intraday Trading"])
 
-_cache = {"data": None, "timestamp": None}
+@router.get("/state")
+async def get_intraday_state(user: User = Depends(get_current_user)):
+    return await intraday_service.get_engine_state(user.id)
 
-@router.get("/scan")
-async def intraday_scan(refresh: bool = False):
-    from datetime import datetime
-    now = datetime.now()
+@router.get("/signals")
+async def get_intraday_signals(user: User = Depends(get_current_user)):
+    return await intraday_service.get_signals(user.id)
 
-    # Cache for 15 mins during market hours
-    if (
-        not refresh
-        and _cache["data"]
-        and _cache["timestamp"]
-        and (now - _cache["timestamp"]).seconds < 900
-    ):
-        return {"success": True, "data": _cache["data"], "cached": True}
+@router.post("/toggle")
+async def toggle_intraday_engine(
+    config: Dict[str, Any] = Body(...),
+    user: User = Depends(get_current_user)
+):
+    return await intraday_service.toggle_engine(user.id, config)
 
-    result = await run_intraday_scan()
-    _cache["data"]      = result
-    _cache["timestamp"] = now
-    return {"success": True, "data": result, "cached": False}
-
-
-@router.get("/status")
-def market_status():
-    return {"market_open": is_market_open()}
+@router.post("/reset")
+async def reset_intraday_day(user: User = Depends(get_current_user)):
+    return await intraday_service.reset_day(user.id)
