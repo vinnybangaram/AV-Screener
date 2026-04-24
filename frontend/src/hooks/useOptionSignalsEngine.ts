@@ -23,8 +23,11 @@ export function useOptionSignalsEngine() {
     trades: 5,
     riskMode: "Balanced",
     enabled: false,
-    symbols: ["NIFTY", "BANKNIFTY"]
+    symbols: ["NIFTY", "BANKNIFTY"],
+    preferredExpiry: null
   });
+  
+  const [availableExpiries, setAvailableExpiries] = useState<string[]>([]);
   
   const [active, setActive] = useState<PaperTrade[]>([]);
   const [history, setHistory] = useState<PaperTrade[]>([]);
@@ -61,8 +64,10 @@ export function useOptionSignalsEngine() {
             trades: settingsRes.max_trades_day || 5,
             riskMode: settingsRes.risk_mode || "Balanced",
             enabled: settingsRes.auto_execute || false,
-            symbols: ["NIFTY", "BANKNIFTY"]
+            symbols: ["NIFTY", "BANKNIFTY"],
+            preferredExpiry: settingsRes.preferred_expiry || null
         });
+        setAvailableExpiries(dashRes.available_expiries || []);
       } catch (err) {
         console.error("OptionSignals init error:", err);
       } finally {
@@ -83,6 +88,7 @@ export function useOptionSignalsEngine() {
         BANKNIFTY: dashRes.banknifty_live?.value || 0
       };
       setLivePrices(newPrices);
+      setAvailableExpiries(dashRes.available_expiries || []);
 
       // Map trades
       const allTrades: any[] = dashRes.trades || [];
@@ -142,7 +148,8 @@ export function useOptionSignalsEngine() {
             lots: newSettings.slots,
             max_trades_day: newSettings.trades,
             risk_mode: newSettings.riskMode,
-            auto_execute: newSettings.enabled
+            auto_execute: newSettings.enabled,
+            preferred_expiry: newSettings.preferredExpiry
         };
         
         await updateOptionSignalsSettings(backendSettings, user?.id);
@@ -218,6 +225,7 @@ export function useOptionSignalsEngine() {
     statsLoading,
     loadStats,
     exportTrades,
+    availableExpiries,
     loading
   };
 }

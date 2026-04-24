@@ -51,4 +51,6 @@ class OptionSettings(Base):
     whatsapp_alerts = Column(Boolean, default=False)
     phone_number = Column(String, nullable=True)
     
+    preferred_expiry = Column(String, nullable=True) # User-selected expiry
+    
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

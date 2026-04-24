@@ -88,6 +88,7 @@ export interface IgniteSettings {
   riskMode: RiskMode;
   enabled: boolean;
   symbols: IndexSymbol[];
+  preferredExpiry: string | null;
 }
 
 export interface DailyStats {

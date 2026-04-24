@@ -300,7 +300,27 @@ export default function OptionSignals() {
                   <SelectItem value="Aggressive">Aggressive</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-[11px] text-muted-foreground">Confidence threshold + cooldown</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Threshold + cooldown</p>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-bold text-accent flex items-center gap-1.5">
+                <CalendarIcon className="h-3 w-3" /> Trading Expiry
+              </Label>
+              <Select
+                value={eng.settings.preferredExpiry || "Auto"}
+                onValueChange={(v) => eng.updateSettings({ preferredExpiry: v === "Auto" ? null : v })}
+              >
+                <SelectTrigger className="mt-2 border-accent/30 bg-accent/5">
+                  <SelectValue placeholder="Select Expiry" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Auto">Market Nearest (Auto)</SelectItem>
+                  {eng.availableExpiries.map(exp => (
+                    <SelectItem key={exp} value={exp}>{exp}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-[11px] text-muted-foreground">Choose specific weekly expiry</p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">

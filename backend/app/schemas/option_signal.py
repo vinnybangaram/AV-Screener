@@ -53,6 +53,7 @@ class OptionSettingsBase(BaseModel):
     auto_execute: bool
     whatsapp_alerts: bool = False
     phone_number: Optional[str] = None
+    preferred_expiry: Optional[str] = None
 
 class OptionSettingsUpdate(BaseModel):
     lots: Optional[int] = None
@@ -61,6 +62,7 @@ class OptionSettingsUpdate(BaseModel):
     auto_execute: Optional[bool] = None
     whatsapp_alerts: Optional[bool] = None
     phone_number: Optional[str] = None
+    preferred_expiry: Optional[str] = None
 
 class OptionSettingsResponse(OptionSettingsBase):
     updated_at: datetime
@@ -85,5 +87,6 @@ class OptionSignalsDashboard(BaseModel):
     pe_oi_total: float = 0
     call_wall: float = 0
     put_wall: float = 0
+    available_expiries: List[str] = []
     engine_logs: List[str] = []
 
