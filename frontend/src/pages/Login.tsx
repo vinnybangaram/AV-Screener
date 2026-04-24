@@ -56,6 +56,7 @@ const Login = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
+    console.log("🟢 [Google Auth] Success from Google, sending to backend...");
     setLoading(true);
     try {
       const data = await googleLogin(credentialResponse.credential);
@@ -64,9 +65,11 @@ const Login = () => {
         toast.success(`Welcome back, ${data.user.name}`);
         navigate("/", { replace: true });
       } else {
+        console.error("❌ [Google Auth] Backend rejected credential:", data);
         toast.error(data.error || "Google login failed");
       }
     } catch (err: any) {
+      console.error("❌ [Google Auth] Backend error:", err);
       toast.error(err.response?.data?.detail || "Google authentication failed.");
     } finally {
       setLoading(false);
@@ -227,7 +230,11 @@ const Login = () => {
             <div className="flex justify-center">
                 <GoogleLogin
                     onSuccess={handleGoogleSuccess}
-                    onError={() => toast.error("Google Login Failed.")}
+                    onError={(error) => {
+                        console.error("❌ [Google Auth] Popup/GSI Error:", error);
+                        toast.error("Google Login Failed. If you use a private browser, try enabling popups.");
+                    }}
+                    use_fedcm_for_prompt={true}
                     theme="outline"
                     shape="pill"
                     size="large"
