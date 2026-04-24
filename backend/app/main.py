@@ -32,6 +32,8 @@ from app.models import (
     news as news_model,              # ← NEW
     intraday_history,                  # ← NEW
     dashboard_cache,                   # ← NEW
+    option_signal,                     # ← NEW
+    upstox_account,                    # ← NEW
 )
 from app.jobs.daily_intraday_scan import job_daily_intraday_scan
 from app.jobs.cleanup_expired import job_cleanup_expired
