@@ -11,6 +11,12 @@ db_url = settings.DATABASE_URL
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
+# Strip pgbouncer=true if user added it (psycopg2 doesn't like it)
+if "?pgbouncer=true" in db_url:
+    db_url = db_url.replace("?pgbouncer=true", "")
+elif "&pgbouncer=true" in db_url:
+    db_url = db_url.replace("&pgbouncer=true", "")
+
 connect_args = {}
 if db_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
