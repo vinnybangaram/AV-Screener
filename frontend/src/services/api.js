@@ -1,7 +1,9 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+const isProd = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+    (isProd ? "https://av-screener.onrender.com/api" : "http://localhost:8000/api");
 console.log("🌐 [API] Base URL:", API_BASE_URL);
 
 // ── AXIOS INSTANCE ──

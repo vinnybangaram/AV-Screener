@@ -69,8 +69,12 @@ const Login = () => {
         toast.error(data.error || "Google login failed");
       }
     } catch (err: any) {
-      console.error("❌ [Google Auth] Backend error:", err);
-      toast.error(err.response?.data?.detail || "Google authentication failed.");
+      console.error("❌ [Google Auth] Backend error full object:", err);
+      if (err.response) {
+        console.error("❌ [Google Auth] Response data:", err.response.data);
+        console.error("❌ [Google Auth] Response status:", err.response.status);
+      }
+      toast.error(err.response?.data?.detail || "Google authentication failed. Please check your internet or try again later.");
     } finally {
       setLoading(false);
     }
@@ -234,11 +238,11 @@ const Login = () => {
                         console.error("❌ [Google Auth] Popup/GSI Error:", error);
                         toast.error("Google Login Failed. If you use a private browser, try enabling popups.");
                     }}
-                    use_fedcm_for_prompt={true}
+                    use_fedcm_for_prompt={false}
                     theme="outline"
                     shape="pill"
                     size="large"
-                    width="400"
+                    width="320"
                 />
             </div>
           </form>
