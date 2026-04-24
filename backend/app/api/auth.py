@@ -62,8 +62,10 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
         credential = body.get("credential") or body.get("token")
 
         if not credential:
+            print("❌ [Google Auth] Missing credential in body")
             raise HTTPException(status_code=400, detail="No credential provided")
 
+        print(f"🔵 [Google Auth] Received token, verifying...")
         # Clean the Client ID just in case it's wrapped in quotes from Render/env
         client_id = settings.GOOGLE_CLIENT_ID.strip().replace('"', '').replace("'", "")
         

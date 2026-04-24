@@ -59,7 +59,9 @@ const Login = () => {
     console.log("🟢 [Google Auth] Success from Google, sending to backend...");
     setLoading(true);
     try {
+      console.log("🔵 [Google Auth] Request sent, waiting for response...");
       const data = await googleLogin(credentialResponse.credential);
+      console.log("🟡 [Google Auth] Backend response received:", data);
       if (data.success) {
         signIn(data.user, data.token);
         toast.success(`Welcome back, ${data.user.name}`);
