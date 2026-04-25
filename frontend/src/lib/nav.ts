@@ -1,26 +1,61 @@
 import {
   LayoutDashboard, LineChart, Sparkles, Star, Briefcase, Bell,
-  Newspaper, History, FileText, Settings, Rocket, Zap, CloudLightning, Award, Shield, Headphones, Flame
+  Newspaper, History, FileText, Settings, Rocket, Zap, CloudLightning, Award, Shield, Headphones, Flame,
+  BookOpen, CreditCard, Terminal, HelpCircle
 } from "lucide-react";
 
-export const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, adminOnly: false },
-  { title: "Stock Analysis", url: "/analysis", icon: LineChart, adminOnly: false },
-  { title: "AI Screener", url: "/screener", icon: Sparkles, adminOnly: false },
-  { title: "Multibaggers", url: "/multibaggers", icon: Rocket, adminOnly: false },
-  { title: "Intraday", url: "/intraday", icon: Zap, adminOnly: false },
-  { title: "Intraday Trading", url: "/intraday-trading", icon: Flame, adminOnly: false },
-  { title: "Penny Storm", url: "/penny-storm", icon: CloudLightning, adminOnly: false },
-  { title: "Option Signals", url: "/option-signals", icon: Zap, adminOnly: false },
-  { title: "System Positions", url: "/positions", icon: Award, adminOnly: false },
-  { title: "Watchlist", url: "/watchlist", icon: Star, adminOnly: false },
-  { title: "Portfolio", url: "/portfolio", icon: Briefcase, adminOnly: false },
-  { title: "Alerts", url: "/alerts", icon: Bell, adminOnly: false },
-  { title: "News & Sentiment", url: "/news", icon: Newspaper, adminOnly: false },
-  { title: "Backtesting", url: "/backtesting", icon: History, adminOnly: false },
-  { title: "Reports", url: "/reports", icon: FileText, adminOnly: false },
-  { title: "Settings", url: "/settings", icon: Settings, adminOnly: false },
-  { title: "Admin Tools", url: "/admin", icon: Shield, adminOnly: true },
+export const navGroups = [
+  {
+    label: "Market Intelligence",
+    items: [
+      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Stock Analysis", url: "/analysis", icon: LineChart },
+      { title: "AI Screener", url: "/screener", icon: Sparkles },
+      { title: "News & Sentiment", url: "/news", icon: Newspaper },
+    ]
+  },
+  {
+    label: "Investing Opportunities",
+    items: [
+      { title: "Multibaggers", url: "/multibaggers", icon: Rocket },
+      { title: "Penny Storm", url: "/penny-storm", icon: CloudLightning },
+      { title: "Portfolio", url: "/portfolio", icon: Briefcase },
+      { title: "Watchlist", url: "/watchlist", icon: Star },
+    ]
+  },
+  {
+    label: "Trading Desk",
+    items: [
+      { title: "Intraday Trading", url: "/intraday-trading", icon: Flame },
+      { title: "Option Signals", url: "/option-signals", icon: Zap },
+      { title: "Alerts", url: "/alerts", icon: Bell },
+      { title: "Backtesting", url: "/backtesting", icon: History },
+    ]
+  },
+  {
+    label: "Reports & Analytics",
+    items: [
+      { title: "Reports", url: "/reports", icon: FileText },
+      { title: "Journal (future)", url: "/journal", icon: BookOpen },
+      { title: "Performance", url: "/positions", icon: Award },
+    ]
+  },
+  {
+    label: "Account",
+    items: [
+      { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Subscription", url: "/subscription", icon: CreditCard },
+      { title: "Support", url: "/contact", icon: Headphones },
+    ]
+  },
+  {
+    label: "Admin",
+    adminOnly: true,
+    items: [
+      { title: "Admin Tools", url: "/admin", icon: Shield },
+      { title: "Terminal", url: "/terminal", icon: Terminal },
+    ]
+  }
 ];
 
 export const secondaryNavItems = [

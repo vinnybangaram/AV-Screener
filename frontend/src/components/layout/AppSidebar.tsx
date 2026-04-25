@@ -1,10 +1,12 @@
 import { NavLink } from "@/components/NavLink";
+import { cn } from "@/lib/utils";
 import { Sparkles, LifeBuoy, Crown, TrendingUp, LogOut, ShieldCheck } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
+  SidebarGroupLabel
 } from "@/components/ui/sidebar";
-import { navItems, secondaryNavItems } from "@/lib/nav";
+import { navGroups, secondaryNavItems } from "@/lib/nav";
 import { useAuthUser, signOut } from "@/lib/auth-store";
 import { useIsAdmin } from "@/lib/admin-store";
 import { useNavigate } from "react-router-dom";
@@ -22,7 +24,6 @@ export function AppSidebar() {
   const isUserAdmin = user?.role === "admin";
   const mockAdmin = useIsAdmin();
   const isAdmin = isUserAdmin || mockAdmin;
-  const visibleItems = navItems.filter((i) => !i.adminOnly || isAdmin);
 
   const handleSignOut = () => {
     signOut();
@@ -54,84 +55,52 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="relative px-2 py-4 z-10 flex flex-col min-h-0">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {visibleItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    className="h-10 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground transition-[var(--transition-base)]"
-                  >
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      onClick={closeSidebar}
-                      activeClassName="!bg-gradient-to-r !from-sidebar-accent !to-sidebar-accent/40 !text-sidebar-accent-foreground font-semibold relative before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-r before:bg-gradient-emerald before:shadow-glow-emerald [&>svg]:!text-sidebar-primary"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      {!collapsed && (item.title === "Option Signals" || item.title === "AI Screener") && (
-                        <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[8px] font-black bg-warning/20 text-warning border border-warning/30 animate-blink-pro tracking-widest leading-none shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                          PRO
-                        </span>
-                      )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="relative px-2 py-2 z-10 flex flex-col min-h-0 gap-4 overflow-y-auto">
+        {navGroups.map((group) => {
+          if (group.adminOnly && !isAdmin) return null;
 
-        <SidebarGroup className="mt-auto pt-4 border-t border-sidebar-border/20">
-          {!collapsed && (
-            <div className="px-3 mb-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sidebar-foreground/40">Terminal</span>
-            </div>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {secondaryNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    className="h-9 rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground transition-all"
-                  >
-                    <NavLink
-                      to={item.url}
-                      onClick={closeSidebar}
-                      activeClassName="!bg-sidebar-accent/60 !text-sidebar-accent-foreground font-semibold"
-                    >
-                      <item.icon className="h-3.5 w-3.5" />
-                      <span className="text-xs">{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          return (
+            <SidebarGroup key={group.label} className="p-0">
+              {!collapsed && (
+                <SidebarGroupLabel className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-sidebar-foreground/40">
+                  {group.label}
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-0.5">
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        className="h-9 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground transition-all duration-200"
+                      >
+                        <NavLink
+                          to={item.url}
+                          end={item.url === "/"}
+                          onClick={closeSidebar}
+                          activeClassName="!bg-gradient-to-r !from-sidebar-accent !to-sidebar-accent/40 !text-sidebar-accent-foreground font-semibold relative before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[2.5px] before:rounded-r before:bg-gradient-emerald before:shadow-glow-emerald [&>svg]:!text-sidebar-primary"
+                        >
+                          <item.icon className={cn("h-4 w-4", collapsed ? "mx-auto" : "")} />
+                          {!collapsed && <span>{item.title}</span>}
+                          {!collapsed && (item.title === "Option Signals" || item.title === "AI Screener") && (
+                            <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[7px] font-black bg-warning/20 text-warning border border-warning/30 animate-blink-pro tracking-widest leading-none">
+                              PRO
+                            </span>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter className="relative border-t border-sidebar-border/60 p-3 gap-2 z-10">
-        {isAdmin && !collapsed && (
-           <div className="px-2 pb-2">
-             <button 
-               onClick={() => {
-                 closeSidebar();
-                 navigate("/admin");
-               }}
-               className="w-full rounded-lg bg-danger/10 border border-danger/20 p-2 flex items-center gap-2 hover:bg-danger/20 transition-colors group/admin"
-             >
-               <ShieldCheck className="h-3.5 w-3.5 text-danger group-hover/admin:scale-110 transition-transform" />
-               <span className="text-[10px] font-bold text-danger uppercase tracking-wider">Admin Terminal</span>
-             </button>
-           </div>
-        )}
+        {/* Admin Terminal Button - Removed as it's now in the main list */}
 
         {/* PROMO CARD - Disabled for now but preserved as requested */}
         {false && (
