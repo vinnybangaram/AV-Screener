@@ -137,7 +137,13 @@ export function PortfolioPerformanceChart({ timeframe = "This Month", category =
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false}
-              tickFormatter={(v) => mode === "pl" ? `₹${v >= 1000 ? (v/1000).toFixed(1) + 'k' : v}` : `${v}%`}
+              domain={['auto', 'auto']}
+              tickFormatter={(v) => {
+                if (mode === "ret") return `${v}%`;
+                const absV = Math.abs(v);
+                const formatted = absV >= 1000 ? (absV / 1000).toFixed(1) + 'k' : absV.toString();
+                return v < 0 ? `-₹${formatted}` : `₹${formatted}`;
+              }}
             />
             <Tooltip
               contentStyle={{
@@ -153,7 +159,7 @@ export function PortfolioPerformanceChart({ timeframe = "This Month", category =
             />
             <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
             {symbols.map((s) => (
-              <Line key={s.key} type="monotone" dataKey={s.key} stroke={s.color} strokeWidth={2.2} dot={false} activeDot={{ r: 4 }} />
+              <Line key={s.key} type="monotone" dataKey={s.key} stroke={s.color} strokeWidth={2.2} dot={false} activeDot={{ r: 4 }} connectNulls={true} isAnimationActive={false} />
             ))}
           </LineChart>
         </ResponsiveContainer>

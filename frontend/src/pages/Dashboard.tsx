@@ -69,19 +69,28 @@ const Dashboard = () => {
     
     const isIntraday = mainTab === "intraday";
     const labelPrefix = isIntraday ? "Intraday" : "Portfolio";
+
+    const formatCurrency = (val: number) => {
+      const absVal = Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return val < 0 ? `-₹${absVal}` : `₹${absVal}`;
+    };
+
+    const activeNodesLabel = isIntraday 
+      ? (intradaySubTab === 'all' ? 'Open setups' : intradaySubTab === 'longs' ? 'Long setups' : 'Short setups')
+      : (investmentSubTab === 'all' ? 'Active positions' : investmentSubTab === 'multibagger' ? 'Multibagger positions' : investmentSubTab === 'penny' ? 'Penny positions' : 'Core positions');
     
     return [
       { 
         label: `${labelPrefix} Value`, 
-        value: `₹${(m.total_value || 0).toLocaleString('en-IN')}`, 
+        value: formatCurrency(m.total_value || 0), 
         delta: `${m.total_pnl_pct >= 0 ? '+' : ''}${m.total_pnl_pct?.toFixed(2)}%`, 
         tone: m.total_pnl_pct >= 0 ? "success" : "danger", 
         hint: "Current position value" 
       },
       { 
         label: `${labelPrefix} P/L`, 
-        value: `₹${(m.total_pl_abs || 0).toLocaleString('en-IN')}`, 
-        delta: `Today: ₹${(m.today_pl_abs || 0).toLocaleString('en-IN')}`, 
+        value: formatCurrency(m.total_pl_abs || 0), 
+        delta: `Today: ${formatCurrency(m.today_pl_abs || 0)}`, 
         tone: m.total_pl_abs >= 0 ? "success" : "danger" 
       },
       { 
@@ -93,11 +102,11 @@ const Dashboard = () => {
       { 
         label: "Active Nodes", 
         value: String(m.count || 0), 
-        delta: `${isIntraday ? 'Open setups' : 'Core positions'}`, 
+        delta: activeNodesLabel, 
         tone: "accent" 
       },
     ];
-  }, [data, mainTab]);
+  }, [data, mainTab, investmentSubTab, intradaySubTab]);
 
   if (loading && !data) {
     return (

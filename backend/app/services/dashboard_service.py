@@ -56,8 +56,8 @@ async def get_dashboard_data(db: Session, user_id: int, category: str = "All", t
     sub_tab = sub_tab_map.get(category, "all")
 
     # Fetch summary for BOTH tabs
-    inv_summary_task = DashboardEngine.get_summary(db, user_id, "investment", filter_type, sub_tab)
-    intra_summary_task = DashboardEngine.get_summary(db, user_id, "intraday", filter_type)
+    inv_summary_task = DashboardEngine.get_summary(db, user_id, "investment", filter_type, sub_tab if tab == "investment" else "all")
+    intra_summary_task = DashboardEngine.get_summary(db, user_id, "intraday", filter_type, sub_tab if tab == "intraday" else "all")
     stocks_task = DashboardEngine.get_stocks(db, user_id, tab, sub_tab)
     
     perf_task = DashboardEngine.get_best_worst_performers(db, user_id, tab, sub_tab)
@@ -74,7 +74,7 @@ async def get_dashboard_data(db: Session, user_id: int, category: str = "All", t
     user_metrics = {
         "total_value": current_tab_summary.get("totalValue", 0),
         "total_pl_abs": current_tab_summary.get("overallPnL", 0),
-        "total_pnl_pct": current_tab_summary.get("winRate", 0),
+        "total_pnl_pct": current_tab_summary.get("pnlPct", 0),
         "today_pl_abs": current_tab_summary.get("dayPnL", 0),
         "count": current_tab_summary.get("totalStocks", 0),
         "best_performer": performance.get("best"),

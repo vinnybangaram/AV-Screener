@@ -1,4 +1,4 @@
-import { Award, AlertCircle } from "lucide-react";
+import { Award, AlertCircle, Search, Download, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useMemo, useState, memo } from "react";
@@ -10,14 +10,78 @@ interface SystemPositionsTableProps {
 
 export const SystemPositionsTable = memo(({ data = [], showHeader = true }: SystemPositionsTableProps) => {
   const [posTab, setPosTab] = useState("active");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [catFilter, setCatFilter] = useState("All Categories");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const categories = useMemo(() => {
+    const cats = new Set(data.map(i => i.category).filter(Boolean));
+    return ["All Categories", ...Array.from(cats)];
+  }, [data]);
 
   const filtered = useMemo(() => {
-    const active = data;
+    // 1. Initial categorisation by Hit Status
     const targetHit = data.filter(i => (i.side !== 'SHORT' ? i.latest_price >= i.target_price : i.latest_price <= i.target_price) && i.target_price > 0);
     const slHit = data.filter(i => (i.side !== 'SHORT' ? i.latest_price <= i.stop_loss : i.latest_price >= i.stop_loss) && i.stop_loss > 0);
+    const active = data;
     
-    return { active, targetHit, slHit };
-  }, [data]);
+    // 2. Select data based on active tab
+    let baseData = active;
+    if (posTab === "target") baseData = targetHit;
+    if (posTab === "sl") baseData = slHit;
+
+    // 3. Apply category filter
+    if (catFilter !== "All Categories") {
+      baseData = baseData.filter(i => i.category === catFilter);
+    }
+
+    // 4. Apply search filter
+    const searched = baseData.filter(item => 
+      item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.company_name || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // 5. Pagination
+    const totalPages = Math.ceil(searched.length / itemsPerPage);
+    const paged = searched.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    return { 
+      active, targetHit, slHit, 
+      displayItems: paged, 
+      totalItems: searched.length,
+      totalPages 
+    };
+  }, [data, posTab, searchTerm, catFilter, currentPage]);
+
+  const handleExport = () => {
+    if (data.length === 0) return;
+    const headers = ["Asset", "Category", "Strategy", "Date", "Entry", "Current", "Side", "SL", "Target", "PnL", "Alpha"];
+    const rows = data.map(p => [
+      p.symbol,
+      p.category,
+      "INTRADAY",
+      p.added_at ? new Date(p.added_at).toLocaleDateString() : '---',
+      p.entry_price,
+      p.latest_price,
+      p.side || 'LONG',
+      p.stop_loss,
+      p.target_price,
+      (p.latest_pnl || 0) * (p.quantity || 1),
+      (p.latest_pnl_percent || 0).toFixed(2) + "%"
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `av_screener_positions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const renderTable = (items: any[]) => (
     <div className="overflow-x-auto">
@@ -64,7 +128,7 @@ export const SystemPositionsTable = memo(({ data = [], showHeader = true }: Syst
                 <td className="py-3 text-right font-mono tabular-nums">₹{p.entry_price?.toLocaleString('en-IN')}</td>
                 <td className="py-3 text-right font-mono tabular-nums text-foreground">₹{p.latest_price?.toLocaleString('en-IN')}</td>
                 <td className={cn("py-3 text-right font-mono tabular-nums font-semibold", dayPnlUp ? "text-success" : "text-danger")}>
-                  {dayPnlUp ? "+" : ""}₹{Math.abs(dayPnl).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  {dayPnl > 0 ? "+" : dayPnl < 0 ? "-" : ""}₹{Math.abs(dayPnl).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </td>
                 <td className="py-3 text-center">
                   {isIntraday ? (
@@ -79,7 +143,7 @@ export const SystemPositionsTable = memo(({ data = [], showHeader = true }: Syst
                 <td className="py-3 text-right font-mono tabular-nums text-danger/80">₹{p.stop_loss?.toLocaleString('en-IN')}</td>
                 <td className="py-3 text-right font-mono tabular-nums text-success/80">₹{p.target_price?.toLocaleString('en-IN')}</td>
                 <td className={cn("py-3 text-right font-mono tabular-nums font-bold", pnlUp ? "text-success" : "text-danger")}>
-                  ₹{(Math.abs(pnlValue)).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  {pnlValue < 0 ? "-" : ""}₹{Math.abs(pnlValue).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </td>
                 <td className={cn("pr-5 py-3 text-right font-mono tabular-nums font-bold", alphaUp ? "text-success" : "text-danger")}>
                   {alphaUp ? "↗" : "↘"} {Math.abs(p.latest_pnl_percent || 0).toFixed(2)}%
@@ -119,8 +183,44 @@ export const SystemPositionsTable = memo(({ data = [], showHeader = true }: Syst
         </div>
       )}
 
-      <Tabs value={posTab} onValueChange={setPosTab} className="w-full">
-        <div className="px-5">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-b bg-muted/5">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search symbol, category..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            className="w-full bg-background border rounded-lg py-1.5 pl-9 pr-4 text-xs focus:ring-1 focus:ring-accent outline-none"
+          />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-1.5">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+            <select 
+              value={catFilter}
+              onChange={(e) => { setCatFilter(e.target.value); setCurrentPage(1); }}
+              className="bg-transparent text-xs font-medium outline-none cursor-pointer"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-1.5 bg-muted/50 hover:bg-muted text-xs font-semibold rounded-lg border transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export Data
+          </button>
+        </div>
+      </div>
+
+      <Tabs value={posTab} onValueChange={(v) => { setPosTab(v); setCurrentPage(1); }} className="w-full">
+        <div className="px-5 mt-4">
           <TabsList className="bg-muted/40 h-9 p-1">
             <TabsTrigger value="active" className="text-[11px] uppercase tracking-wider font-bold data-[state=active]:bg-gradient-emerald data-[state=active]:text-white">
               Active <span className="ml-1.5 text-[10px] opacity-80">({filtered.active.length})</span>
@@ -134,16 +234,48 @@ export const SystemPositionsTable = memo(({ data = [], showHeader = true }: Syst
           </TabsList>
         </div>
 
-        <TabsContent value="active" className="mt-3">
-          {renderTable(filtered.active)}
-        </TabsContent>
-        <TabsContent value="target" className="mt-3">
-          {renderTable(filtered.targetHit)}
-        </TabsContent>
-        <TabsContent value="sl" className="mt-3">
-          {renderTable(filtered.slHit)}
+        <TabsContent value={posTab} className="mt-3">
+          {renderTable(filtered.displayItems)}
         </TabsContent>
       </Tabs>
+
+      {filtered.totalPages > 1 && (
+        <div className="flex items-center justify-between px-5 py-4 border-t bg-muted/10">
+          <p className="text-xs text-muted-foreground font-medium">
+            Showing <span className="text-foreground">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-foreground">{Math.min(currentPage * itemsPerPage, filtered.totalItems)}</span> of <span className="text-foreground">{filtered.totalItems}</span> positions
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              className="p-1.5 rounded-md border bg-card hover:bg-muted disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-1">
+              {[...Array(filtered.totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={cn(
+                    "h-8 w-8 text-xs font-bold rounded-md border transition-colors",
+                    currentPage === i + 1 ? "bg-accent text-white border-accent shadow-glow-accent" : "bg-card hover:bg-muted"
+                  )}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <button
+              disabled={currentPage === filtered.totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className="p-1.5 rounded-md border bg-card hover:bg-muted disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

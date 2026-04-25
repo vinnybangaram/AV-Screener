@@ -38,8 +38,8 @@ class DashboardEngine:
             DashboardCache.filter_type == filter_type
         ).first()
         
-        # 5 minute cache for summary
-        if cache and (datetime.utcnow() - cache.updated_at).total_seconds() < 300:
+        # Check cache (1-minute TTL for better responsiveness)
+        if cache and (datetime.utcnow() - cache.updated_at).total_seconds() < 60:
             return cache.metrics_json
 
         metrics = await DashboardEngine._calculate_metrics(db, user_id, tab, filter_type, sub_tab)
@@ -122,6 +122,9 @@ class DashboardEngine:
                 if overall_pnl > 0:
                     wins += 1
             
+            total_cost = total_value - total_overall_pnl
+            pnl_pct = (total_overall_pnl / total_cost * 100) if total_cost > 0 else 0.0
+            
             return {
                 "totalStocks": len(positions),
                 "totalValue": round(total_value, 2),
@@ -129,7 +132,8 @@ class DashboardEngine:
                 "overallPnL": round(total_overall_pnl, 2),
                 "sumDayPnL": round(total_day_pnl, 2),
                 "sumOverallPnL": round(total_overall_pnl, 2),
-                "winRate": round((wins / len(positions)) * 100, 2) if positions else 0
+                "winRate": round((wins / len(positions)) * 100, 2) if positions else 0,
+                "pnlPct": round(pnl_pct, 2)
             }
             
         else: # intraday — always use live positions
@@ -182,6 +186,9 @@ class DashboardEngine:
                 if pnl > 0:
                     wins += 1
             
+            total_cost = total_value - total_pnl
+            pnl_pct = (total_pnl / total_cost * 100) if total_cost > 0 else 0.0
+            
             return {
                 "totalStocks": len(positions),
                 "totalValue": round(total_value, 2),
@@ -189,7 +196,8 @@ class DashboardEngine:
                 "overallPnL": round(total_pnl, 2),
                 "sumDayPnL": round(total_day_pnl, 2),
                 "sumOverallPnL": round(total_pnl, 2),
-                "winRate": round((wins / len(positions)) * 100, 2) if positions else 0
+                "winRate": round((wins / len(positions)) * 100, 2) if positions else 0,
+                "pnlPct": round(pnl_pct, 2)
             }
 
     @staticmethod
@@ -210,9 +218,9 @@ class DashboardEngine:
         else: # intraday
             query = query.filter(WatchlistPosition.category.ilike("%intraday%"))
             if sub_tab == "longs":
-                query = query.filter(func.lower(func.coalesce(WatchlistPosition.sub_type, WatchlistPosition.side)) == "long")
+                query = query.filter(func.lower(func.coalesce(WatchlistPosition.sub_type, WatchlistPosition.side, "long")) != "short")
             elif sub_tab == "shorts":
-                query = query.filter(func.lower(func.coalesce(WatchlistPosition.sub_type, WatchlistPosition.side)) == "short")
+                query = query.filter(func.lower(func.coalesce(WatchlistPosition.sub_type, WatchlistPosition.side, "long")) == "short")
                 
         positions = query.all()
         if not positions:
@@ -301,8 +309,12 @@ class DashboardEngine:
                     WatchlistPosition.category.ilike("%core%"),
                     WatchlistPosition.category.ilike("%investment%")
                 ))
-        else:
+        else: # intraday
             query = query.filter(WatchlistPosition.category.ilike("%intraday%"))
+            if sub_tab == "longs":
+                query = query.filter(func.lower(func.coalesce(WatchlistPosition.sub_type, WatchlistPosition.side, "long")) != "short")
+            elif sub_tab == "shorts":
+                query = query.filter(func.lower(func.coalesce(WatchlistPosition.sub_type, WatchlistPosition.side, "long")) == "short")
         
         positions = query.all()
         if not positions:

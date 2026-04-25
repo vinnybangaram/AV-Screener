@@ -101,24 +101,31 @@ def portfolio_trend(
     """
     watchlist = get_watchlist(db, current_user.id)
 
-    # Category filter
-    if category in ("All", "Investment"):
-        # "All" = everything, "Investment" = exclude intraday
-        if category == "Investment":
+    # Robust category matching
+    cat_lower = category.lower()
+    if cat_lower in ("all", "investment", "all assets"):
+        if cat_lower == "investment":
             watchlist = [w for w in watchlist if "intraday" not in (w.get("category") or "").lower()]
-    elif category in ("Intraday", "Intraday Radar"):
-        watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower()]
-    elif category == "Intraday Longs":
-        watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower() and (w.get("side") or "LONG").upper() != "SHORT"]
-    elif category == "Intraday Shorts":
-        watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower() and (w.get("side") or "").upper() == "SHORT"]
+    elif "intraday" in cat_lower:
+        if "long" in cat_lower:
+            watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower() and (w.get("side") or "LONG").upper() != "SHORT"]
+        elif "short" in cat_lower:
+            watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower() and (w.get("side") or "").upper() == "SHORT"]
+        else:
+            watchlist = [w for w in watchlist if "intraday" in (w.get("category") or "").lower()]
     else:
+        # Map tab labels to standard category prefixes
         cat_map = {
-            "Penny Stocks": "penny", "Multibaggers": "multibagger",
-            "MULTIBAGGER": "multibagger", "PENNY": "penny", "CORE": "core",
-            "Core Portfolio": "core"
+            "penny stocks": "penny",
+            "pennystocks": "penny",
+            "multibaggers": "multibagger",
+            "core portfolio": "core",
+            "core": "core",
+            "swing": "swing",
+            "trading": "intraday"
         }
-        target = cat_map.get(category, category).lower()
+        target = cat_map.get(cat_lower, cat_lower)
+        # Use substring match to be flexible with pluralization/labels
         watchlist = [w for w in watchlist if target in (w.get("category") or "").lower()]
 
     symbols = list({w["symbol"] for w in watchlist})

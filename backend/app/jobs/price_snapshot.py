@@ -21,7 +21,8 @@ async def job_price_snapshot():
             if price_data:
                 p.latest_price = price_data["latest_price"]
                 # Update PnL
-                if p.category == "intraday" and (p.sub_type == "short" or p.side == "SHORT"):
+                is_intraday = "intraday" in (p.category or "").lower()
+                if is_intraday and (p.sub_type == "short" or p.side == "SHORT"):
                     p.latest_pnl = (p.entry_price - p.latest_price)
                 else:
                     p.latest_pnl = (p.latest_price - p.entry_price)
