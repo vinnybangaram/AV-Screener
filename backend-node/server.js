@@ -1,166 +1,92 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
+const cron = require("node-cron");
+const rateLimit = require("express-rate-limit");
 const { OAuth2Client } = require("google-auth-library");
-const dataFetcher = require("./services/dataFetcher");
-const scoringEngine = require("./services/scoringEngine");
-const aiService = require("./services/aiService");
+
+// Elite & V4 Services
+const masterDataService = require("./services/masterDataService");
+const importEngine = require("./services/importEngine");
+const financialService = require("./services/financialService");
+const intelligenceService = require("./services/intelligenceService");
+const qualityEngine = require("./services/qualityEngine");
+const marketingService = require("./services/marketingService");
+
 require("dotenv").config();
 
 const app = express();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-av-screener-key";
+const JWT_SECRET = process.env.JWT_SECRET;
 
-// ✅ CORS MUST BE FIRST
-app.use(cors({
-  origin: "*"
-}));
-
+app.use(helmet());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-
-// In-memory cache
-const cache = {
-  multibagger: null,
-  timestamp: 0
+// ✅ AUTH GUARDS
+const authGuard = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+    try {
+        req.user = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
+        next();
+    } catch (err) { res.status(401).json({ error: "Invalid Session" }); }
 };
 
-const CACHE_TTL = 3600000; // 1 hour
+const premiumGuard = async (req, res, next) => {
+    const status = await financialService.getPremiumStatus(req.user.email);
+    if (status.name !== 'FREE') return next();
+    res.status(403).json({ error: "Premium Subscription Required", upgradeUrl: "/billing" });
+};
 
-const TICKERS = [
-  "RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", 
-  "IREDA", "RVNL", "MAZDOCK", "TATASTEEL", "ZOMATO",
-  "HAL", "BEL", "ADANIENT", "BHARTIARTL", "LT"
-];
-
-// ✅ ROOT
-app.get("/", (req, res) => {
-  res.send("🚀 AV-SCREENER INTELLIGENCE SERVER V2 ACTIVE");
+// ✅ V4: FINANCIAL & BILLING
+app.post("/api/billing/subscribe", authGuard, async (req, res) => {
+    try {
+        const sub = await financialService.createSubscription(req.user.email, req.body.planId, req.body.coupon);
+        res.json({ success: true, subscription: sub });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ✅ MULTIBAGGER SCAN
-app.get("/api/multibagger", async (req, res) => {
-  const refresh = req.query.refresh === "true";
-  const now = Date.now();
+app.post("/api/billing/webhook", async (req, res) => {
+    try {
+        await financialService.verifyWebhook(req.body, req.headers['x-razorpay-signature']);
+        res.status(200).send("ok");
+    } catch (e) { res.status(400).send("error"); }
+});
 
-  if (!refresh && cache.multibagger && (now - cache.timestamp < CACHE_TTL)) {
-    console.log("📦 [Server] Serving Multibagger from cache");
-    return res.json({ success: true, data: cache.multibagger });
-  }
+// ✅ V4: AI INTELLIGENCE
+app.get("/api/intelligence/stock-deep-dive", authGuard, premiumGuard, async (req, res) => {
+    const { symbol } = req.query;
+    try {
+        const insight = await intelligenceService.generateStockInsight(symbol, req.body.marketData);
+        res.json({ success: true, insight });
+    } catch (e) { res.status(500).json({ error: "AI Insight Engine busy" }); }
+});
 
-  console.log("🔍 [Server] Starting Multibagger scan...");
-  try {
-    const results = [];
-    for (const ticker of TICKERS) {
-      const marketData = await dataFetcher.fetchStockData(ticker);
-      if (marketData) {
-        // For Multibagger list, we use a basic AI summary or default values
-        // Detailed AI analysis is done in /api/analyse-stock
-        const scoreData = scoringEngine.calculateScore(marketData, {
-            business_quality: 7, // Defaults for list view
-            growth_potential: 8,
-            management_quality: 7
-        });
-        
-        results.push({
-          ...marketData,
-          ...scoreData,
-          confidence: "System"
-        });
-      }
-    }
+// ✅ V4: PORTFOLIO TRACKER
+app.get("/api/portfolio", authGuard, async (req, res) => {
+    const { rows } = await db.query("SELECT * FROM portfolios WHERE user_id = $1", [req.user.email]);
+    res.json({ success: true, data: rows });
+});
 
-    cache.multibagger = results;
-    cache.timestamp = now;
-
+// ✅ SEARCH & CORE
+app.get("/api/symbols/search", async (req, res) => {
+    const results = await masterDataService.search(req.query.q);
     res.json({ success: true, data: results });
-  } catch (error) {
-    console.error("❌ [Server] Multibagger scan error:", error);
-    res.status(500).json({ success: false, error: "Failed to run scan" });
-  }
 });
 
-// ✅ AI STATUS
-app.get("/api/ai-status", async (req, res) => {
-  const status = await aiService.checkStatus();
-  res.json(status);
+// ✅ ADMIN & OPS
+app.get("/api/admin/metrics", authGuard, async (req, res) => {
+    if (req.user.email !== process.env.ADMIN_EMAIL) return res.status(403).send("Denied");
+    const stats = await masterDataService.getDashboardStats();
+    res.json({ success: true, stats });
 });
 
-// ✅ ANALYSE STOCK (Deep Dive)
-app.get("/api/analyse-stock", async (req, res) => {
-  const { symbol } = req.query;
-  if (!symbol) return res.status(400).json({ error: "Symbol is required" });
+// ✅ HEALTH & CRON
+app.get("/api/health", (req, res) => res.json({ status: "healthy", v: "4.0.0-Commercial" }));
 
-  try {
-    const ticker = symbol.replace(".NS", "");
-    const marketData = await dataFetcher.fetchStockData(ticker);
-    if (!marketData) throw new Error("Could not fetch market data");
+cron.schedule("0 8 * * *", () => importEngine.syncAll().catch(e => console.error(e)));
 
-    const aiData = await aiService.analyzeStock(symbol, marketData);
-    const scoreData = scoringEngine.calculateScore(marketData, aiData);
-
-    res.json({
-      success: true,
-      data: {
-        ...marketData,
-        ...scoreData,
-        aiAnalysis: aiData
-      }
-    });
-  } catch (error) {
-    console.error(`❌ [Server] Analysis error for ${symbol}:`, error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// ✅ SEARCH / AUTOCOMPLETE
-app.get("/api/analyse-stock/search", async (req, res) => {
-  const { q } = req.query;
-  if (!q) return res.json([]);
-  
-  try {
-    const results = await dataFetcher.search(q);
-    res.json(results);
-  } catch (error) {
-    console.error("❌ [Server] Search error:", error);
-    res.json([]);
-  }
-});
-
-// ✅ GOOGLE AUTH
-app.post("/api/auth/google", async (req, res) => {
-  const { token } = req.body;
-  if (!token) return res.status(400).json({ success: false, error: "Token is required" });
-
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-
-    const payload = ticket.getPayload();
-    const { email, name, picture } = payload;
-
-    // Create session JWT
-    const appToken = jwt.sign(
-      { email, name, picture },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    console.log(`👤 [Auth] User logged in: ${email}`);
-    res.json({ success: true, token: appToken, user: { email, name, picture } });
-  } catch (error) {
-    console.error("❌ [Auth] Google verification failed:", error.message);
-    res.status(401).json({ success: false, error: "Invalid Google token" });
-  }
-});
-
-// ✅ PORT
 const PORT = process.env.PORT || 10000;
-
-
-app.listen(PORT, () => {
-  console.log("🚀 Server started on port:", PORT);
-});
-
+app.listen(PORT, () => console.log(`🚀 AV SCREENER V4 COMMERCIAL ACTIVE on ${PORT}`));

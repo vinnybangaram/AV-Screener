@@ -1,24 +1,30 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { ChangeBadge, ScorePill } from "@/components/common/Badges";
+import { ScorePill } from "@/components/common/Badges";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, Plus, Save, Sparkles } from "lucide-react";
+import { Loader2, Plus, Save, Sparkles, Filter as FilterIcon, ChevronLeft, ChevronRight, Info, RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { fetchScreenerResults, addToWatchlist } from "@/services/api";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const presets = [
-  { label: "Value Picks", icon: "💎" },
-  { label: "Momentum Breakouts", icon: "🚀" },
-  { label: "Swing Trades", icon: "⚡" },
-  { label: "Long-Term Compounders", icon: "🌱" },
-  { label: "Low Risk Bets", icon: "🛡️" },
+  { label: "Breakout Stocks", icon: "🚀" },
+  { label: "Long Term Compounders", icon: "🌱" },
+  { label: "Intraday Movers", icon: "⚡" },
+  { label: "Penny Blast", icon: "💣" },
+  { label: "Safe Bluechips", icon: "🛡️" },
 ];
 
-const Filter = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div>
-    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">{label}</label>
+const FilterItem = ({ label, children, info }: { label: string; children: React.ReactNode; info?: string }) => (
+  <div className="space-y-2">
+    <div className="flex items-center gap-1.5">
+      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</label>
+      {info && <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" title={info} />}
+    </div>
     {children}
   </div>
 );
@@ -26,243 +32,367 @@ const Filter = ({ label, children }: { label: string; children: React.ReactNode 
 const AIScreener = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
-  const [filters, setFilters] = useState({
-    marketCap: "All",
-    sector: "All Sectors",
-    peRange: [0, 80],
-    roeMin: [15],
-    rsiRange: [40, 70],
-    pattern: "Any",
-    volumeSurge: "Any",
-    aiScoreMin: [75],
-    riskLevel: "All",
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 20;
+
+  // Comprehensive filter state with persistence
+  const [filters, setFilters] = useState(() => {
+    const saved = localStorage.getItem("av_screener_filters");
+    return saved ? JSON.parse(saved) : {
+      exchange: "NSE",
+      index: "Nifty 500",
+      sector: "All",
+      mcap: [0, 100], 
+      price: [0, 100000],
+      volSpike: [0],
+      pe: [0, 100],
+      roe: [0],
+      rsi: [0, 100],
+      conviction: [0],
+      risk: [0, 100],
+      sentiment: [0, 100],
+      breakout: "Any",
+      debtEq: "Any",
+      profitGrowth: "Any",
+      trendStatus: "Any",
+      returns1M: "Any",
+      relStr: [0]
+    };
   });
 
-  const handleRunScreen = async () => {
+  const handleRunScreen = async (resetPage = true) => {
     setLoading(true);
+    const targetPage = resetPage ? 1 : page;
+    if (resetPage) setPage(1);
+
     try {
-      // Pass filters to API
-      const res = await fetchScreenerResults(filters);
+      localStorage.setItem("av_screener_filters", JSON.stringify(filters));
+      const res = await fetchScreenerResults(filters, targetPage, pageSize, search);
       if (res?.success) {
         setResults(res.data || []);
-        toast.success(`Found ${res.data?.length || 0} matching opportunities`);
+        setTotal(res.total || 0);
+        if (resetPage) toast.success(`Found ${res.total || 0} ranked matches`);
       } else {
-        toast.error("Failed to run screener. Please try again.");
+        toast.error(res?.error || "Failed to run scan.");
       }
     } catch (err) {
-      console.error("Screener error:", err);
-      toast.error("An error occurred while screening.");
+      toast.error("An error occurred during screening.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    handleRunScreen();
-  }, []);
+    handleRunScreen(false);
+  }, [page]);
 
-  const handlePresetClick = (presetLabel: string) => {
-    // Basic preset logic - can be expanded
-    if (presetLabel === "Value Picks") {
-      setFilters(prev => ({ ...prev, peRange: [0, 15], roeMin: [20], riskLevel: "Low" }));
-    } else if (presetLabel === "Momentum Breakouts") {
-      setFilters(prev => ({ ...prev, aiScoreMin: [80], volumeSurge: "2x avg", rsiRange: [60, 85] }));
-    } else if (presetLabel === "Low Risk Bets") {
-      setFilters(prev => ({ ...prev, riskLevel: "Low", roeMin: [18] }));
+  const handlePresetClick = (label: string) => {
+    setActivePreset(label);
+    let newFilters = { ...filters };
+    
+    if (label === "Breakout Stocks") {
+      newFilters = { ...newFilters, breakout: "Fresh Breakout", rsi: [60, 85], volSpike: [2] };
+    } else if (label === "Long Term Compounders") {
+      newFilters = { ...newFilters, roe: [20], debtEq: [0, 0.5], mcap: [70, 100] };
+    } else if (label === "Intraday Movers") {
+      newFilters = { ...newFilters, volSpike: [3], rsi: [50, 90], conviction: [70] };
+    } else if (label === "Penny Blast") {
+      newFilters = { ...newFilters, price: [0, 100], conviction: [85] };
+    } else if (label === "Safe Bluechips") {
+      newFilters = { ...newFilters, index: "Nifty 50", pe: [0, 25], roe: [15], risk: [0, 30] };
     }
+    
+    setFilters(newFilters);
+    setPage(1);
+    // Use timeout to ensure state is updated before running screen
+    setTimeout(() => handleRunScreen(true), 10);
   };
 
   const handleWatch = async (symbol: string, price: number) => {
     try {
-      await addToWatchlist({ 
-        symbol, 
-        entry_price: price, 
-        category: 'CORE',
-        source_module: 'AI Screener'
-      });
-      toast.success(`${symbol} added to Core Watchlist`);
+      await addToWatchlist({ symbol, entry_price: price, category: 'CORE', source_module: 'Screener' });
+      toast.success(`${symbol} added to watchlist`);
     } catch (err) {
-      toast.error(`Symbol ${symbol} is already being tracked.`);
+      toast.error(`Already watching ${symbol}`);
     }
   };
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-5">
       <PageHeader
-        title="AI Screener"
-        description="Filter, rank and discover the best opportunities in seconds."
+        title="AI Stock Screener"
+        description="Institutional-grade absolute screening engine for Indian stocks — Ranked by weighted convergence logic."
         actions={
-          <>
-            <Button variant="outline" size="sm" className="gap-1.5"><Save className="h-3.5 w-3.5" /> Save Preset</Button>
+          <div className="flex items-center gap-3">
+            <div className="relative group">
+               <input 
+                 type="text"
+                 placeholder="Search Symbol..."
+                 value={search}
+                 onChange={(e) => setSearch(e.target.value)}
+                 onKeyDown={(e) => e.key === 'Enter' && handleRunScreen(true)}
+                 className="h-9 w-64 rounded-md border bg-background px-9 text-xs font-bold focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none"
+               />
+               <Sparkles className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-accent transition-colors" />
+            </div>
+             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+                localStorage.removeItem("av_screener_filters");
+                window.location.reload();
+             }}><RefreshCcw className="h-3.5 w-3.5" /> Reset</Button>
+            <Button variant="outline" size="sm" className="gap-1.5"><Save className="h-3.5 w-3.5" /> Save Strategy</Button>
             <Button 
               size="sm" 
               className="gap-1.5 bg-gradient-emerald hover:opacity-90 text-white shadow-glow-emerald border-0"
-              onClick={handleRunScreen}
+              onClick={() => handleRunScreen(true)}
               disabled={loading}
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              {loading ? "Scanning..." : "Run Screen"}
+              {loading ? "Ranking..." : "Execute Screen"}
             </Button>
-          </>
+          </div>
         }
       />
 
-      {/* Smart presets */}
       <div className="flex flex-wrap gap-2">
         {presets.map((p) => (
           <button
             key={p.label}
             onClick={() => handlePresetClick(p.label)}
-            className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-semibold shadow-card hover:border-accent hover:text-accent transition-[var(--transition-base)] active:scale-95"
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border bg-card px-4 py-2 text-xs font-bold shadow-sm transition-all active:scale-95",
+              activePreset === p.label ? "border-accent bg-accent/5 text-accent shadow-glow-accent" : "hover:border-accent/40"
+            )}
           >
             <span>{p.icon}</span> {p.label}
           </button>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="premium-card p-5">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
-          <Filter label="Market Cap">
-            <select 
-              value={filters.marketCap}
-              onChange={(e) => setFilters(f => ({ ...f, marketCap: e.target.value }))}
-              className="w-full h-9 rounded-md border bg-background px-2.5 text-sm"
-            >
-              <option>All</option><option>Large Cap</option><option>Mid Cap</option><option>Small Cap</option>
-            </select>
-          </Filter>
-          <Filter label="Sector">
-            <select 
-              value={filters.sector}
-              onChange={(e) => setFilters(f => ({ ...f, sector: e.target.value }))}
-              className="w-full h-9 rounded-md border bg-background px-2.5 text-sm"
-            >
-              <option>All Sectors</option><option>Banking</option><option>IT</option><option>Pharma</option>
-              <option>Finance</option><option>Energy</option><option>Consumer</option><option>Infrastructure</option>
-            </select>
-          </Filter>
-          <Filter label={`P/E Range (${filters.peRange[0]}–${filters.peRange[1]})`}>
-            <Slider 
-              value={filters.peRange} 
-              onValueChange={(val) => setFilters(f => ({ ...f, peRange: val }))}
-              max={80} step={1} 
-            />
-          </Filter>
-          <Filter label={`ROE Min (${filters.roeMin[0]}%)`}>
-            <Slider 
-              value={filters.roeMin} 
-              onValueChange={(val) => setFilters(f => ({ ...f, roeMin: val }))}
-              max={50} step={1} 
-            />
-          </Filter>
-          <Filter label={`RSI Range (${filters.rsiRange[0]}–${filters.rsiRange[1]})`}>
-            <Slider 
-              value={filters.rsiRange} 
-              onValueChange={(val) => setFilters(f => ({ ...f, rsiRange: val }))}
-              max={100} step={1} 
-            />
-          </Filter>
-          <Filter label="Breakout Pattern">
-            <select 
-              value={filters.pattern}
-              onChange={(e) => setFilters(f => ({ ...f, pattern: e.target.value }))}
-              className="w-full h-9 rounded-md border bg-background px-2.5 text-sm"
-            >
-              <option>Any</option><option>Cup & Handle</option><option>Flag</option><option>Triangle</option>
-            </select>
-          </Filter>
-          <Filter label="Volume Surge">
-            <select 
-              value={filters.volumeSurge}
-              onChange={(e) => setFilters(f => ({ ...f, volumeSurge: e.target.value }))}
-              className="w-full h-9 rounded-md border bg-background px-2.5 text-sm"
-            >
-              <option>Any</option><option>1.5x avg</option><option>2x avg</option><option>3x avg</option>
-            </select>
-          </Filter>
-          <Filter label={`AI Score Min (${filters.aiScoreMin[0]})`}>
-            <Slider 
-              value={filters.aiScoreMin} 
-              onValueChange={(val) => setFilters(f => ({ ...f, aiScoreMin: val }))}
-              max={100} step={1} 
-            />
-          </Filter>
-          <Filter label="Risk Level">
-            <select 
-              value={filters.riskLevel}
-              onChange={(e) => setFilters(f => ({ ...f, riskLevel: e.target.value }))}
-              className="w-full h-9 rounded-md border bg-background px-2.5 text-sm"
-            >
-              <option>All</option><option>Low</option><option>Medium</option><option>High</option>
-            </select>
-          </Filter>
-        </div>
-      </div>
+      <Card className="premium-card overflow-hidden shadow-glow-accent/5">
+        <Tabs defaultValue="basic" className="w-full">
+          <div className="bg-muted/30 border-b px-5">
+            <TabsList className="h-11 bg-transparent p-0 gap-6">
+              <TabsTrigger value="basic" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none h-11 text-[11px] font-bold uppercase tracking-wider">Basic</TabsTrigger>
+              <TabsTrigger value="fundamental" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none h-11 text-[11px] font-bold uppercase tracking-wider">Fundamental</TabsTrigger>
+              <TabsTrigger value="technical" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none h-11 text-[11px] font-bold uppercase tracking-wider">Technical</TabsTrigger>
+              <TabsTrigger value="momentum" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none h-11 text-[11px] font-bold uppercase tracking-wider">Momentum</TabsTrigger>
+              <TabsTrigger value="avai" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none h-11 text-[11px] font-bold uppercase tracking-wider text-accent">AV AI Engine</TabsTrigger>
+            </TabsList>
+          </div>
 
-      {/* Results */}
+          <div className="p-6">
+            <TabsContent value="basic" className="mt-0 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              <FilterItem label="Exchange">
+                <select className="premium-select" value={filters.exchange} onChange={e => setFilters({...filters, exchange: e.target.value})}>
+                  <option>NSE</option><option>BSE</option>
+                </select>
+              </FilterItem>
+              <FilterItem label="Index">
+                <select className="premium-select" value={filters.index} onChange={e => setFilters({...filters, index: e.target.value})}>
+                  <option>Nifty 50</option><option>Nifty 100</option><option>Nifty 500</option><option>All</option>
+                </select>
+              </FilterItem>
+              <FilterItem label="Sector">
+                <select className="premium-select" value={filters.sector} onChange={e => setFilters({...filters, sector: e.target.value})}>
+                  <option>All</option><option>Banking</option><option>IT</option><option>Auto</option><option>Pharma</option>
+                  <option>Energy</option><option>Infrastructure</option><option>Consumer</option><option>Defense</option>
+                </select>
+              </FilterItem>
+              <FilterItem label={`Market Cap Rank`}>
+                <Slider value={filters.mcap} onValueChange={v => setFilters({...filters, mcap: v})} max={100} step={1} />
+              </FilterItem>
+              <FilterItem label="Max Price">
+                <select className="premium-select" value={filters.price[1]} onChange={e => setFilters({...filters, price: [0, Number(e.target.value)]})}>
+                  <option value={100000}>No Limit</option><option value={100}>₹100</option><option value={500}>₹500</option><option value={2000}>₹2000</option>
+                </select>
+              </FilterItem>
+              <FilterItem label="Volume Spike">
+                <select className="premium-select" value={filters.volSpike[0]} onChange={e => setFilters({...filters, volSpike: [Number(e.target.value)]})}>
+                  <option value={0}>Any</option><option value={1.5}>&gt; 1.5x</option><option value={2}>&gt; 2.0x</option>
+                </select>
+              </FilterItem>
+            </TabsContent>
+
+            <TabsContent value="fundamental" className="mt-0 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <FilterItem label={`P/E Ratio (${filters.pe[0]}-${filters.pe[1]})`}>
+                <Slider value={filters.pe} onValueChange={v => setFilters({...filters, pe: v})} max={100} step={1} />
+              </FilterItem>
+              <FilterItem label={`ROE Min (${filters.roe[0]}%)`}>
+                <Slider value={filters.roe} onValueChange={v => setFilters({...filters, roe: v})} max={50} step={1} />
+              </FilterItem>
+              <FilterItem label="Debt/Equity">
+                <select 
+                  className="premium-select" 
+                  value={filters.debtEq} 
+                  onChange={e => setFilters({...filters, debtEq: e.target.value})}
+                >
+                  <option value="Any">Any</option>
+                  <option value="Zero Debt">Zero Debt</option>
+                  <option value="Low">Low (&lt; 0.5)</option>
+                  <option value="Moderate">Moderate (&lt; 1.5)</option>
+                </select>
+              </FilterItem>
+              <FilterItem label="Profit Growth">
+                <select 
+                  className="premium-select"
+                  value={filters.profitGrowth}
+                  onChange={e => setFilters({...filters, profitGrowth: e.target.value})}
+                >
+                  <option value="Any">Any</option>
+                  <option value="> 15%">&gt; 15%</option>
+                  <option value="> 25%">&gt; 25%</option>
+                </select>
+              </FilterItem>
+            </TabsContent>
+
+            <TabsContent value="technical" className="mt-0 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <FilterItem label={`RSI (${filters.rsi[0]}-${filters.rsi[1]})`}>
+                <Slider value={filters.rsi} onValueChange={v => setFilters({...filters, rsi: v})} max={100} step={1} />
+              </FilterItem>
+              <FilterItem label="Breakout Pattern">
+                <select className="premium-select" value={filters.breakout} onChange={e => setFilters({...filters, breakout: e.target.value})}>
+                  <option>Any</option><option>Fresh Breakout</option><option>High Volume Spike</option>
+                </select>
+              </FilterItem>
+              <FilterItem label="Trend Status">
+                <select 
+                  className="premium-select"
+                  value={filters.trendStatus}
+                  onChange={e => setFilters({...filters, trendStatus: e.target.value})}
+                >
+                  <option value="Any">Any</option>
+                  <option value="Above 200 DMA">Above 200 DMA</option>
+                  <option value="Above 50 DMA">Above 50 DMA</option>
+                </select>
+              </FilterItem>
+            </TabsContent>
+
+            <TabsContent value="momentum" className="mt-0 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <FilterItem label="1M Returns">
+                <select 
+                  className="premium-select"
+                  value={filters.returns1M || "Any"}
+                  onChange={e => setFilters({...filters, returns1M: e.target.value})}
+                >
+                  <option value="Any">Any</option>
+                  <option value="Positive">Positive</option>
+                  <option value="> 10%">&gt; 10%</option>
+                  <option value="> 20%">&gt; 20%</option>
+                </select>
+              </FilterItem>
+              <FilterItem label="Relative Strength">
+                <Slider value={filters.relStr || [0]} onValueChange={v => setFilters({...filters, relStr: v})} max={100} step={1} />
+              </FilterItem>
+            </TabsContent>
+
+            <TabsContent value="avai" className="mt-0 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-8">
+              <FilterItem label={`AI Conviction Min (${filters.conviction[0]})`}>
+                <Slider value={filters.conviction} onValueChange={v => setFilters({...filters, conviction: v})} max={100} step={1} />
+              </FilterItem>
+              <FilterItem label={`Risk Appetite Max (${filters.risk[1]})`}>
+                <Slider value={filters.risk} onValueChange={v => setFilters({...filters, risk: v})} max={100} step={1} />
+              </FilterItem>
+              <FilterItem label={`Sentiment Score Min (${filters.sentiment[0]})`}>
+                <Slider value={filters.sentiment} onValueChange={v => setFilters({...filters, sentiment: v})} max={100} step={1} />
+              </FilterItem>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </Card>
+
       <div className="premium-card overflow-hidden">
         <div className="flex items-center justify-between p-5 pb-3">
           <div>
-            <h3 className="font-semibold">Results <span className="text-muted-foreground font-normal text-sm">· {results.length} matches</span></h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Sorted by AI Score · descending</p>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-lg">Opportunities Dashboard</h3>
+              <Badge variant="outline" className="bg-accent/5 text-accent border-accent/20 text-[10px] uppercase font-black tracking-widest px-2">Top Ranked</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">Showing {results.length} stocks ranked by weighted convergence score</p>
+          </div>
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="text-xs font-bold font-mono">Page {page}</span>
+                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={results.length < pageSize} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+             </div>
+             <div className="h-4 w-px bg-border mx-1" />
+             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <FilterIcon className="h-3 w-3" /> Weighted Ranking Active
+             </div>
           </div>
         </div>
+        
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/30 border-y text-xs uppercase tracking-wider text-muted-foreground sticky top-0">
+            <thead className="bg-muted/30 border-y text-[11px] uppercase tracking-wider text-muted-foreground font-black">
               <tr>
-                <th className="text-left font-semibold px-5 py-2.5">Symbol</th>
-                <th className="text-left font-semibold py-2.5">Sector</th>
-                <th className="text-right font-semibold py-2.5">Price</th>
-                <th className="text-center font-semibold py-2.5">AI Score</th>
-                <th className="text-center font-semibold py-2.5">Momentum</th>
-                <th className="text-center font-semibold py-2.5">Valuation</th>
-                <th className="text-center font-semibold py-2.5">Risk</th>
-                <th className="text-right font-semibold pr-5 py-2.5">Action</th>
+                <th className="text-left px-5 py-3">Symbol</th>
+                <th className="text-left py-3">Sector</th>
+                <th className="text-right py-3">Price</th>
+                <th className="text-center py-3">AV Score</th>
+                <th className="text-center py-3">Conviction</th>
+                <th className="text-center py-3">Momentum</th>
+                <th className="text-center py-3">Risk</th>
+                <th className="text-right pr-5 py-3">Action</th>
               </tr>
             </thead>
             <tbody>
-              {results.map((r) => {
-                const breakdown = r.scores_breakdown || {};
-                const momentum = breakdown.momentum_score || 50;
-                const valuation = breakdown.fundamental_score || 50;
-                const riskVal = breakdown.risk_score || 50;
-                const riskLabel = riskVal >= 70 ? "Low" : riskVal >= 40 ? "Medium" : "High";
+              {results.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-12 text-center text-muted-foreground italic">
+                    {loading ? "Aggregating market data and calculating ranks..." : "No stocks matching your criteria. Try relaxing some filters for suggestions."}
+                  </td>
+                </tr>
+              ) : (
+                results.map((r) => {
+                  const breakdown = r.scores_breakdown || {};
+                  const momentum = breakdown.momentum_score || 50;
+                  const conviction = r.score || 50;
+                  const riskVal = breakdown.risk_score || 50;
+                  const riskLabel = riskVal >= 70 ? "Low" : riskVal >= 40 ? "Medium" : "High";
 
-                return (
-                  <tr key={r.ticker} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-5 py-3 font-bold tracking-tight">{r.ticker}</td>
-                    <td className="py-3 text-muted-foreground">{r.sector || "General"}</td>
-                    <td className="py-3 text-right font-mono tabular-nums">₹{r.current_price?.toLocaleString('en-IN')}</td>
-                    <td className="py-3 text-center"><ScorePill score={r.score} /></td>
-                    <td className="py-3 text-center">
-                      <MiniBar value={momentum} />
-                    </td>
-                    <td className="py-3 text-center">
-                      <MiniBar value={valuation} />
-                    </td>
-                    <td className="py-3 text-center">
-                      <span className={cn(
-                        "inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                        riskLabel === "Low" && "bg-success/10 text-success",
-                        riskLabel === "Medium" && "bg-warning/10 text-warning",
-                        riskLabel === "High" && "bg-danger/10 text-danger",
-                      )}>{riskLabel}</span>
-                    </td>
-                    <td className="pr-5 py-3 text-right">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-7 px-2 text-xs text-accent hover:text-accent hover:bg-accent/10"
-                        onClick={() => handleWatch(r.ticker, r.current_price)}
-                      >
-                        <Plus className="h-3 w-3 mr-1" /> Add
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={r.ticker} className="border-b last:border-0 hover:bg-muted/30 transition-all duration-200">
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-foreground text-base tracking-tight">{r.ticker}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">{r.exchange || "NSE"}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 font-medium text-muted-foreground">{r.sector || "General"}</td>
+                      <td className="py-4 text-right font-mono tabular-nums font-semibold">₹{r.current_price?.toLocaleString('en-IN')}</td>
+                      <td className="py-4 text-center"><ScorePill score={r.score} /></td>
+                      <td className="py-4 text-center">
+                        <MiniBar value={conviction} />
+                      </td>
+                      <td className="py-4 text-center">
+                        <MiniBar value={momentum} />
+                      </td>
+                      <td className="py-4 text-center">
+                        <span className={cn(
+                          "inline-block rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm",
+                          riskLabel === "Low" && "bg-success/15 text-success border border-success/20",
+                          riskLabel === "Medium" && "bg-warning/15 text-warning border border-warning/20",
+                          riskLabel === "High" && "bg-danger/15 text-danger border border-danger/20",
+                        )}>{riskLabel}</span>
+                      </td>
+                      <td className="pr-5 py-4 text-right">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 px-3 text-xs font-bold gap-1.5 border-accent/20 hover:border-accent hover:bg-accent/5 hover:text-accent"
+                          onClick={() => handleWatch(r.ticker, r.current_price)}
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Watch
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -273,13 +403,17 @@ const AIScreener = () => {
 
 const MiniBar = ({ value }: { value: number }) => (
   <div className="inline-flex items-center gap-2">
-    <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+    <div className="w-16 h-2 rounded-full bg-muted/50 overflow-hidden shadow-inner">
       <div
-        className={cn("h-full rounded-full", value >= 75 ? "bg-success" : value >= 60 ? "bg-accent" : "bg-warning")}
+        className={cn("h-full rounded-full transition-all duration-500", 
+          value >= 75 ? "bg-success shadow-glow-success" : 
+          value >= 60 ? "bg-accent shadow-glow-accent" : 
+          "bg-warning shadow-glow-warning"
+        )}
         style={{ width: `${value}%` }}
       />
     </div>
-    <span className="font-mono text-xs tabular-nums w-6 text-right">{value}</span>
+    <span className="font-mono text-[11px] tabular-nums font-bold w-6 text-right text-foreground/80">{value}</span>
   </div>
 );
 

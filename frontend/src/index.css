@@ -243,6 +243,14 @@
   .premium-card:hover {
     box-shadow: var(--shadow-elevated);
   }
+
+  .premium-select {
+    @apply w-full h-9 rounded-md border bg-background px-3 text-xs font-bold transition-[var(--transition-base)] focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none cursor-pointer hover:border-accent/50;
+  }
+
+  .shadow-glow-success { box-shadow: 0 0 12px -2px hsl(var(--success) / 0.5); }
+  .shadow-glow-accent { box-shadow: 0 0 12px -2px hsl(var(--accent) / 0.5); }
+  .shadow-glow-warning { box-shadow: 0 0 12px -2px hsl(var(--warning) / 0.5); }
 }
 
 @keyframes ticker {

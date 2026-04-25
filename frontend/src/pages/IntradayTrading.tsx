@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChangeBadge, ScorePill } from "@/components/common/Badges";
 import { cn } from "@/lib/utils";
@@ -31,15 +31,15 @@ type LiveStatus =
 interface Opportunity {
   symbol: string; company: string; sector: string;
   entry: number; current: number; changePct: number;
-  confidence: number; signal: "Breakout" | "Momentum" | "Reversal" | "Pullback";
+  confidence: number; side: "BUY" | "SELL"; signal: string;
   status: "Watching" | "Ready" | "Triggered";
 }
 interface ActiveTrade {
-  id: string; symbol: string; buy: number; qty: number; current: number;
+  id: string; symbol: string; entry: number; side: "BUY" | "SELL"; qty: number; current: number;
   pnl: number; pnlPct: number; sl: number; target: number; status: "Running" | "Trailing";
 }
 interface HistoryRow {
-  id: string; time: string; symbol: string; sector: string;
+  id: string; time: string; symbol: string; side: "BUY" | "SELL"; sector: string;
   entry: number; exit: number; qty: number; invested: number;
   pnl: number; pnlPct: number; status: "Profit" | "Loss" | "Open" | "Closed";
   reason: string;
@@ -106,9 +106,39 @@ export default function IntradayTrading() {
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [dayPnl, setDayPnl] = useState(0);
 
+  const [activeTab, setActiveTab] = useState("live");
+  const [reportDays, setReportDays] = useState("30");
+  const [reportPage, setReportPage] = useState(1);
+  const [livePage, setLivePage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+  const PAGE_SIZE = 8;
+
+  const liveSignals = [
+    { title: "Nifty Outlook", status: "Strong Momentum" as LiveStatus, confidence: 78, description: "Strong support at 22100, momentum building." },
+    { title: "Sector Focus", status: "Scanning" as LiveStatus, confidence: 65, description: "Banking showing strength, IT remains sideways." },
+  ];
+
+  const budgetUsed = useMemo(() => active.reduce((s, t) => s + t.entry * t.qty, 0), [active]);
+  const available = Math.max(0, budget - budgetUsed);
+
+
   const [resultFilter, setResultFilter] = useState<"ALL" | "PROFIT" | "LOSS">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CLOSED">("ALL");
-  const [sectorFilter, setSectorFilter] = useState<string>("ALL");
+  const [sectorFilter, setSectorFilter] = useState("ALL");
+
+  const sectors = useMemo(() => {
+    const s = new Set(history.map(h => h.sector));
+    return Array.from(s);
+  }, [history]);
+
+  const filteredHistory = useMemo(() => {
+    return history.filter(h => {
+      const matchResult = resultFilter === "ALL" || (resultFilter === "PROFIT" ? h.pnl > 0 : h.pnl <= 0);
+      const matchStatus = statusFilter === "ALL" || (statusFilter === "OPEN" ? h.status === "Open" : h.status !== "Open");
+      const matchSector = sectorFilter === "ALL" || h.sector === sectorFilter;
+      return matchResult && matchStatus && matchSector;
+    });
+  }, [history, resultFilter, statusFilter, sectorFilter]);
 
   const loadState = async () => {
     try {
@@ -186,44 +216,70 @@ export default function IntradayTrading() {
     setDisclaimerAccepted(true);
   };
 
+  const equityCurve = useMemo(() => {
+    let cumulative = 0;
+    return history.map((h, i) => {
+      cumulative += h.pnl;
+      return { date: h.time, value: cumulative };
+    });
+  }, [history]);
+
+  const stats = useMemo(() => {
+    const totalTrades = history.length;
+    const winsCount = history.filter(h => h.pnl > 0).length;
+    const lossesCount = totalTrades - winsCount;
+    const totalPnl = history.reduce((s, h) => s + h.pnl, 0);
+    const avgGain = winsCount > 0 ? history.filter(h => h.pnl > 0).reduce((s, h) => s + h.pnl, 0) / winsCount : 0;
+    const avgLoss = lossesCount > 0 ? history.filter(h => h.pnl <= 0).reduce((s, h) => s + h.pnl, 0) / lossesCount : 0;
+    
+    return {
+      totalTrades,
+      winsCount,
+      lossesCount,
+      winRate: totalTrades > 0 ? Math.round((winsCount / totalTrades) * 100) : 0,
+      totalPnl,
+      avgGain,
+      avgLoss,
+      profitFactor: lossesCount > 0 ? Math.abs(history.filter(h => h.pnl > 0).reduce((s, h) => s + h.pnl, 0) / history.filter(h => h.pnl <= 0).reduce((s, h) => s + h.pnl, 0)) : winsCount > 0 ? winsCount : 0
+    };
+  }, [history]);
+
+  const WIN_LOSS = useMemo(() => [
+    { name: "Wins", v: stats.winsCount },
+    { name: "Losses", v: stats.lossesCount },
+  ], [stats]);
+  const PIE_COLORS = ["hsl(var(--success))", "hsl(var(--danger))"];
+
+  const exportData = () => {
+    const data = activeTab === "live" ? active : history;
+    const headers = ["Time", "Symbol", "Side", "Entry", "Exit/Current", "Qty", "P&L", "P&L%", "Status", "Reason"];
+    const csvContent = [
+      headers.join(","),
+      ...data.map(t => [
+        "time" in t ? t.time : "Live",
+        t.symbol,
+        t.side,
+        t.entry,
+        "exit" in t ? t.exit : t.current,
+        t.qty,
+        t.pnl,
+        t.pnlPct,
+        t.status,
+        "reason" in t ? t.reason : ""
+      ].join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Intraday_Trades_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
   const cancelDisclaimer = () => {
     navigate("/");
   };
-
-  const budgetUsed = active.reduce((s, t) => s + t.buy * t.qty, 0);
-  const available = Math.max(0, budget - budgetUsed);
-  const wins = history.filter((h) => h.pnl > 0).length;
-  const winRate = history.length ? Math.round((wins / history.length) * 100) : 0;
-
-  const status: EngineStatus = running ? "Running" : "Idle";
-
-  const filteredHistory = useMemo(() => {
-    return history.filter((h) => {
-      if (resultFilter === "PROFIT" && h.pnl <= 0) return false;
-      if (resultFilter === "LOSS" && h.pnl > 0) return false;
-      if (statusFilter === "OPEN" && h.status !== "Open") return false;
-      if (statusFilter === "CLOSED" && h.status === "Open") return false;
-      if (sectorFilter !== "ALL" && h.sector !== sectorFilter) return false;
-      return true;
-    });
-  }, [history, resultFilter, statusFilter, sectorFilter]);
-
-  const sectors = useMemo(() => Array.from(new Set(history.map((h) => h.sector))), [history]);
-
-  const liveSignals: { title: string; status: LiveStatus; confidence: number; description: string }[] = running
-    ? [
-        { title: "Momentum Watch", status: "Strong Momentum", confidence: 84, description: "Real-time volatility scanning active across high-beta clusters." },
-        { title: "Breakout Watch", status: "Breakout Ready",  confidence: 78, description: "Detecting supply exhaustion at multi-day pivot levels." },
-      ]
-    : [
-        { title: "Momentum Watch", status: "Scanning", confidence: 18, description: "Engine idle — start to begin scanning live opportunities." },
-        { title: "Breakout Watch", status: "Waiting",  confidence: 22, description: "Awaiting setup confirmation across the watchlist." },
-      ];
-
-  const WIN_LOSS = [
-    { name: "Wins", v: wins }, { name: "Losses", v: history.length - wins },
-  ];
-  const PIE_COLORS = ["hsl(var(--success))", "hsl(var(--danger))"];
 
   return (
     <>
@@ -233,7 +289,13 @@ export default function IntradayTrading() {
         title="Intraday Stock Trading"
         description="Automated paper-trading engine for high-conviction intraday stocks — set your budget & let the engine work."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end mr-2">
+               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Day's P&L</span>
+               <span className={cn("text-sm font-black font-mono", dayPnl >= 0 ? "text-success" : "text-danger")}>
+                 {fmtINR(dayPnl)}
+               </span>
+            </div>
             <Badge
               variant="outline"
               className={cn(
@@ -255,14 +317,31 @@ export default function IntradayTrading() {
         }
       />
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex items-center justify-between mb-4 border-b pb-2">
+            <TabsList className="bg-card border shadow-sm">
+                <TabsTrigger value="live" className="gap-2">
+                    <Activity className="h-3.5 w-3.5" /> Live Terminal
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-2">
+                    <HistoryIcon className="h-3.5 w-3.5" /> Performance Reports
+                </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={exportData} className="gap-2 h-9">
+                    <LineChartIcon className="h-3.5 w-3.5" /> Export Data
+                </Button>
+            </div>
+        </div>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <TabsContent value="live" className="space-y-6 mt-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <KpiTile label="Day P&L"        value={fmtINR(dayPnl)}     tone={dayPnl >= 0 ? "success" : "danger"} icon={<TrendingUp className="h-4 w-4" />} />
         <KpiTile label="Active Trades"  value={String(active.length)} icon={<Activity className="h-4 w-4" />} />
         <KpiTile label="Budget Used"    value={fmtINR(budgetUsed)} icon={<Wallet className="h-4 w-4" />} />
         <KpiTile label="Available Cash" value={fmtINR(available)}  icon={<Briefcase className="h-4 w-4" />} />
-        <KpiTile label="Win Rate"       value={`${winRate}%`}      tone={winRate >= 50 ? "success" : "danger"} icon={<Target className="h-4 w-4" />} />
+        <KpiTile label="Win Rate"       value={`${stats.winRate}%`}      tone={stats.winRate >= 50 ? "success" : "danger"} icon={<Target className="h-4 w-4" />} />
         <KpiTile label="Trades Today"   value={String(history.length + active.length)} icon={<HistoryIcon className="h-4 w-4" />} />
       </div>
 
@@ -339,9 +418,9 @@ export default function IntradayTrading() {
             <SummaryRow label="Running P&L" value={fmtINR(active.reduce((s, t) => s + t.pnl, 0))} tone="success" mono />
             <SummaryRow label="Closed P&L"  value={fmtINR(history.reduce((s, h) => s + h.pnl, 0))} tone={history.reduce((s,h) => s + h.pnl, 0) >= 0 ? "success" : "danger"} mono />
             <SummaryRow label="Trades"      value={String(history.length)} mono />
-            <SummaryRow label="Wins"        value={String(wins)} tone="success" mono />
-            <SummaryRow label="Losses"      value={String(history.length - wins)} tone="danger" mono />
-            <SummaryRow label="Win Rate"    value={`${winRate}%`} mono />
+            <SummaryRow label="Wins"        value={String(stats.winsCount)} tone="success" mono />
+            <SummaryRow label="Losses"      value={String(stats.lossesCount)} tone="danger" mono />
+            <SummaryRow label="Win Rate"    value={`${stats.winRate}%`} mono />
           </div>
         </Card>
       </div>
@@ -389,13 +468,12 @@ export default function IntradayTrading() {
                       <ChangeBadge value={o.changePct} className="mt-0.5" />
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
                     <Badge className={cn(
                       "text-[10px] font-mono",
-                      up ? "bg-success/15 text-success hover:bg-success/20" : "bg-danger/15 text-danger hover:bg-danger/20",
+                      o.side === "BUY" ? "bg-success/15 text-success hover:bg-success/20" : "bg-danger/15 text-danger hover:bg-danger/20",
                     )}>
-                      {up ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                      {o.signal}
+                      {o.side === "BUY" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                      {o.side} {o.signal}
                     </Badge>
                     <Badge variant="outline" className={cn(
                       "text-[10px]",
@@ -404,7 +482,6 @@ export default function IntradayTrading() {
                     )}>
                       {o.status}
                     </Badge>
-                  </div>
                 </div>
               );
             })}
@@ -430,7 +507,8 @@ export default function IntradayTrading() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Symbol</TableHead>
-                  <TableHead className="text-right">Buy</TableHead>
+                  <TableHead>Side</TableHead>
+                  <TableHead className="text-right">Entry</TableHead>
                   <TableHead className="text-right">Qty</TableHead>
                   <TableHead className="text-right">Current</TableHead>
                   <TableHead className="text-right">Live P&L</TableHead>
@@ -441,7 +519,7 @@ export default function IntradayTrading() {
               </TableHeader>
               <TableBody>
                 {active.map((t) => (
-                  <TableRow key={t.id} className="bg-success/5">
+                  <TableRow key={t.id} className="bg-accent/5">
                     <TableCell className="font-semibold">
                       <span className="inline-flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
@@ -451,7 +529,12 @@ export default function IntradayTrading() {
                         {t.symbol}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-mono">{t.buy.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Badge className={cn("text-[10px] font-bold", t.side === "BUY" ? "bg-success/15 text-success" : "bg-danger/15 text-danger")}>
+                        {t.side}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">{t.entry.toFixed(2)}</TableCell>
                     <TableCell className="text-right font-mono">{t.qty}</TableCell>
                     <TableCell className="text-right font-mono">{t.current.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
@@ -710,6 +793,148 @@ export default function IntradayTrading() {
           })}
         </div>
       </Card>
+      </TabsContent>
+
+      <TabsContent value="reports" className="space-y-6 mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="p-4 premium-card">
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Total P&L</p>
+                    <p className={cn("text-2xl font-black mt-1", stats.totalPnl >= 0 ? "text-success" : "text-danger")}>
+                        {fmtINR(stats.totalPnl)}
+                    </p>
+                </Card>
+                <Card className="p-4 premium-card">
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Win Rate</p>
+                    <p className="text-2xl font-black mt-1 text-accent">{stats.winRate}%</p>
+                </Card>
+                <Card className="p-4 premium-card">
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Total Trades</p>
+                    <p className="text-2xl font-black mt-1">{stats.totalTrades}</p>
+                </Card>
+                <Card className="p-4 premium-card">
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Profit Factor</p>
+                    <p className="text-2xl font-black mt-1">{stats.profitFactor.toFixed(2)}</p>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2 p-6 premium-card">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="font-bold flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-accent" /> Equity Curve
+                        </h3>
+                    </div>
+                    <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={equityCurve}>
+                                <defs>
+                                    <linearGradient id="pnlGradRep" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                                <Tooltip />
+                                <Area type="monotone" dataKey="value" stroke="hsl(var(--accent))" strokeWidth={2.5} fill="url(#pnlGradRep)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+
+                <Card className="p-6 premium-card">
+                    <h3 className="font-bold mb-6 flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-warning" /> Win/Loss Ratio
+                    </h3>
+                    <div className="h-[200px] flex items-center justify-center relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={[
+                                        { name: 'Wins', value: stats.winsCount },
+                                        { name: 'Losses', value: stats.lossesCount },
+                                    ]}
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    <Cell fill="hsl(var(--success))" />
+                                    <Cell fill="hsl(var(--danger))" />
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="mt-6 space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                            <span>Profitable Trades</span>
+                            <span className="font-bold">{stats.winsCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                            <span>Losing Trades</span>
+                            <span className="font-bold">{stats.lossesCount}</span>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
+            <Card className="premium-card overflow-hidden">
+                <div className="p-4 border-b">
+                    <h3 className="font-bold flex items-center gap-2">
+                        <HistoryIcon className="h-4 w-4 text-accent" /> Detailed Performance Log
+                    </h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Time</TableHead>
+                                <TableHead>Symbol</TableHead>
+                                <TableHead>Side</TableHead>
+                                <TableHead className="text-right">Entry</TableHead>
+                                <TableHead className="text-right">Exit</TableHead>
+                                <TableHead className="text-right">P&L</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Reason</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {history.slice((reportPage - 1) * 10, reportPage * 10).map((h) => (
+                                <TableRow key={h.id}>
+                                    <TableCell className="font-mono text-xs">{h.time}</TableCell>
+                                    <TableCell className="font-semibold">{h.symbol}</TableCell>
+                                    <TableCell>
+                                        <Badge className={cn("text-[10px]", h.side === "BUY" ? "bg-success/15 text-success" : "bg-danger/15 text-danger")}>
+                                            {h.side}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono">{h.entry.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right font-mono">{h.exit.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className={cn("font-mono font-bold", h.pnl >= 0 ? "text-success" : "text-danger")}>
+                                            {fmtINR(h.pnl)}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">{h.status}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{h.reason}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                {history.length > 10 && (
+                    <div className="p-4 border-t flex justify-center gap-2">
+                        <Button size="sm" variant="outline" disabled={reportPage === 1} onClick={() => setReportPage(p => p - 1)}>Prev</Button>
+                        <Button size="sm" variant="outline" disabled={reportPage * 10 >= history.length} onClick={() => setReportPage(p => p + 1)}>Next</Button>
+                    </div>
+                )}
+            </Card>
+        </TabsContent>
+      </Tabs>
     </div>
     {!disclaimerAccepted && (
       <DisclaimerGate onAccept={acceptDisclaimer} onCancel={cancelDisclaimer} />

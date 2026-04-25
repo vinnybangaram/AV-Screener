@@ -25,6 +25,7 @@ import AdminControlPanel from "./pages/AdminControlPanel";
 import Login from "./pages/Login";
 import AboutUs from "./pages/AboutUs";
 import ContactUs from "./pages/ContactUs";
+import MasterDataAdmin from "./pages/MasterDataAdmin";
 import NotFound from "./pages/NotFound";
 import UpstoxDashboard from "./pages/UpstoxDashboard";
 import UpstoxCallback from "./pages/UpstoxCallback";
@@ -69,6 +70,7 @@ const App = () => (
             
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminControlPanel /></ProtectedRoute>} />
+            <Route path="/admin/master-data" element={<ProtectedRoute requiredRole="admin"><MasterDataAdmin /></ProtectedRoute>} />
             <Route path="/dashboard/admin" element={<Navigate to="/admin" replace />} />
 
             <Route path="/portfolio" element={<Portfolio />} />

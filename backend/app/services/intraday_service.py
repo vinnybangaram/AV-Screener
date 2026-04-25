@@ -36,22 +36,40 @@ class IntradayService:
         """Generates real-time signals using Top Movers and Sector strength."""
         movers = await market_service.get_top_movers()
         gainers = movers.get("gainers", [])
+        losers = movers.get("losers", [])
         
         signals = []
-        for g in gainers[:10]:
-            # Map ticker DB for sector info
+        
+        # Process Longs (Gainers)
+        for g in gainers[:5]:
             ticker_info = next((item for item in TICKER_DB if item["symbol"] == g["symbol"]), {})
-            
             signals.append({
                 "symbol": g["symbol"],
                 "company": ticker_info.get("company", "Company Node"),
                 "sector": ticker_info.get("sector", "Other"),
-                "entry": g["price"] * 0.995, # Simulated entry
+                "entry": g["price"] * 0.995,
                 "current": g["price"],
                 "changePct": g["change_pct"],
-                "confidence": g.get("momentum_score", random.randint(70, 95)),
+                "confidence": g.get("momentum_score", random.randint(75, 95)),
+                "side": "BUY",
                 "signal": "Breakout" if g["change_pct"] > 1.5 else "Momentum",
                 "status": "Triggered" if g["change_pct"] > 2.0 else "Ready"
+            })
+            
+        # Process Shorts (Losers)
+        for l in losers[:5]:
+            ticker_info = next((item for item in TICKER_DB if item["symbol"] == l["symbol"]), {})
+            signals.append({
+                "symbol": l["symbol"],
+                "company": ticker_info.get("company", "Company Node"),
+                "sector": ticker_info.get("sector", "Other"),
+                "entry": l["price"] * 1.005,
+                "current": l["price"],
+                "changePct": l["change_pct"],
+                "confidence": l.get("momentum_score", random.randint(75, 95)),
+                "side": "SELL",
+                "signal": "Breakdown" if l["change_pct"] < -1.5 else "Momentum",
+                "status": "Triggered" if l["change_pct"] < -2.0 else "Ready"
             })
             
         return sorted(signals, key=lambda x: x["confidence"], reverse=True)
@@ -83,39 +101,68 @@ class IntradayService:
         if session["running"] and not session["active_trades"]:
             # Initial seed of trades if none exist
             signals = await self.get_signals(user_id)
-            for s in signals[:session["stock_count"]]:
-                qty = int((session["budget"] / session["stock_count"]) / s["current"])
-                trade = {
-                    "id": f"t_{s['symbol']}_{random.randint(1000,9999)}",
-                    "symbol": s["symbol"],
-                    "buy": s["current"],
-                    "qty": qty,
-                    "current": s["current"],
-                    "pnl": 0.0,
-                    "pnlPct": 0.0,
-                    "sl": s["current"] * 0.985,
-                    "target": s["current"] * 1.03,
-                    "status": "Running"
-                }
-                session["active_trades"].append(trade)
-                
-                # Trigger Notification for Entry
-                from app.database import SessionLocal
-                from .notification_service import trigger_notification
-                db = SessionLocal()
-                try:
+            
+            from app.database import SessionLocal
+            from app.models.watchlist import WatchlistPosition
+            db = SessionLocal()
+            
+            try:
+                # Pick best signals regardless of side
+                for s in signals[:session["stock_count"]]:
+                    qty = int((session["budget"] / session["stock_count"]) / s["current"])
+                    is_buy = s["side"] == "BUY"
+                    side_db = "long" if is_buy else "short"
+                    
+                    trade = {
+                        "id": f"t_{s['symbol']}_{random.randint(1000,9999)}",
+                        "symbol": s["symbol"],
+                        "entry": s["current"],
+                        "side": s["side"],
+                        "qty": qty,
+                        "current": s["current"],
+                        "pnl": 0.0,
+                        "pnlPct": 0.0,
+                        "sl": s["current"] * (0.985 if is_buy else 1.015),
+                        "target": s["current"] * (1.03 if is_buy else 0.97),
+                        "status": "Running"
+                    }
+                    session["active_trades"].append(trade)
+                    
+                    # Sync with Database for Dashboard accuracy
+                    new_pos = WatchlistPosition(
+                        user_id=user_id,
+                        symbol=s["symbol"],
+                        company_name=s["company"],
+                        category="intraday",
+                        sub_type=side_db,
+                        side=side_db.upper(),
+                        entry_price=s["current"],
+                        quantity=qty,
+                        is_auto_generated=True,
+                        latest_price=s["current"],
+                        latest_pnl=0.0,
+                        latest_pnl_percent=0.0,
+                        stop_loss=trade["sl"],
+                        target_price=trade["target"]
+                    )
+                    db.add(new_pos)
+                    
+                    # Trigger Notification
+                    from .notification_service import trigger_notification
                     trigger_notification(
                         db=db,
                         user_id=user_id,
                         symbol=s["symbol"],
-                        message=f"Intraday Execution: Bought {s['symbol']} @ ₹{s['current']}",
+                        message=f"Intraday Execution: {'Bought' if is_buy else 'Sold'} {s['symbol']} @ ₹{s['current']}",
                         type="TRADE_ENTRY",
                         priority="MEDIUM"
                     )
-                except Exception as e:
-                    print(f"Intraday Notification Error: {e}")
-                finally:
-                    db.close()
+                db.commit()
+            except Exception as e:
+                print(f"Intraday Toggle Engine Sync Error: {e}")
+                db.rollback()
+            finally:
+                db.close()
         
         return await self.get_engine_state(user_id)
 
@@ -126,42 +173,73 @@ class IntradayService:
         
         prices = await market_service.get_daily_changes(symbols)
         
-        remaining = []
-        for t in session["active_trades"]:
-            symbol = t["symbol"]
-            curr_data = prices.get(symbol)
-            
-            if curr_data:
-                # Add a bit of 'Live' jitter
-                import random
-                price = curr_data["latest_price"] * (1 + random.uniform(-0.0005, 0.0005))
-                t["current"] = round(price, 2)
-                t["pnl"] = round((t["current"] - t["buy"]) * t["qty"], 2)
-                t["pnlPct"] = round(((t["current"] - t["buy"]) / t["buy"]) * 100, 2)
+        from app.database import SessionLocal
+        from app.models.watchlist import WatchlistPosition
+        db = SessionLocal()
+        
+        try:
+            remaining = []
+            for t in session["active_trades"]:
+                symbol = t["symbol"]
+                curr_data = prices.get(symbol)
+                is_buy = t.get("side", "BUY") == "BUY"
                 
-                # Exit logic (SL or Target)
-                if t["current"] <= t["sl"] or t["current"] >= t["target"]:
-                    history_item = {
-                        "id": f"h_{t['symbol']}_{random.randint(1000,9999)}",
-                        "time": datetime.now().strftime("%H:%M:%S"),
-                        "symbol": t["symbol"],
-                        "sector": next((item["sector"] for item in TICKER_DB if item["symbol"] == t["symbol"]), "Other"),
-                        "entry": t["buy"],
-                        "exit": t["current"],
-                        "qty": t["qty"],
-                        "invested": t["buy"] * t["qty"],
-                        "pnl": t["pnl"],
-                        "pnlPct": t["pnlPct"],
-                        "status": "Profit" if t["pnl"] > 0 else "Loss",
-                        "reason": "Target Hit" if t["current"] >= t["target"] else "Stop Loss Hit"
-                    }
-                    session["history"].append(history_item)
+                if curr_data:
+                    # Add a bit of 'Live' jitter
+                    import random
+                    price = curr_data["latest_price"] * (1 + random.uniform(-0.0005, 0.0005))
+                    t["current"] = round(price, 2)
+                    
+                    # Correct P&L calculation for both sides
+                    diff = (t["current"] - t["entry"]) if is_buy else (t["entry"] - t["current"])
+                    t["pnl"] = round(diff * t["qty"], 2)
+                    t["pnlPct"] = round((diff / t["entry"]) * 100, 2)
+                    
+                    # Update DB for dashboard
+                    db.query(WatchlistPosition).filter(
+                        WatchlistPosition.user_id == user_id,
+                        WatchlistPosition.symbol == symbol,
+                        WatchlistPosition.category == "intraday"
+                    ).update({
+                        "latest_price": t["current"],
+                        "latest_pnl": t["pnl"],
+                        "latest_pnl_percent": t["pnlPct"]
+                    })
+                    
+                    # Exit logic (SL or Target)
+                    triggered = False
+                    if is_buy:
+                        triggered = t["current"] <= t["sl"] or t["current"] >= t["target"]
+                    else:
+                        triggered = t["current"] >= t["sl"] or t["current"] <= t["target"]
 
-                    # Trigger Notification for Exit
-                    from app.database import SessionLocal
-                    from .notification_service import trigger_notification
-                    db = SessionLocal()
-                    try:
+                    if triggered:
+                        history_item = {
+                            "id": f"h_{t['symbol']}_{random.randint(1000,9999)}",
+                            "time": datetime.now().strftime("%H:%M:%S"),
+                            "symbol": t["symbol"],
+                            "side": t.get("side", "BUY"),
+                            "sector": next((item["sector"] for item in TICKER_DB if item["symbol"] == t["symbol"]), "Other"),
+                            "entry": t["entry"],
+                            "exit": t["current"],
+                            "qty": t["qty"],
+                            "invested": t["entry"] * t["qty"],
+                            "pnl": t["pnl"],
+                            "pnlPct": t["pnlPct"],
+                            "status": "Profit" if t["pnl"] > 0 else "Loss",
+                            "reason": "Target Hit" if (t["current"] >= t["target"] if is_buy else t["current"] <= t["target"]) else "Stop Loss Hit"
+                        }
+                        session["history"].append(history_item)
+
+                        # Remove from Dashboard/DB
+                        db.query(WatchlistPosition).filter(
+                            WatchlistPosition.user_id == user_id,
+                            WatchlistPosition.symbol == symbol,
+                            WatchlistPosition.category == "intraday"
+                        ).delete()
+
+                        # Trigger Notification for Exit
+                        from .notification_service import trigger_notification
                         pnl_str = f"₹{history_item['pnl']}" if history_item['pnl'] >= 0 else f"-₹{abs(history_item['pnl'])}"
                         trigger_notification(
                             db=db,
@@ -171,20 +249,38 @@ class IntradayService:
                             type="TRADE_EXIT",
                             priority="MEDIUM"
                         )
-                    except Exception as e:
-                        print(f"Intraday Exit Notification Error: {e}")
-                    finally:
-                        db.close()
+                    else:
+                        remaining.append(t)
                 else:
                     remaining.append(t)
-            else:
-                remaining.append(t)
-                
-        session["active_trades"] = remaining
+            
+            db.commit()
+            session["active_trades"] = remaining
+        except Exception as e:
+            print(f"Intraday Sync Error: {e}")
+            db.rollback()
+        finally:
+            db.close()
 
     async def reset_day(self, user_id: int):
         if user_id in self.sessions:
             del self.sessions[user_id]
+            
+        # Also clear DB for this user
+        from app.database import SessionLocal
+        from app.models.watchlist import WatchlistPosition
+        db = SessionLocal()
+        try:
+            db.query(WatchlistPosition).filter(
+                WatchlistPosition.user_id == user_id,
+                WatchlistPosition.category == "intraday"
+            ).delete()
+            db.commit()
+        except:
+            db.rollback()
+        finally:
+            db.close()
+            
         return await self.get_engine_state(user_id)
 
 intraday_service = IntradayService()
@@ -204,7 +300,8 @@ async def run_intraday_scan():
             "ticker": m["symbol"],
             "price": m["price"],
             "change_pct": m["change_pct"],
-            "momentum_score": m.get("momentum_score", 0)
+            "momentum_score": m.get("momentum_score", 0),
+            "side": "BUY"
         })
         
     # 3. Map Losers to Shorts
@@ -214,7 +311,8 @@ async def run_intraday_scan():
             "ticker": m["symbol"],
             "price": m["price"],
             "change_pct": m["change_pct"],
-            "momentum_score": m.get("momentum_score", 0)
+            "momentum_score": m.get("momentum_score", 0),
+            "side": "SELL"
         })
         
     return {

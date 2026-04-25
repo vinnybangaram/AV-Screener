@@ -105,24 +105,10 @@ export const fetchMultibaggers = async (refresh = false) => {
     }
 };
 
-export const fetchScreenerResults = async (filters = {}) => {
+export const fetchScreenerResults = async (filters = {}, page = 1, pageSize = 20, search = "") => {
     try {
-        const params = new URLSearchParams();
-        if (filters.marketCap) params.append('market_cap', filters.marketCap);
-        if (filters.sector) params.append('sector', filters.sector);
-        if (filters.peRange) {
-            params.append('pe_min', filters.peRange[0]);
-            params.append('pe_max', filters.peRange[1]);
-        }
-        if (filters.roeMin) params.append('roe_min', filters.roeMin[0]);
-        if (filters.rsiRange) {
-            params.append('rsi_min', filters.rsiRange[0]);
-            params.append('rsi_max', filters.rsiRange[1]);
-        }
-        if (filters.aiScoreMin) params.append('score_min', filters.aiScoreMin[0]);
-        if (filters.riskLevel) params.append('risk_level', filters.riskLevel);
-
-        return await api.get(`/market/screener?${params.toString()}`);
+        const url = `/market/screener?page=${page}&page_size=${pageSize}${search ? `&search=${search}` : ''}`;
+        return await api.post(url, filters);
     } catch (error) {
         console.error("fetchScreenerResults error:", error);
         return { success: false, error: error.message };

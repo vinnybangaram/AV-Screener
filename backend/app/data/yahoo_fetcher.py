@@ -111,19 +111,22 @@ def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
     ticker_base = strip_symbol(ticker)
     
     fundamentals_db = {
-        "RELIANCE": {"roe": 0.08, "debt_to_equity": 0.40, "market_cap": 200000000000, "revenue_growth": 0.12, "earnings_growth": 0.15, "promoter_holding": 50.3},
-        "TCS": {"roe": 0.45, "debt_to_equity": 0.0, "market_cap": 150000000000, "revenue_growth": 0.14, "earnings_growth": 0.09, "promoter_holding": 72.3},
-        "HDFCBANK": {"roe": 0.16, "debt_to_equity": 0.1, "market_cap": 120000000000, "revenue_growth": 0.18, "earnings_growth": 0.20, "promoter_holding": 0.0},
-        "INFY": {"roe": 0.32, "debt_to_equity": 0.0, "market_cap": 80000000000, "revenue_growth": 0.10, "earnings_growth": 0.11, "promoter_holding": 15.0},
-        "ICICIBANK": {"roe": 0.18, "debt_to_equity": 0.1, "market_cap": 90000000000, "revenue_growth": 0.22, "earnings_growth": 0.25, "promoter_holding": 0.0},
-        "SBIN": {"roe": 0.16, "debt_to_equity": 0.2, "market_cap": 60000000000, "revenue_growth": 0.10, "earnings_growth": 0.14, "promoter_holding": 57.5},
-        "BHARTIARTL": {"roe": 0.12, "debt_to_equity": 0.8, "market_cap": 75000000000, "revenue_growth": 0.14, "earnings_growth": 0.40, "promoter_holding": 54.8},
-        "ITC": {"roe": 0.29, "debt_to_equity": 0.0, "market_cap": 60000000000, "revenue_growth": 0.08, "earnings_growth": 0.12, "promoter_holding": 0.0},
-        "L&T": {"roe": 0.14, "debt_to_equity": 0.6, "market_cap": 50000000000, "revenue_growth": 0.15, "earnings_growth": 0.18, "promoter_holding": 0.0},
-        "KOTAKBANK": {"roe": 0.14, "debt_to_equity": 0.0, "market_cap": 40000000000, "revenue_growth": 0.11, "earnings_growth": 0.13, "promoter_holding": 25.9},
-        "ZOMATO": {"roe": -0.05, "debt_to_equity": 0.0, "market_cap": 15000000000, "revenue_growth": 0.55, "earnings_growth": 0.0, "promoter_holding": 0.0}
+        "RELIANCE": {"roe": 0.08, "debt_to_equity": 0.40, "market_cap": 200000000000, "revenue_growth": 0.12, "earnings_growth": 0.15, "promoter_holding": 50.3, "sector": "Energy"},
+        "TCS": {"roe": 0.45, "debt_to_equity": 0.0, "market_cap": 150000000000, "revenue_growth": 0.14, "earnings_growth": 0.09, "promoter_holding": 72.3, "sector": "IT"},
+        "HDFCBANK": {"roe": 0.16, "debt_to_equity": 0.1, "market_cap": 120000000000, "revenue_growth": 0.18, "earnings_growth": 0.20, "promoter_holding": 0.0, "sector": "Banking"},
+        "INFY": {"roe": 0.32, "debt_to_equity": 0.0, "market_cap": 80000000000, "revenue_growth": 0.10, "earnings_growth": 0.11, "promoter_holding": 15.0, "sector": "IT"},
+        "ICICIBANK": {"roe": 0.18, "debt_to_equity": 0.1, "market_cap": 90000000000, "revenue_growth": 0.22, "earnings_growth": 0.25, "promoter_holding": 0.0, "sector": "Banking"},
+        "SBIN": {"roe": 0.16, "debt_to_equity": 0.2, "market_cap": 60000000000, "revenue_growth": 0.10, "earnings_growth": 0.14, "promoter_holding": 57.5, "sector": "Banking"},
+        "BHARTIARTL": {"roe": 0.12, "debt_to_equity": 0.8, "market_cap": 75000000000, "revenue_growth": 0.14, "earnings_growth": 0.40, "promoter_holding": 54.8, "sector": "Telecom"},
+        "ITC": {"roe": 0.29, "debt_to_equity": 0.0, "market_cap": 60000000000, "revenue_growth": 0.08, "earnings_growth": 0.12, "promoter_holding": 0.0, "sector": "Consumer"},
+        "L&T": {"roe": 0.14, "debt_to_equity": 0.6, "market_cap": 50000000000, "revenue_growth": 0.15, "earnings_growth": 0.18, "promoter_holding": 0.0, "sector": "Infrastructure"},
+        "KOTAKBANK": {"roe": 0.14, "debt_to_equity": 0.0, "market_cap": 40000000000, "revenue_growth": 0.11, "earnings_growth": 0.13, "promoter_holding": 25.9, "sector": "Banking"},
+        "ZOMATO": {"roe": -0.05, "debt_to_equity": 0.0, "market_cap": 15000000000, "revenue_growth": 0.55, "earnings_growth": 0.0, "promoter_holding": 0.0, "sector": "IT/Consumer"},
+        "HAL": {"roe": 0.25, "debt_to_equity": 0.1, "market_cap": 30000000000, "revenue_growth": 0.20, "earnings_growth": 0.30, "promoter_holding": 71.6, "sector": "Defense"},
+        "BEL": {"roe": 0.22, "debt_to_equity": 0.0, "market_cap": 25000000000, "revenue_growth": 0.18, "earnings_growth": 0.25, "promoter_holding": 51.1, "sector": "Defense"},
+        "TRENT": {"roe": 0.15, "debt_to_equity": 0.2, "market_cap": 20000000000, "revenue_growth": 0.45, "earnings_growth": 0.50, "promoter_holding": 37.0, "sector": "Retail"}
     }
     
     # Return defaults if not found
-    default_fund = {"roe": 0.15, "debt_to_equity": 0.3, "market_cap": 500000000, "revenue_growth": 0.12, "earnings_growth": 0.12, "promoter_holding": 51.0}
+    default_fund = {"roe": 0.15, "debt_to_equity": 0.3, "market_cap": 500000000, "revenue_growth": 0.12, "earnings_growth": 0.12, "promoter_holding": 51.0, "sector": "General"}
     return fundamentals_db.get(ticker_base, default_fund)

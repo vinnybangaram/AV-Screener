@@ -3,7 +3,6 @@ from app.services.screener_service import run_screener_on_tickers, process_ticke
 
 router = APIRouter(prefix="/api/multibagger", tags=["Multibagger Discovery"])
 
-@router.get("/")
 @router.get("")
 async def get_multibagger_candidates(refresh: bool = Query(False)):
     """
@@ -16,7 +15,8 @@ async def get_multibagger_candidates(refresh: bool = Query(False)):
         "refresh": refresh
     }
     
-    results = run_screener_on_tickers(filters=filters)
+    response = run_screener_on_tickers(filters=filters)
+    results = response.get("data", [])
     
     if not results:
         # Failsafe: if no results > 60 found, return top 3 overall to keep terminal active
@@ -28,7 +28,7 @@ async def get_multibagger_candidates(refresh: bool = Query(False)):
         # Sort descending by score
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         
-    print(f"[Screener] Scan complete — {len(results)} matches found")
+    print(f"[Multibagger] Scan complete — {len(results)} matches found")
     
     return {
         "success": True,

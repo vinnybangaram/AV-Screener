@@ -228,35 +228,6 @@ export default function OptionSignals() {
             </div>
         </div>
 
-        {/* Filter Controls (Shared) */}
-        <Card className="p-4 premium-card mb-6">
-            <div className="flex flex-wrap items-center gap-3">
-                <Tabs value={dir} onValueChange={(v) => { setDir(v as DirectionFilter); setPage(1); setReportPage(1); }}>
-                    <TabsList>
-                        <TabsTrigger value="ALL">All Directions</TabsTrigger>
-                        <TabsTrigger value="CALL">Calls Only</TabsTrigger>
-                        <TabsTrigger value="PUT">Puts Only</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <Tabs value={status} onValueChange={(v) => { setStatus(v as StatusFilter); setPage(1); setReportPage(1); }}>
-                    <TabsList>
-                        <TabsTrigger value="ALL">Any Status</TabsTrigger>
-                        <TabsTrigger value="OPEN">Open Only</TabsTrigger>
-                        <TabsTrigger value="EXIT">Closed Only</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <Tabs value={result} onValueChange={(v) => { setResult(v as ResultFilter); setPage(1); setReportPage(1); }}>
-                    <TabsList>
-                        <TabsTrigger value="ALL">All P&L</TabsTrigger>
-                        <TabsTrigger value="PROFIT">Profitable</TabsTrigger>
-                        <TabsTrigger value="LOSS">Loss-Making</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Filtered: {activeTab === "live" ? filteredLive.length : filteredStats.length} Trades
-                </span>
-            </div>
-        </Card>
 
         <TabsContent value="live" className="space-y-6 mt-0">
 
@@ -425,6 +396,36 @@ export default function OptionSignals() {
           </div>
         </Card>
       </div>
+      
+      {/* Filter Controls */}
+      <Card className="p-4 premium-card my-6">
+          <div className="flex flex-wrap items-center gap-3">
+              <Tabs value={dir} onValueChange={(v) => { setDir(v as DirectionFilter); setPage(1); setReportPage(1); }}>
+                  <TabsList>
+                      <TabsTrigger value="ALL">All Directions</TabsTrigger>
+                      <TabsTrigger value="CALL">Calls Only</TabsTrigger>
+                      <TabsTrigger value="PUT">Puts Only</TabsTrigger>
+                  </TabsList>
+              </Tabs>
+              <Tabs value={status} onValueChange={(v) => { setStatus(v as StatusFilter); setPage(1); setReportPage(1); }}>
+                  <TabsList>
+                      <TabsTrigger value="ALL">Any Status</TabsTrigger>
+                      <TabsTrigger value="OPEN">Open Only</TabsTrigger>
+                      <TabsTrigger value="EXIT">Closed Only</TabsTrigger>
+                  </TabsList>
+              </Tabs>
+              <Tabs value={result} onValueChange={(v) => { setResult(v as ResultFilter); setPage(1); setReportPage(1); }}>
+                  <TabsList>
+                      <TabsTrigger value="ALL">All P&L</TabsTrigger>
+                      <TabsTrigger value="PROFIT">Profitable</TabsTrigger>
+                      <TabsTrigger value="LOSS">Loss-Making</TabsTrigger>
+                  </TabsList>
+              </Tabs>
+              <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Filtered: {filteredLive.length} Trades
+              </span>
+          </div>
+      </Card>
 
       <TradeTable 
         trades={filteredLive} 
@@ -559,13 +560,36 @@ export default function OptionSignals() {
                         </div>
                     </Card>
 
-                    <div className="pt-4">
-                        <div className="flex items-center justify-between mb-4 px-1">
-                            <h3 className="font-bold flex items-center gap-2">
-                                <HistoryIcon className="h-4 w-4 text-accent" /> Detailed Performance Log
-                            </h3>
-                            <Badge variant="secondary" className="text-[10px] font-mono">ALL RECORDS (SYNCED)</Badge>
-                        </div>
+                        {/* Filter Controls */}
+                        <Card className="p-4 premium-card my-6">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Tabs value={dir} onValueChange={(v) => { setDir(v as DirectionFilter); setPage(1); setReportPage(1); }}>
+                                    <TabsList>
+                                        <TabsTrigger value="ALL">All Directions</TabsTrigger>
+                                        <TabsTrigger value="CALL">Calls Only</TabsTrigger>
+                                        <TabsTrigger value="PUT">Puts Only</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                                <Tabs value={status} onValueChange={(v) => { setStatus(v as StatusFilter); setPage(1); setReportPage(1); }}>
+                                    <TabsList>
+                                        <TabsTrigger value="ALL">Any Status</TabsTrigger>
+                                        <TabsTrigger value="OPEN">Open Only</TabsTrigger>
+                                        <TabsTrigger value="EXIT">Closed Only</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                                <Tabs value={result} onValueChange={(v) => { setResult(v as ResultFilter); setPage(1); setReportPage(1); }}>
+                                    <TabsList>
+                                        <TabsTrigger value="ALL">All P&L</TabsTrigger>
+                                        <TabsTrigger value="PROFIT">Profitable</TabsTrigger>
+                                        <TabsTrigger value="LOSS">Loss-Making</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                                <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                    Filtered: {filteredStats.length} Trades
+                                </span>
+                            </div>
+                        </Card>
+
                         <TradeTable 
                             trades={filteredStats} 
                             page={reportPage} 
@@ -573,8 +597,7 @@ export default function OptionSignals() {
                             pageSize={10}
                             emptyMessage="No historical trades found for the selected criteria."
                         />
-                    </div>
-                </>
+                    </>
             ) : (
                 <Card className="p-12 text-center text-muted-foreground premium-card border-dashed">
                     No historical data available for the selected period.
