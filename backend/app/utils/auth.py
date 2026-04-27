@@ -38,6 +38,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+# Simple In-Memory User Cache to reduce DB load
+_user_cache = {} # {user_id: (timestamp, user_object)}
+USER_CACHE_TTL = 60 # 1 minute
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -49,27 +53,33 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
         
     try:
-        print(f"[Auth Info] Validating token: {token[:10]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("user_id")
-        print(f"[Auth Success] Decoded User ID: {user_id}")
         if user_id is None:
             raise credentials_exception
     except jwt.ExpiredSignatureError:
-        print("[Auth Error] Token expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except jwt.PyJWTError as e:
-        print(f"[Auth Error] JWT Decode Error: {str(e)}")
+    except jwt.PyJWTError:
         raise credentials_exception
         
+    # Check Cache FIRST
+    now = datetime.utcnow()
+    if user_id in _user_cache:
+        cached_time, cached_user = _user_cache[user_id]
+        if (now - cached_time).total_seconds() < USER_CACHE_TTL:
+            return cached_user
+
+    # Cache Miss -> Query DB
     user = db.query(user_model.User).filter(user_model.User.id == int(user_id)).first()
     if user is None:
-        print(f"[Auth Error] User {user_id} not found in database")
         raise credentials_exception
+    
+    # Update Cache
+    _user_cache[user_id] = (now, user)
     return user
 
 def require_admin(user: user_model.User = Depends(get_current_user)):

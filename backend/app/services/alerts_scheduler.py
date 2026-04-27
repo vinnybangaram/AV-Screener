@@ -201,9 +201,9 @@ scheduler.add_job(
     id="dashboard_cache_rebuild", replace_existing=True
 )
 
-# 8. Option Signals Engine — every 10 seconds
+# 8. Option Signals Engine — every 30 seconds
 scheduler.add_job(
     _job_option_signals,
-    IntervalTrigger(seconds=10),
+    IntervalTrigger(seconds=30),
     id="option_signals_engine", replace_existing=True
 )
