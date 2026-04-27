@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -25,11 +26,17 @@ if db_url.startswith("sqlite"):
 if db_url.startswith("postgresql"):
     engine = create_engine(
         db_url,
-        # Balanced pool size for production stability and speed
-        pool_size=5,
-        max_overflow=2, 
-        pool_pre_ping=True,
-        pool_recycle=1800,
+        # NullPool is recommended for PgBouncer / Serverless DBs (Render/Supabase)
+        # It ensures we don't hold onto stale connections that the server closes.
+        poolclass=NullPool,
+        connect_args={
+            "sslmode": "require",
+            "connect_timeout": 10,
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        }
     )
 else:
     engine = create_engine(

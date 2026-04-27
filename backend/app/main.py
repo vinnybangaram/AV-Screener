@@ -47,11 +47,15 @@ from datetime import datetime
 import os
 from app.startup_migrations import run_migrations
 
-# 1. Run idempotent column migrations FIRST
-run_migrations()
-
-# 2. Create any brand-new tables (including stock_daily_prices)
-Base.metadata.create_all(bind=engine)
+# 1. Run migrations and create tables with safety
+try:
+    print("Initializing Database…")
+    run_migrations()
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"⚠️ Warning: Database initialization failed: {e}")
+    # We continue so the app can start and bind to the port on Render
+    # The actual API calls will show 500s if DB remains down
 
 load_dotenv()
 
