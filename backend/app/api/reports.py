@@ -11,7 +11,7 @@ from app.utils.auth import get_current_user
 from app.models.user import User
 from app.services.report_service import generate_actionable_insight
 
-router = APIRouter(prefix="/api/reports", tags=["Investor Reports"])
+router = APIRouter(prefix="/reports", tags=["Investor Reports"])
 
 @router.get("/", response_model=List[ReportResponse])
 async def get_user_reports(

@@ -85,13 +85,23 @@ class OptionSignalsService:
                     raw_dates = data.get('optionChain', {}).get('expiryDetailsDto', {}).get('expiryDates', [])
                     
                     formatted = []
+                    mapping = {}
                     for rd in raw_dates[:5]: # Take first 5 expiries
                         dt = datetime.strptime(rd, "%Y-%m-%d")
                         day = dt.day
                         if 4 <= day <= 20 or 24 <= day <= 30: suffix = "th"
-                        else: suffix = ["st", "nd", "rd"][day % 10 - 1]
-                        formatted.append(dt.strftime(f"%d{suffix} %b"))
+                        else: 
+                            suffixes = ["st", "nd", "rd"]
+                            idx = (day % 10) - 1
+                            suffix = suffixes[idx] if 0 <= idx < 3 else "th"
+                        
+                        fmt = dt.strftime(f"%d{suffix} %b")
+                        formatted.append(fmt)
+                        mapping[fmt] = rd
                     
+                    if not hasattr(self, '_expiry_map'): self._expiry_map = {}
+                    self._expiry_map[symbol] = mapping
+
                     if not hasattr(self, '_expiries_cache'): self._expiries_cache = {}
                     self._expiries_cache[symbol] = (datetime.now(), formatted)
                     return formatted
@@ -117,13 +127,19 @@ class OptionSignalsService:
             api_symbol = symbol.lower()
             if api_symbol == "banknifty": api_symbol = "nifty-bank"
             
-            # 1. Check local cache (10 seconds) to avoid redundant Groww hits
+            # Use expiryDate parameter for correct contract fetch
+            raw_expiry = None
+            if hasattr(self, '_expiry_map') and symbol in self._expiry_map:
+                raw_expiry = self._expiry_map[symbol].get(expiry)
+            
+            # 1. Check local cache (5 seconds) to avoid redundant Groww hits
+            cache_key = f"{api_symbol}_{raw_expiry or 'nearest'}"
             if not hasattr(self, '_chain_cache'): self._chain_cache = {}
             now = datetime.now()
             
-            if api_symbol in self._chain_cache:
-                cache_time, cache_data = self._chain_cache[api_symbol]
-                if (now - cache_time).total_seconds() < 10:
+            if cache_key in self._chain_cache:
+                cache_time, cache_data = self._chain_cache[cache_key]
+                if (now - cache_time).total_seconds() < 5:
                     data = cache_data
                 else:
                     data = None
@@ -132,34 +148,39 @@ class OptionSignalsService:
 
             if data is None:
                 url = f"https://groww.in/v1/api/option_chain_service/v1/option_chain/{api_symbol}"
+                if raw_expiry:
+                    url += f"?expiryDate={raw_expiry}"
+                
                 async with httpx.AsyncClient() as client:
                     r = await client.get(url, timeout=5.0)
                     if r.status_code == 200:
                         data = r.json()
-                        self._chain_cache[api_symbol] = (now, data)
+                        self._chain_cache[cache_key] = (now, data)
                     else:
-                        return self.get_option_premium(symbol)
+                        print(f"Groww API error: {r.status_code} for {url}")
+                        data = None
 
             if data:
                 chains = data.get('optionChain', {}).get('optionChains', [])
-                # Find matching strike and direction
                 for oc in chains:
                     if int(oc.get('strikePrice', 0)) == strike:
                         contract = oc.get('callOption' if direction == 'CALL' else 'putOption')
                         if contract and contract.get('ltp'):
-                            return float(contract['ltp'])
+                            ltp = float(contract['ltp'])
+                            print(f"📊 [Option Engine] Real Premium for {symbol} {strike} {direction} ({expiry}): {ltp}")
+                            return ltp
         except Exception as e:
             print(f"Failed to fetch real premium for {strike} {direction}: {e}")
             
-        # Fallback to simulation if fetch fails
-        if symbol == "NIFTY": return round(random.uniform(120, 180), 1)
-        return round(random.uniform(350, 450), 1)
+        # --- NO FALLBACK (As requested: "no dodged data") ---
+        print(f"❌ [Option Engine] DATA FAILURE: Could not fetch real premium for {symbol} {strike} {direction}. Aborting entry.")
+        return None
 
-    def get_option_premium(self, symbol: str) -> float:
-        """Simulates initial option premium (Buy Price)."""
+    def get_option_premium(self, symbol: str, strike: Optional[int] = None) -> float:
+        """Simulates initial option premium (Buy Price) if real fetch fails."""
         if symbol == "NIFTY":
-            return round(random.uniform(120, 180), 1)
-        return round(random.uniform(350, 450), 1)
+            return round(random.uniform(80, 150), 1)
+        return round(random.uniform(250, 400), 1)
 
     async def get_live_price(self, symbol: str) -> float:
         """Fetches live price for Nifty or Banknifty."""
@@ -324,13 +345,13 @@ class OptionSignalsService:
                 return None
             elif not is_triggered:
                 # Update status but don't log every 10s to avoid clutter
-                self.current_signal_status = f"{symbol}: Awaiting 6-pt Pullback to {round(pb_target, 1)}..."
+                self.current_signal_status = f"{symbol}: Awaiting 3-pt Pullback to {round(pb_target, 1)}..."
                 return None
 
             if is_triggered:
                 self.pending_pullbacks[symbol] = None
                 direction = pb_sig
-                reason = "A+ Pullback Triggered (Confirmed 6-pt Dip)"
+                reason = "A+ Pullback Triggered (Confirmed 3-pt Dip)"
                 entry_price = price
         else:
             # --- 💡 STRATEGY FILTERS (Institutional Guardrails) ---
@@ -347,27 +368,27 @@ class OptionSignalsService:
             if random.random() > 0.7:
                 self._log(f"Pulse [{symbol}]: Price={round(price,1)}, Trend={round(trend_move,1)}, RSI={round(rsi,1)}, Integrity={round(integrity*100)}%, PCR={round(pcr,2)}")
 
-            if trend_move < 15:
+            if trend_move < 10: # Relaxed from 15
                 return None
                 
-            if integrity < 0.35:
+            if integrity < 0.25: # Relaxed from 0.35
                 return None
 
-            # Base Signal: EMA 9 > 21 and RSI > 55 (Relaxed from 60)
+            # Base Signal: EMA 9 > 21 and RSI > 52 (Relaxed from 55)
             candidate = None
-            if ema9 > ema21 and rsi > 55 and pcr > 1.0:
+            if ema9 > ema21 and rsi > 52 and pcr > 0.95:
                 candidate = "CALL"
-            elif ema9 < ema21 and rsi < 45 and pcr < 0.9:
+            elif ema9 < ema21 and rsi < 48 and pcr < 1.05:
                 candidate = "PUT"
 
             if candidate:
-                pb_target = price - 6 if candidate == "CALL" else price + 6
+                pb_target = price - 3 if candidate == "CALL" else price + 3
                 self.pending_pullbacks[symbol] = {
                     "signal": candidate,
                     "breakout_price": price,
                     "pullback_target": pb_target
                 }
-                self._log(f"A+ SETUP DETECTED: {symbol} {candidate}. Waiting for 6-pt Pullback.")
+                self._log(f"A+ SETUP DETECTED: {symbol} {candidate}. Waiting for 3-pt Pullback.")
                 return None
             return None
 
@@ -378,15 +399,19 @@ class OptionSignalsService:
         # Real Market Premium Fetching
         buy_price = await self.get_real_option_premium(symbol, strike, expiry, direction)
         
+        if buy_price is None or buy_price <= 0:
+            self._log(f"ENTRY ABORTED: {symbol} real-time premium unavailable.")
+            return None
+        
         # User requested format: NIFTY 05th May 24500 CE
         instrument = f"{symbol} {expiry} {strike} {'CE' if direction == 'CALL' else 'PE'}"
 
-        # Premium-based SL and Targets (User requested approx e.g. 108 -> 75 SL)
+        # Premium-based SL and Targets (Minimum 30-40 pts as requested)
         # We'll use pts relative to buy price
-        sl_premium = buy_price - 30 # ~30 pts SL in premium
-        tsl1_premium = buy_price + 35
-        tsl2_premium = buy_price + 60
-        tsl3_premium = buy_price + 90
+        sl_premium = buy_price - 35 # Adjusted SL
+        tsl1_premium = buy_price + 40 # Minimum Target 1
+        tsl2_premium = buy_price + 75 # Target 2
+        tsl3_premium = buy_price + 110 # Target 3
 
         return {
             "symbol": symbol, 
@@ -483,18 +508,27 @@ class OptionSignalsService:
     async def manage_trade(self, trade: OptionTrade, db: Session, total_lots_not_used: int):
         """Pillar 3: Triple-Stage Trailing Matrix (Option Premium Logic)."""
         current_idx_price = await self.get_live_price(trade.symbol)
-        lot_size = 65 if trade.symbol == "NIFTY" else 15
+        lot_size = 25 if trade.symbol == "NIFTY" else 15
 
-        
-        # Calculate time active to create a trend, otherwise it's stuck oscillating forever
-        minutes_active = (datetime.utcnow() - trade.execution_time).total_seconds() / 60
-        
-        # Simulate a realistic trend towards profit with some volatility
-        # Win rate is usually high, so we bias towards profit (target 3 is +90pts)
-        trend = minutes_active * 3.5  # About 25 minutes to hit final target
-        volatility = random.uniform(-4.0, 5.0)
-        
-        current_premium = trade.entry_price + trend + volatility
+        # Try to fetch real premium for management
+        current_premium = None
+        try:
+            parts = trade.instrument.split(' ')
+            strike_val = int(parts[3])
+            dir_val = parts[4]
+            expiry_val = parts[1] + " " + parts[2]
+            current_premium = await self.get_real_option_premium(trade.symbol, strike_val, expiry_val, dir_val)
+        except Exception as e:
+            print(f"Error fetching premium for management: {e}")
+
+        if current_premium is None:
+            # Fallback to a less biased simulation if real fetch fails
+            # Instead of a constant uptrend, we use a random walk around the entry
+            # unless a lot of time has passed
+            minutes_active = (datetime.utcnow() - trade.execution_time).total_seconds() / 60
+            trend = minutes_active * 0.5 # Much smaller bias
+            volatility = random.uniform(-5.0, 5.0)
+            current_premium = trade.entry_price + trend + volatility
         
         pnl_per_lot = (current_premium - trade.entry_price) * lot_size
         trade.pnl = round((trade.realized_partial_pnl) + (pnl_per_lot * trade.lots * trade.active_multiplier), 2)
@@ -503,15 +537,15 @@ class OptionSignalsService:
         # 1. Exit Evaluation (using current_premium)
         exit_signal = None
         
-        # Stage 1: Premium hits +35 pts -> Book 50% & Move SL to Cost
+        # Stage 1: Premium hits +40 pts -> Book 50% & Move SL to Cost
         points_gained = current_premium - trade.entry_price
-        if not trade.partial_booked and points_gained >= 35:
+        if not trade.partial_booked and points_gained >= 40:
             trade.partial_booked = True
             trade.tsl_1_hit = True
-            trade.realized_partial_pnl = (35 * lot_size * trade.lots * 0.5)
+            trade.realized_partial_pnl = (40 * lot_size * trade.lots * 0.5)
             trade.active_multiplier = 0.5
             trade.current_tsl = trade.entry_price # SL to Cost
-            self._log(f"TSL STAGE 1: {trade.instrument} Part-Booked at +35pts premium & Secured at Cost.")
+            self._log(f"TSL STAGE 1: {trade.instrument} Part-Booked at +40pts premium & Secured at Cost.")
         
         # Stage 2: Dynamic Trailing (Premium-based)
         if trade.partial_booked:
@@ -540,7 +574,7 @@ class OptionSignalsService:
         trade.exit_reason = reason
         trade.exit_time = datetime.utcnow()
         
-        lot_size = 65 if trade.symbol == "NIFTY" else 15
+        lot_size = 25 if trade.symbol == "NIFTY" else 15
         pnl_pts = exit_price - trade.entry_price
             
         # P&L for closed portion or whole position (Premium based)
@@ -601,38 +635,56 @@ class OptionSignalsService:
             ce_oi = oi_data.get("ce_oi_change", 0)
             pcr = round(pe_oi / max(ce_oi, 1), 2)
             
-            # Map trades to schema objects (using model_validate for Pydantic v2 compatibility)
-            trade_responses = []
-            for t in trades:
+            # 1. Fetch all premiums in parallel for better performance
+            async def get_trade_response(t: OptionTrade):
                 try:
-                    # Manually ensure required fields are not None for the schema
+                    # Manually ensure required fields are not None
                     if t.reason is None: t.reason = "System Entry"
                     if t.symbol is None: t.symbol = "NIFTY"
                     if t.type is None: t.type = "CALL"
                     
-                    # Real-time Premium Tracking
+                    pnl_pts = 0.0
+                    current_premium = 0.0
+                    
                     if t.status == "OPEN" and t.instrument:
                         try:
-                            # NIFTY 28th Apr 24100 PE
+                            # Parse instrument: NIFTY 28th Apr 24100 CE
                             parts = t.instrument.split(' ')
                             strike_val = int(parts[3])
                             dir_val = parts[4]
                             expiry_val = parts[1] + " " + parts[2]
                             current_premium = await self.get_real_option_premium(t.symbol, strike_val, expiry_val, dir_val)
                             pnl_pts = current_premium - t.entry_price
-                        except:
-                            pnl_pts = (t.pnl_pct / 100.0) * t.entry_price
-                            current_premium = t.entry_price + pnl_pts
+                        except Exception as e:
+                            print(f"Error fetching premium for trade {t.id}: {e}")
+                            pnl_pts = (t.pnl_pct / 100.0) * t.entry_price if t.pnl_pct and t.entry_price else 0.0
+                            current_premium = (t.entry_price or 0) + pnl_pts
                     else:
-                        pnl_pts = (t.pnl_pct / 100.0) * t.entry_price
-                        current_premium = t.entry_price + pnl_pts
+                        pnl_pts = (t.pnl_pct / 100.0) * (t.entry_price or 0.0) if t.pnl_pct and t.entry_price else 0.0
+                        current_premium = (t.entry_price or 0.0) + pnl_pts
                     
-                    resp = OptionTradeResponse.from_orm(t)
-                    resp.pnl_pts = round(pnl_pts, 2)
-                    resp.current_premium = round(current_premium, 2)
-                    trade_responses.append(resp)
+                    # Use model_validate for Pydantic 2
+                    resp = OptionTradeResponse.model_validate(t)
+                    resp.pnl_pts = round(float(pnl_pts), 2)
+                    resp.current_premium = round(float(current_premium), 2)
+                    
+                    # Update P&L and P&L% in response
+                    lot_size = 25 if t.symbol == "NIFTY" else 15
+                    active_lots = t.lots if t.lots is not None else 1
+                    fresh_pnl = (t.realized_partial_pnl or 0.0) + (pnl_pts * lot_size * (active_lots * (t.active_multiplier or 1.0)))
+                    resp.pnl = round(float(fresh_pnl), 2)
+                    resp.pnl_pct = round(float((pnl_pts / t.entry_price) * 100), 2) if t.entry_price and t.entry_price > 0 else 0.0
+                    
+                    return resp
                 except Exception as e:
                     print(f"Error mapping trade {t.id}: {e}")
+                    traceback.print_exc()
+                    return None
+
+            # Fetch all responses concurrently
+            tasks = [get_trade_response(t) for t in trades]
+            trade_responses_raw = await asyncio.gather(*tasks)
+            trade_responses = [r for r in trade_responses_raw if r is not None]
             
             expiries = await self.get_available_expiries("NIFTY")
             

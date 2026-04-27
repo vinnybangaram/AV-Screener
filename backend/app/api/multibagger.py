@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 from app.services.screener_service import run_screener_on_tickers, process_ticker
 
-router = APIRouter(prefix="/api/multibagger", tags=["Multibagger Discovery"])
+router = APIRouter(prefix="/multibagger", tags=["Multibagger Discovery"])
 
 @router.get("")
 async def get_multibagger_candidates(refresh: bool = Query(False)):

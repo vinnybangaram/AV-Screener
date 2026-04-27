@@ -78,6 +78,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── MIDDLEWARE ────────────────────────────────────────────────────────────────
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    try:
+        response = await call_next(request)
+        # Fix for Google Auth Popup issue: Cross-Origin-Opener-Policy
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+        return response
+    except Exception as e:
+        # Re-raise to allow the global exception handler to catch it
+        raise e
+
 from fastapi.responses import JSONResponse
 import traceback
 
@@ -116,8 +128,8 @@ def ai_status():
 app.include_router(auth.router,          prefix="/api/auth",           tags=["Auth"])
 app.include_router(analysis.router,      prefix="/api/analyse-stock",  tags=["Analysis"])
 app.include_router(screener.router,      prefix="/api/market/screener", tags=["AI Screener"])
-app.include_router(penny_storm.router,                                  tags=["Penny Storm"])
-app.include_router(intraday.router)
+app.include_router(penny_storm.router, prefix="/api",              tags=["Penny Storm"])
+app.include_router(intraday.router,    prefix="/api",              tags=["Intraday Trading"])
 app.include_router(watchlist.router,     prefix="/api/watchlist",      tags=["Watchlist"])
 app.include_router(market.router,        prefix="/api/market",         tags=["Market"])
 app.include_router(notifications.router, prefix="/api/notifications",  tags=["Notifications"])
@@ -135,11 +147,11 @@ app.include_router(activity.router,      prefix="/api/activity",       tags=["In
 app.include_router(stock_chart.router,   prefix="/api",                tags=["Charts"])   # ← NEW
 app.include_router(stocks.router,        prefix="/api/stocks",         tags=["Conviction"]) # ← NEW
 app.include_router(portfolio_health.router, prefix="/api/portfolio",    tags=["Portfolio Health"]) # ← NEW
-app.include_router(multibagger.router) # ← NEW
+app.include_router(multibagger.router, prefix="/api") # ← NEW
 app.include_router(option_signals.router, prefix="/api") # ← NEW
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"]) # ← NEW
-app.include_router(backtest.router, tags=["Backtesting"]) # ← NEW
-app.include_router(reports.router) # ← NEW
+app.include_router(backtest.router, prefix="/api", tags=["Backtesting"]) # ← NEW
+app.include_router(reports.router, prefix="/api") # ← NEW
 app.include_router(upstox.router, prefix="/api") # ← NEW
 
 

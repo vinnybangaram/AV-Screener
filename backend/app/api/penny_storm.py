@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.services.penny_storm_service import run_penny_storm_scan
 
-router = APIRouter(prefix="/api/penny-storm", tags=["Penny Storm"])
+router = APIRouter(prefix="/penny-storm", tags=["Penny Storm"])
 
 @router.get("/scan")
 async def scan_penny_storm(refresh: bool = False):

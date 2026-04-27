@@ -21,6 +21,7 @@ class IntradayService:
 
     def get_session(self, user_id: int):
         if user_id not in self.sessions:
+            # Initialize with default values
             self.sessions[user_id] = {
                 "running": False,
                 "budget": 200000,
@@ -30,6 +31,42 @@ class IntradayService:
                 "history": [],
                 "last_scan": None
             }
+            
+            # ATTEMPT TO RESTORE FROM DATABASE (Persistence)
+            try:
+                from app.database import SessionLocal
+                from app.models.watchlist import WatchlistPosition
+                db = SessionLocal()
+                positions = db.query(WatchlistPosition).filter(
+                    WatchlistPosition.user_id == user_id,
+                    WatchlistPosition.category == "intraday"
+                ).all()
+                
+                for p in positions:
+                    is_buy = (p.side == "LONG" or p.sub_type == "long")
+                    trade = {
+                        "id": f"db_{p.id}",
+                        "symbol": p.symbol,
+                        "entry": p.entry_price or 0.0,
+                        "side": "BUY" if is_buy else "SELL",
+                        "qty": p.quantity or 1,
+                        "current": p.latest_price or p.entry_price or 0.0,
+                        "pnl": p.latest_pnl or 0.0,
+                        "pnlPct": p.latest_pnl_percent or 0.0,
+                        "sl": p.stop_loss or (p.entry_price * 0.985 if is_buy else p.entry_price * 1.015),
+                        "target": p.target_price or (p.entry_price * 1.03 if is_buy else p.entry_price * 0.97),
+                        "status": "Running"
+                    }
+                    self.sessions[user_id]["active_trades"].append(trade)
+                
+                # If we have active trades, assume the engine should be "running"
+                if self.sessions[user_id]["active_trades"]:
+                    self.sessions[user_id]["running"] = True
+                
+                db.close()
+            except Exception as e:
+                print(f"Error restoring intraday session for user {user_id}: {e}")
+                
         return self.sessions[user_id]
 
     async def get_signals(self, user_id: int) -> List[Dict[str, Any]]:
@@ -43,11 +80,17 @@ class IntradayService:
         # Process Longs (Gainers)
         for g in gainers[:5]:
             ticker_info = next((item for item in TICKER_DB if item["symbol"] == g["symbol"]), {})
+            
+            # Clip entry to Day Low to ensure realistic data
+            raw_entry = g["price"] * 0.995
+            day_low = g.get("low", raw_entry)
+            entry = max(raw_entry, day_low)
+            
             signals.append({
                 "symbol": g["symbol"],
                 "company": ticker_info.get("company", "Company Node"),
                 "sector": ticker_info.get("sector", "Other"),
-                "entry": g["price"] * 0.995,
+                "entry": round(entry, 2),
                 "current": g["price"],
                 "changePct": g["change_pct"],
                 "confidence": g.get("momentum_score", random.randint(75, 95)),
@@ -59,11 +102,17 @@ class IntradayService:
         # Process Shorts (Losers)
         for l in losers[:5]:
             ticker_info = next((item for item in TICKER_DB if item["symbol"] == l["symbol"]), {})
+            
+            # Clip entry to Day High
+            raw_entry = l["price"] * 1.005
+            day_high = l.get("high", raw_entry)
+            entry = min(raw_entry, day_high)
+            
             signals.append({
                 "symbol": l["symbol"],
                 "company": ticker_info.get("company", "Company Node"),
                 "sector": ticker_info.get("sector", "Other"),
-                "entry": l["price"] * 1.005,
+                "entry": round(entry, 2),
                 "current": l["price"],
                 "changePct": l["change_pct"],
                 "confidence": l.get("momentum_score", random.randint(75, 95)),
@@ -107,23 +156,31 @@ class IntradayService:
             db = SessionLocal()
             
             try:
-                # Pick best signals regardless of side
+                # 1. Fetch ABSOLUTE LATEST prices for the selected symbols to avoid "dodged" data
+                selected_symbols = [s["symbol"] for s in signals[:session["stock_count"]]]
+                latest_prices = await market_service.get_daily_changes(selected_symbols)
+                
+                # 2. Pick best signals and execute at fresh price
                 for s in signals[:session["stock_count"]]:
-                    qty = int((session["budget"] / session["stock_count"]) / s["current"])
+                    sym = s["symbol"]
+                    # Use latest price if available, fallback to signal price only if fetch fails
+                    entry_price = latest_prices.get(sym, {}).get("latest_price", s["current"])
+                    
+                    qty = int((session["budget"] / session["stock_count"]) / entry_price)
                     is_buy = s["side"] == "BUY"
                     side_db = "long" if is_buy else "short"
                     
                     trade = {
-                        "id": f"t_{s['symbol']}_{random.randint(1000,9999)}",
-                        "symbol": s["symbol"],
-                        "entry": s["current"],
+                        "id": f"t_{sym}_{random.randint(1000,9999)}",
+                        "symbol": sym,
+                        "entry": entry_price,
                         "side": s["side"],
                         "qty": qty,
-                        "current": s["current"],
+                        "current": entry_price,
                         "pnl": 0.0,
                         "pnlPct": 0.0,
-                        "sl": s["current"] * (0.985 if is_buy else 1.015),
-                        "target": s["current"] * (1.03 if is_buy else 0.97),
+                        "sl": entry_price * (0.985 if is_buy else 1.015),
+                        "target": entry_price * (1.03 if is_buy else 0.97),
                         "status": "Running"
                     }
                     session["active_trades"].append(trade)
@@ -131,15 +188,15 @@ class IntradayService:
                     # Sync with Database for Dashboard accuracy
                     new_pos = WatchlistPosition(
                         user_id=user_id,
-                        symbol=s["symbol"],
+                        symbol=sym,
                         company_name=s["company"],
                         category="intraday",
                         sub_type=side_db,
                         side=side_db.upper(),
-                        entry_price=s["current"],
+                        entry_price=entry_price,
                         quantity=qty,
                         is_auto_generated=True,
-                        latest_price=s["current"],
+                        latest_price=entry_price,
                         latest_pnl=0.0,
                         latest_pnl_percent=0.0,
                         stop_loss=trade["sl"],

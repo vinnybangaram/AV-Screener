@@ -65,29 +65,39 @@ async def get_top_movers() -> Dict[str, List[Dict[str, Any]]]:
         movers = []
         try:
             data = fetch_multi_stock_data(pool, period="2d", interval="1d")
-            if not data.empty and 'Close' in data:
-                close_prices = data['Close']
-                if len(close_prices) >= 2:
-                    prev_close = close_prices.iloc[-2]
-                    curr_price = close_prices.iloc[-1]
-                    
-                    for symbol in pool:
-                        yf_sym = format_symbol(symbol)
-                        # The fetcher standardizes multi-index results
-                        target_col = yf_sym
-                        if target_col in curr_price and target_col in prev_close:
-                            cp = curr_price[target_col]
-                            pc = prev_close[target_col]
-                            if pd.isna(cp) or pd.isna(pc) or pc == 0: continue
-                            
-                            change = ((cp - pc) / pc) * 100
-                            movers.append({
-                                "symbol": symbol,
-                                "price": round(float(cp), 2),
-                                "change_pct": round(float(change), 2),
-                                "volume": 0, 
-                                "momentum_score": round(float(abs(change)), 2)
-                            })
+            if not data.empty:
+                # Extract 1D OHLC from the 2D fetch
+                for symbol in pool:
+                    yf_sym = format_symbol(symbol)
+                    try:
+                        # Handle MultiIndex or Flat Index
+                        if isinstance(data.columns, pd.MultiIndex):
+                            if yf_sym not in data.columns.get_level_values(1): continue
+                            s_data = data.xs(yf_sym, level=1, axis=1)
+                        else:
+                            s_data = data # Fallback for single or different format
+                        
+                        if s_data.empty or len(s_data) < 2: continue
+                        
+                        cp = s_data['Close'].iloc[-1]
+                        pc = s_data['Close'].iloc[-2]
+                        hi = s_data['High'].iloc[-1]
+                        lo = s_data['Low'].iloc[-1]
+                        
+                        if pd.isna(cp) or pd.isna(pc) or pc == 0: continue
+                        
+                        change = ((cp - pc) / pc) * 100
+                        movers.append({
+                            "symbol": symbol,
+                            "price": round(float(cp), 2),
+                            "high": round(float(hi), 2),
+                            "low": round(float(lo), 2),
+                            "change_pct": round(float(change), 2),
+                            "volume": 0, 
+                            "momentum_score": round(float(abs(change)), 2)
+                        })
+                    except Exception as e:
+                        print(f"Error parsing symbol {symbol}: {e}")
         except Exception as e:
             print(f"[MarketService] Moover Fetch Exception: {e}")
         return movers
@@ -266,7 +276,7 @@ async def get_market_indices() -> Dict[str, Any]:
         
         # Fallbacks (to ensure UI never breaks)
         if "nifty" not in results: 
-            results["nifty"] = {"name": "NIFTY 50", "value": 24553.75, "change": 389.2, "change_pct": 1.63, "is_up": True}
+            results["nifty"] = {"name": "NIFTY 50", "value": 24231.30, "change": 38.2, "change_pct": 0.16, "is_up": True}
         if "banknifty" not in results: 
             results["banknifty"] = {"name": "BANK NIFTY", "value": 52450.15, "change": -112.4, "change_pct": -0.21, "is_up": False}
         if "sensex" not in results:

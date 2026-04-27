@@ -105,6 +105,13 @@ export default function IntradayTrading() {
   const [active, setActive] = useState<ActiveTrade[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [dayPnl, setDayPnl] = useState(0);
+  
+  // Status derived from state to prevent crashes
+  const status = useMemo(() => {
+    if (loading && !opps.length) return "Scanning";
+    if (!running) return "Idle";
+    return "Running";
+  }, [loading, running, opps.length]);
 
   const [activeTab, setActiveTab] = useState("live");
   const [reportDays, setReportDays] = useState("30");
@@ -157,10 +164,13 @@ export default function IntradayTrading() {
 
   const loadSignals = async () => {
     try {
+      setLoading(true);
       const data = await fetchIntradaySignals();
       setOpps(data);
     } catch (e) {
       console.error("Failed to load signals", e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -394,7 +404,7 @@ export default function IntradayTrading() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button size="sm" variant={running ? "destructive" : "default"} onClick={() => setRunning((v) => !v)}>
+            <Button size="sm" variant={running ? "destructive" : "default"} onClick={handleToggle}>
               {running ? <><Pause className="h-3.5 w-3.5 mr-1.5" /> Stop Engine</> : <><Play className="h-3.5 w-3.5 mr-1.5" /> Start Engine</>}
             </Button>
             <Button size="sm" variant="outline" disabled={!running} onClick={loadSignals}>

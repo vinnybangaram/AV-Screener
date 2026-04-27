@@ -7,7 +7,7 @@ from app.utils.auth import get_current_user
 from app.models.user import User
 from app.models.backtest import SavedBacktest
 
-router = APIRouter(prefix="/api/backtest", tags=["Backtesting Engine"])
+router = APIRouter(prefix="/backtest", tags=["Backtesting Engine"])
 
 @router.post("/run", response_model=BacktestResponse)
 async def run_strategy_backtest(
