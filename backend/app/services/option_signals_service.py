@@ -78,8 +78,13 @@ class OptionSignalsService:
             if api_symbol == "banknifty": api_symbol = "nifty-bank"
             
             url = f"https://groww.in/v1/api/option_chain_service/v1/option_chain/{api_symbol}"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json",
+                "Referer": "https://groww.in/option-chain"
+            }
             async with httpx.AsyncClient() as client:
-                r = await client.get(url, timeout=5.0)
+                r = await client.get(url, headers=headers, timeout=5.0)
                 if r.status_code == 200:
                     data = r.json()
                     raw_dates = data.get('optionChain', {}).get('expiryDetailsDto', {}).get('expiryDates', [])
@@ -151,8 +156,13 @@ class OptionSignalsService:
                 if raw_expiry:
                     url += f"?expiryDate={raw_expiry}"
                 
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "application/json",
+                    "Referer": "https://groww.in/option-chain"
+                }
                 async with httpx.AsyncClient() as client:
-                    r = await client.get(url, timeout=5.0)
+                    r = await client.get(url, headers=headers, timeout=5.0)
                     if r.status_code == 200:
                         data = r.json()
                         self._chain_cache[cache_key] = (now, data)

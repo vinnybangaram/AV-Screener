@@ -9,6 +9,7 @@ from app.utils.config import settings
 import uuid
 from datetime import datetime
 import os
+import asyncio
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -73,14 +74,20 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=500, detail="Google Auth misconfigured on server: GOOGLE_CLIENT_ID is missing")
 
         try:
-            idinfo = id_token.verify_oauth2_token(
-                credential,
-                google_requests.Request(),
-                client_id,
-                clock_skew_in_seconds=30,
+            # Run the synchronous verification in a thread with a 10s timeout
+            idinfo = await asyncio.wait_for(
+                asyncio.to_thread(
+                    id_token.verify_oauth2_token,
+                    credential,
+                    google_requests.Request(),
+                    client_id,
+                    clock_skew_in_seconds=30
+                ),
+                timeout=10.0
             )
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=504, detail="Google Identity Service timed out. Please try again.")
         except ValueError as ve:
-            # specifically catch verification errors to provide detail
             raise HTTPException(status_code=401, detail=f"Token verification failed: {str(ve)}")
         except Exception as e:
             raise HTTPException(status_code=401, detail=f"Google Auth failed: {str(e)}")

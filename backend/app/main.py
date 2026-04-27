@@ -69,7 +69,8 @@ origins = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "https://av-screener.vercel.app",
-    "https://av-screener-vinnybangaram.vercel.app", # Potential alternative
+    "https://av-screener-vinnybangaram.vercel.app",
+    "https://av-screener-mandhalavinodh.vercel.app", # Added common Vercel variant
     "https://av-screener.onrender.com",
     settings.FRONTEND_URL,
 ]
@@ -80,19 +81,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # ── MIDDLEWARE ────────────────────────────────────────────────────────────────
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    try:
-        response = await call_next(request)
-        # Fix for Google Auth Popup issue: Cross-Origin-Opener-Policy
-        response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
-        return response
-    except Exception as e:
-        # Re-raise to allow the global exception handler to catch it
-        raise e
+# Standard security headers handled by CORS middleware. 
+# Explicit COOP removed as it was interfering with some browser auth flows.
 
 from fastapi.responses import JSONResponse
 import traceback
